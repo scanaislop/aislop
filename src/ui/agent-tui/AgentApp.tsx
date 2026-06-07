@@ -16,6 +16,19 @@ export const AgentApp = ({ store }: { store: SessionStore }) => {
 
 	return (
 		<Box flexDirection="column" height={totalRows}>
+			<Box
+				paddingX={1}
+				borderStyle="single"
+				borderColor="gray"
+				borderTop={false}
+				borderLeft={false}
+				borderRight={false}
+			>
+				<Text bold color="green">
+					aislop agent
+				</Text>
+				<Text dimColor> · {state.provider}</Text>
+			</Box>
 			<Box flexGrow={1}>
 				<Box flexDirection="column" flexGrow={1}>
 					<StepsPanel steps={state.steps} />
