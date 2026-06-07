@@ -1,5 +1,5 @@
 import { Box, Text } from "ink";
-import { computeCostUsd, contextPct, resolvePricing } from "../../agents/pricing.js";
+import { computeCostUsd, resolvePricing } from "../../agents/pricing.js";
 import type { AgentSessionState } from "../../agents/session-state.js";
 import { fmtElapsed, fmtTokens } from "./format.js";
 
@@ -21,8 +21,10 @@ const scoreColor = (score: number | null, target: number): string => {
 
 export const Sidebar = ({ state }: { state: AgentSessionState }) => {
 	const pricing = resolvePricing(state.provider, state.model);
-	const cost = computeCostUsd(pricing, state.tokens);
-	const ctx = contextPct(pricing, state.tokens);
+	const cost = state.usage?.costUsd ?? computeCostUsd(pricing, state.tokens);
+	// Context is the share of the model window the current turn occupies, so it
+	// uses live input tokens (not the lifetime total, which can exceed 100%).
+	const ctx = pricing ? (state.tokens.in / pricing.contextWindow) * 100 : null;
 	const title = state.model ? `${state.provider} · ${state.model}` : state.provider;
 
 	return (

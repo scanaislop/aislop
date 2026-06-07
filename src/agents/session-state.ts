@@ -11,6 +11,26 @@ export interface EditEntry {
 	at: number;
 }
 
+export type StepStatus = "running" | "done" | "warn" | "failed" | "skipped";
+
+export interface StepEntry {
+	status: StepStatus;
+	label: string;
+}
+
+export interface FileEntry {
+	filePath: string;
+	additions?: number | null;
+	deletions?: number | null;
+	binary?: boolean;
+}
+
+export interface AgentUsage {
+	inputTokens: number;
+	totalTokens: number;
+	costUsd?: number;
+}
+
 export interface PendingDecision {
 	question: string;
 	options: { value: string; label: string; hint?: string }[];
@@ -54,6 +74,10 @@ export interface AgentSessionState {
 	branch: string | null;
 	activity: ActivityLine[];
 	recentEdits: EditEntry[];
+	steps: StepEntry[];
+	files: FileEntry[];
+	actions: string[];
+	usage: AgentUsage | null;
 	phase: SessionPhase;
 	pendingDecision: PendingDecision | null;
 	summary: SessionSummary | null;
@@ -68,6 +92,11 @@ export interface SessionStore {
 	pushActivity(line: ActivityLine): void;
 	recordEdit(file: string, at?: number): void;
 	addTokens(delta: Partial<TokenUsage>): void;
+	addStep(label: string): void;
+	completeStep(status: StepStatus, label: string): void;
+	setActiveStepLabel(label: string): void;
+	setFiles(files: FileEntry[]): void;
+	setUsage(usage: AgentUsage): void;
 	incPass(): void;
 	askDecision(question: string, options: PendingDecision["options"]): Promise<string>;
 	finish(summary: SessionSummary): void;
@@ -97,11 +126,22 @@ const buildInitialState = (init: SessionInit): AgentSessionState => ({
 	branch: null,
 	activity: [],
 	recentEdits: [],
+	steps: [],
+	files: [],
+	actions: [],
+	usage: null,
 	phase: "starting",
 	pendingDecision: null,
 	summary: null,
 	...init,
 });
+
+const activeStepIndex = (steps: StepEntry[]): number => {
+	for (let i = steps.length - 1; i >= 0; i -= 1) {
+		if (steps[i].status === "running") return i;
+	}
+	return -1;
+};
 
 export const createSessionState = (init: SessionInit): SessionStore => {
 	const state = buildInitialState(init);
@@ -151,6 +191,33 @@ export const createSessionState = (init: SessionInit): SessionStore => {
 		},
 		incPass() {
 			state.passes += 1;
+			emit();
+		},
+		addStep(label) {
+			state.steps.push({ status: "running", label });
+			emit();
+		},
+		completeStep(status, label) {
+			const index = activeStepIndex(state.steps);
+			if (index >= 0) state.steps[index] = { status, label };
+			else state.steps.push({ status, label });
+			emit();
+		},
+		setActiveStepLabel(label) {
+			const index = activeStepIndex(state.steps);
+			if (index >= 0) {
+				state.steps[index] = { ...state.steps[index], label };
+				emit();
+			}
+		},
+		setFiles(files) {
+			state.files = files;
+			for (const file of files) state.filesChanged.add(file.filePath);
+			emit();
+		},
+		setUsage(usage) {
+			state.usage = usage;
+			state.tokens = { ...state.tokens, total: usage.totalTokens, in: usage.inputTokens };
 			emit();
 		},
 		askDecision(question, options) {

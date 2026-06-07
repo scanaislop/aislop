@@ -120,6 +120,11 @@ export const runProviderStep = async (input: {
 				if (metadata.usage) {
 					Object.assign(input.usage, mergeProviderUsage(input.usage, metadata.usage));
 					input.tui.setMetric("Tokens", formatUsageTotals(input.usage));
+					input.tui.setUsage({
+						inputTokens: input.usage.inputTokens,
+						totalTokens: input.usage.totalTokens,
+						costUsd: input.usage.costUsd,
+					});
 					input.session.append("provider.usage", {
 						provider: input.selected.provider.id,
 						usage: input.usage,
