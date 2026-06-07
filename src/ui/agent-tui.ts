@@ -124,7 +124,13 @@ export class AgentTui {
 	}
 
 	appendLog(source: string, line: string): void {
-		this.store.pushActivity({ ...classify(line), at: Date.now() });
+		const entry = classify(line);
+		// Drop low-signal lifecycle events (thread/turn/item.*) — the Steps panel
+		// and sidebar already carry session state; only show what the agent did.
+		if (entry.kind === "event") return;
+		const last = this.store.getState().activity.at(-1);
+		if (last && last.kind === entry.kind && last.text === entry.text) return;
+		this.store.pushActivity({ ...entry, at: Date.now() });
 		if (!this.tty) this.write(`   ${source.padEnd(8)} ${line}\n`);
 	}
 
@@ -156,19 +162,25 @@ export class AgentTui {
 			worktree: this.store.getState().worktree,
 			sessionId: null,
 		});
+		this.teardown();
 		if (!this.tty) this.write(` ${opts.footer}\n`);
-		void this.unmount();
 	}
 
 	abort(): void {
 		this.store.update({ phase: "error" });
-		void this.unmount();
+		this.teardown();
 	}
 
-	private async unmount(): Promise<void> {
-		if (!this.handle) return;
-		const handle = await this.handle;
-		handle.unmount();
-		this.handle = null;
+	// Exit the alt-screen synchronously so any summary printed by the caller
+	// lands on the restored shell instead of being wiped by an async unmount.
+	private teardown(): void {
+		if (this.resolvedHandle) {
+			this.resolvedHandle.unmount();
+			this.resolvedHandle = null;
+			this.handle = null;
+		} else {
+			void this.handle?.then((handle) => handle.unmount());
+			this.handle = null;
+		}
 	}
 }

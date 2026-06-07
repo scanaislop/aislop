@@ -25,15 +25,27 @@ export const Sidebar = ({ state }: { state: AgentSessionState }) => {
 	// Context is the share of the model window the current turn occupies, so it
 	// uses live input tokens (not the lifetime total, which can exceed 100%).
 	const ctx = pricing ? (state.tokens.in / pricing.contextWindow) * 100 : null;
+	const hasUsage = state.tokens.total > 0;
 	const title = state.model ? `${state.provider} · ${state.model}` : state.provider;
 
 	return (
-		<Box flexDirection="column" width={30} paddingX={1} borderStyle="round" borderColor="gray">
+		<Box
+			flexDirection="column"
+			width={30}
+			alignSelf="flex-start"
+			paddingX={1}
+			borderStyle="round"
+			borderColor="gray"
+		>
 			<Text bold>{title}</Text>
 			<Box marginTop={1} flexDirection="column">
 				<Row
 					label="Score"
-					value={`${state.score ?? "--"}→${state.targetScore}`}
+					value={
+						state.score != null && state.score >= state.targetScore
+							? `${state.score} ✓`
+							: `${state.score ?? "--"} → ${state.targetScore}`
+					}
 					color={scoreColor(state.score, state.targetScore)}
 				/>
 				<Row
@@ -42,9 +54,9 @@ export const Sidebar = ({ state }: { state: AgentSessionState }) => {
 				/>
 				<Row label="Files" value={String(state.filesChanged.size)} />
 				<Row label="Passes" value={String(state.passes)} />
-				<Row label="Tokens" value={fmtTokens(state.tokens.total)} />
-				{cost != null ? <Row label="Cost" value={`$${cost.toFixed(2)}`} /> : null}
-				{ctx != null ? <Row label="Context" value={`${Math.round(ctx)}%`} /> : null}
+				<Row label="Tokens" value={hasUsage ? fmtTokens(state.tokens.total) : "--"} />
+				{hasUsage && cost != null ? <Row label="Cost" value={`$${cost.toFixed(2)}`} /> : null}
+				{hasUsage && ctx != null ? <Row label="Context" value={`${Math.round(ctx)}%`} /> : null}
 				<Row label="Elapsed" value={fmtElapsed(Date.now() - state.startedAt)} />
 			</Box>
 		</Box>

@@ -1,4 +1,4 @@
-import { Box, Text, useStdout } from "ink";
+import { Box, Text, useInput, useStdout } from "ink";
 import type { SessionStore } from "../../agents/session-state.js";
 import { ActivityPane } from "./ActivityPane.js";
 import { DecisionBar } from "./DecisionBar.js";
@@ -10,6 +10,14 @@ import { useStore } from "./useStore.js";
 
 export const AgentApp = ({ store }: { store: SessionStore }) => {
 	const state = useStore(store);
+	// Holding an input handler keeps Ink in raw mode so stray keys (arrows, etc.)
+	// are consumed instead of echoing as `^[[A`. Ctrl+C restores the screen and quits.
+	useInput((_input, key) => {
+		if (key.ctrl && _input === "c") {
+			process.stdout.write("\x1b[?25h\x1b[?1049l");
+			process.exit(130);
+		}
+	});
 	const { stdout } = useStdout();
 	const totalRows = stdout?.rows ?? 24;
 	const activityRows = Math.max(3, Math.floor((totalRows - 10) / 2));
