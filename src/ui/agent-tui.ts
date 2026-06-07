@@ -33,11 +33,20 @@ const parseScore = (value: string): number | null => {
 	return Number.isNaN(n) ? null : n;
 };
 
+// Unwrap `/bin/zsh -lc '…'` / `bash -c "…"` so the real command shows, not the shell.
+const unwrapShell = (cmd: string): string => {
+	const match = cmd.match(/-l?c\s+(['"])([\s\S]*)\1\s*$/);
+	return match ? match[2] : cmd;
+};
+
 const classify = (
 	line: string,
 ): { kind: "assistant" | "tool" | "exec" | "event"; text: string } => {
 	for (const kind of ["assistant", "tool", "exec"] as const) {
-		if (line.startsWith(`${kind}: `)) return { kind, text: line.slice(kind.length + 2) };
+		if (line.startsWith(`${kind}: `)) {
+			const text = line.slice(kind.length + 2);
+			return { kind, text: kind === "exec" ? unwrapShell(text) : text };
+		}
 	}
 	return { kind: "event", text: line };
 };
@@ -49,8 +58,6 @@ export class AgentTui {
 	private readonly write: (s: string) => void;
 	private readonly tty: boolean;
 	private handle: Promise<TuiHandle> | null = null;
-	private resolvedHandle: TuiHandle | null = null;
-	private paused = false;
 
 	constructor(options: AgentTuiOptions) {
 		this.write = options.write ?? ((s) => process.stdout.write(s));
@@ -64,27 +71,8 @@ export class AgentTui {
 	}
 
 	private ensureMounted(): void {
-		if (!this.tty || this.handle || this.paused) return;
-		this.handle = import("./agent-tui/mount.js")
-			.then((m) => m.mountAgentTui(this.store))
-			.then((handle) => {
-				this.resolvedHandle = handle;
-				return handle;
-			});
-	}
-
-	pause(): void {
-		if (!this.tty) return;
-		this.paused = true;
-		this.resolvedHandle?.unmount();
-		this.resolvedHandle = null;
-		this.handle = null;
-	}
-
-	resume(): void {
-		if (!this.tty || !this.paused) return;
-		this.paused = false;
-		this.ensureMounted();
+		if (!this.tty || this.handle) return;
+		this.handle = import("./agent-tui/mount.js").then((m) => m.mountAgentTui(this.store));
 	}
 
 	setActions(actions: string[]): void {
@@ -128,8 +116,10 @@ export class AgentTui {
 		// Drop low-signal lifecycle events (thread/turn/item.*) — the Steps panel
 		// and sidebar already carry session state; only show what the agent did.
 		if (entry.kind === "event") return;
-		const last = this.store.getState().activity.at(-1);
-		if (last && last.kind === entry.kind && last.text === entry.text) return;
+		// Providers re-emit each command (on start, then in the completion summary),
+		// so dedupe against a small recent window, not just the previous line.
+		const recent = this.store.getState().activity.slice(-6);
+		if (recent.some((a) => a.kind === entry.kind && a.text === entry.text)) return;
 		this.store.pushActivity({ ...entry, at: Date.now() });
 		if (!this.tty) this.write(`   ${source.padEnd(8)} ${line}\n`);
 	}
@@ -152,7 +142,7 @@ export class AgentTui {
 		return this.store.askDecision(question, options);
 	}
 
-	finish(opts: { footer: string }): void {
+	async finish(opts: { footer: string }): Promise<void> {
 		this.store.finish({
 			scoreStart: this.store.getState().scoreStart,
 			score: this.store.getState().score,
@@ -162,25 +152,22 @@ export class AgentTui {
 			worktree: this.store.getState().worktree,
 			sessionId: null,
 		});
-		this.teardown();
+		await this.close();
 		if (!this.tty) this.write(` ${opts.footer}\n`);
 	}
 
-	abort(): void {
+	async abort(): Promise<void> {
 		this.store.update({ phase: "error" });
-		this.teardown();
+		await this.close();
 	}
 
-	// Exit the alt-screen synchronously so any summary printed by the caller
-	// lands on the restored shell instead of being wiped by an async unmount.
-	private teardown(): void {
-		if (this.resolvedHandle) {
-			this.resolvedHandle.unmount();
-			this.resolvedHandle = null;
-			this.handle = null;
-		} else {
-			void this.handle?.then((handle) => handle.unmount());
-			this.handle = null;
-		}
+	// Tear the alt-screen down fully (await Ink's exit) BEFORE returning, so the
+	// caller's summary prints onto the restored shell instead of being wiped.
+	private async close(): Promise<void> {
+		const pending = this.handle;
+		this.handle = null;
+		if (!pending) return;
+		const handle = await pending;
+		await handle.close();
 	}
 }

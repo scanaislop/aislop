@@ -1,12 +1,17 @@
 import { Box, Text } from "ink";
 import type { FileEntry } from "../../agents/session-state.js";
 
-const diffStat = (file: FileEntry): string => {
-	if (file.binary) return "binary";
+const DiffStat = ({ file }: { file: FileEntry }) => {
+	if (file.binary) return <Text dimColor>binary</Text>;
 	if (typeof file.additions === "number" || typeof file.deletions === "number") {
-		return `+${file.additions ?? 0} -${file.deletions ?? 0}`;
+		return (
+			<Text>
+				<Text color="green">+{file.additions ?? 0}</Text>{" "}
+				<Text color="red">-{file.deletions ?? 0}</Text>
+			</Text>
+		);
 	}
-	return "changed";
+	return <Text dimColor>changed</Text>;
 };
 
 export const FilesPanel = ({ files }: { files: FileEntry[] }) => {
@@ -18,7 +23,7 @@ export const FilesPanel = ({ files }: { files: FileEntry[] }) => {
 			{shown.map((file) => (
 				<Text key={file.filePath} wrap="truncate-middle">
 					<Text color="green">✓ </Text>
-					{file.filePath} <Text dimColor>{diffStat(file)}</Text>
+					{file.filePath} <DiffStat file={file} />
 				</Text>
 			))}
 			{files.length > shown.length ? (

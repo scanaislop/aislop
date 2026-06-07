@@ -16,13 +16,13 @@ const mkTui = () => {
 };
 
 describe("AgentTui adapter (non-TTY)", () => {
-	it("streams step completions, provider output, and the footer", () => {
+	it("streams step completions, provider output, and the footer", async () => {
 		const { tui, out } = mkTui();
 		tui.start("Preparing local session");
 		tui.complete({ status: "done", label: "Created worktree agent-2680" });
 		tui.appendLog("codex", "assistant: fixed issue");
 		tui.setFiles([{ filePath: "src/a.ts", updatedAt: "now", additions: 12, deletions: 3 }]);
-		tui.finish({ footer: "Done · codex · 800ms" });
+		await tui.finish({ footer: "Done · codex · 800ms" });
 
 		const text = out();
 		expect(text).toContain("Created worktree agent-2680");
@@ -33,20 +33,16 @@ describe("AgentTui adapter (non-TTY)", () => {
 		expect(text).not.toContain("\x1b[?1049h");
 	});
 
-	it("does not throw on the full reporter API", () => {
+	it("does not throw on the full reporter API", async () => {
 		const { tui } = mkTui();
-		expect(() => {
-			tui.start("step");
-			tui.setActiveLabel("step working");
-			tui.setMetric("Score", "14 -> 24");
-			tui.setMetric("Remaining", 51);
-			tui.setMetric("Pass", 1);
-			tui.setUsage({ inputTokens: 1000, totalTokens: 2000, costUsd: 0.05 });
-			tui.setActions(["Continue: 3 actionable findings remain"]);
-			tui.pause();
-			tui.resume();
-			tui.complete({ status: "done", label: "step done" });
-			tui.abort();
-		}).not.toThrow();
+		tui.start("step");
+		tui.setActiveLabel("step working");
+		tui.setMetric("Score", "14 -> 24");
+		tui.setMetric("Remaining", 51);
+		tui.setMetric("Pass", 1);
+		tui.setUsage({ inputTokens: 1000, totalTokens: 2000, costUsd: 0.05 });
+		tui.setActions(["Continue: 3 actionable findings remain"]);
+		tui.complete({ status: "done", label: "step done" });
+		await expect(tui.abort()).resolves.toBeUndefined();
 	});
 });

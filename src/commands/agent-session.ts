@@ -301,7 +301,7 @@ export const runAgentSession = async (
 			applied,
 			published: Boolean(published),
 		});
-		tui.finish({
+		await tui.finish({
 			footer: `Done · ${selected.provider.id} · ${Math.round(performance.now() - started)}ms`,
 		});
 		printAgentSessionSummary({
@@ -323,7 +323,7 @@ export const runAgentSession = async (
 		session?.append("session.failed", {
 			message: error instanceof Error ? error.message : String(error),
 		});
-		tui.abort();
+		await tui.abort();
 		log.error(error instanceof Error ? error.message : String(error));
 		process.exitCode = 1;
 	} finally {

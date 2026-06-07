@@ -1,7 +1,7 @@
 import type { SessionStore } from "../../agents/session-state.js";
 
 export interface TuiHandle {
-	unmount(): void;
+	close(): Promise<void>;
 }
 
 const ALT_SCREEN_ON = "\x1b[?1049h";
@@ -23,8 +23,11 @@ export const mountAgentTui = async (store: SessionStore): Promise<TuiHandle> => 
 	const instance = render(React.createElement(AgentApp, { store }), { exitOnCtrlC: false });
 
 	return {
-		unmount: () => {
+		close: async () => {
 			instance.unmount();
+			// Wait for Ink to flush its final teardown BEFORE leaving the alt-screen,
+			// otherwise the last frame bleeds onto the restored shell.
+			await instance.waitUntilExit();
 			process.stdout.write(SHOW_CURSOR + ALT_SCREEN_OFF);
 		},
 	};
