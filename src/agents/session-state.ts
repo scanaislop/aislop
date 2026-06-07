@@ -111,6 +111,12 @@ type SessionInit = Pick<
 > &
 	Partial<AgentSessionState>;
 
+interface SessionStoreDeps {
+	state: AgentSessionState;
+	subscribers: Set<() => void>;
+	emit: () => void;
+}
+
 const buildInitialState = (init: SessionInit): AgentSessionState => ({
 	model: null,
 	scoreStart: null,
@@ -143,103 +149,142 @@ const activeStepIndex = (steps: StepEntry[]): number => {
 	return -1;
 };
 
-export const createSessionState = (init: SessionInit): SessionStore => {
-	const state = buildInitialState(init);
-
-	const subscribers = new Set<() => void>();
-	const emit = (): void => {
+const createEmitter = (subscribers: Set<() => void>): (() => void) => {
+	return () => {
 		for (const fn of subscribers) fn();
 	};
+};
+
+const createCoreMethods = ({
+	state,
+	subscribers,
+	emit,
+}: SessionStoreDeps): Pick<SessionStore, "getState" | "subscribe" | "update"> => ({
+	getState: () => state,
+	subscribe(fn) {
+		subscribers.add(fn);
+		return () => {
+			subscribers.delete(fn);
+		};
+	},
+	update(patch) {
+		Object.assign(state, typeof patch === "function" ? patch(state) : patch);
+		emit();
+	},
+});
+
+const createActivityMethods = ({
+	state,
+	emit,
+}: Pick<SessionStoreDeps, "state" | "emit">): Pick<
+	SessionStore,
+	"pushActivity" | "recordEdit" | "setFiles"
+> => ({
+	pushActivity(line) {
+		state.activity.push(line);
+		if (state.activity.length > ACTIVITY_CAP) {
+			state.activity.splice(0, state.activity.length - ACTIVITY_CAP);
+		}
+		emit();
+	},
+	recordEdit(file, at = Date.now()) {
+		state.filesChanged.add(file);
+		state.filesEdited.add(file);
+		state.recentEdits.push({ file, at });
+		if (state.recentEdits.length > EDITS_CAP) {
+			state.recentEdits.splice(0, state.recentEdits.length - EDITS_CAP);
+		}
+		emit();
+	},
+	setFiles(files) {
+		state.files = files;
+		for (const file of files) state.filesChanged.add(file.filePath);
+		emit();
+	},
+});
+
+const createProgressMethods = ({
+	state,
+	emit,
+}: Pick<SessionStoreDeps, "state" | "emit">): Pick<
+	SessionStore,
+	"addTokens" | "incPass" | "addStep" | "completeStep" | "setActiveStepLabel" | "setUsage"
+> => ({
+	addTokens(delta) {
+		const t = state.tokens;
+		state.tokens = {
+			in: t.in + (delta.in ?? 0),
+			out: t.out + (delta.out ?? 0),
+			cached: t.cached + (delta.cached ?? 0),
+			total: t.total + (delta.total ?? 0),
+		};
+		emit();
+	},
+	incPass() {
+		state.passes += 1;
+		emit();
+	},
+	addStep(label) {
+		state.steps.push({ status: "running", label });
+		emit();
+	},
+	completeStep(status, label) {
+		const index = activeStepIndex(state.steps);
+		if (index >= 0) state.steps[index] = { status, label };
+		else state.steps.push({ status, label });
+		emit();
+	},
+	setActiveStepLabel(label) {
+		const index = activeStepIndex(state.steps);
+		if (index >= 0) {
+			state.steps[index] = { ...state.steps[index], label };
+			emit();
+		}
+	},
+	setUsage(usage) {
+		state.usage = usage;
+		state.tokens = { ...state.tokens, total: usage.totalTokens, in: usage.inputTokens };
+		emit();
+	},
+});
+
+const createDecisionMethods = ({
+	state,
+	emit,
+}: Pick<SessionStoreDeps, "state" | "emit">): Pick<SessionStore, "askDecision" | "finish"> => ({
+	askDecision(question, options) {
+		return new Promise<string>((resolve) => {
+			state.pendingDecision = {
+				question,
+				options,
+				resolve: (value) => {
+					state.pendingDecision = null;
+					state.phase = "running";
+					emit();
+					resolve(value);
+				},
+			};
+			state.phase = "awaiting-decision";
+			emit();
+		});
+	},
+	finish(summary) {
+		state.summary = summary;
+		state.phase = "done";
+		emit();
+	},
+});
+
+export const createSessionState = (init: SessionInit): SessionStore => {
+	const state = buildInitialState(init);
+	const subscribers = new Set<() => void>();
+	const emit = createEmitter(subscribers);
+	const deps = { state, subscribers, emit };
 
 	return {
-		getState: () => state,
-		subscribe(fn) {
-			subscribers.add(fn);
-			return () => {
-				subscribers.delete(fn);
-			};
-		},
-		update(patch) {
-			Object.assign(state, typeof patch === "function" ? patch(state) : patch);
-			emit();
-		},
-		pushActivity(line) {
-			state.activity.push(line);
-			if (state.activity.length > ACTIVITY_CAP) {
-				state.activity.splice(0, state.activity.length - ACTIVITY_CAP);
-			}
-			emit();
-		},
-		recordEdit(file, at = Date.now()) {
-			state.filesChanged.add(file);
-			state.filesEdited.add(file);
-			state.recentEdits.push({ file, at });
-			if (state.recentEdits.length > EDITS_CAP) {
-				state.recentEdits.splice(0, state.recentEdits.length - EDITS_CAP);
-			}
-			emit();
-		},
-		addTokens(delta) {
-			const t = state.tokens;
-			state.tokens = {
-				in: t.in + (delta.in ?? 0),
-				out: t.out + (delta.out ?? 0),
-				cached: t.cached + (delta.cached ?? 0),
-				total: t.total + (delta.total ?? 0),
-			};
-			emit();
-		},
-		incPass() {
-			state.passes += 1;
-			emit();
-		},
-		addStep(label) {
-			state.steps.push({ status: "running", label });
-			emit();
-		},
-		completeStep(status, label) {
-			const index = activeStepIndex(state.steps);
-			if (index >= 0) state.steps[index] = { status, label };
-			else state.steps.push({ status, label });
-			emit();
-		},
-		setActiveStepLabel(label) {
-			const index = activeStepIndex(state.steps);
-			if (index >= 0) {
-				state.steps[index] = { ...state.steps[index], label };
-				emit();
-			}
-		},
-		setFiles(files) {
-			state.files = files;
-			for (const file of files) state.filesChanged.add(file.filePath);
-			emit();
-		},
-		setUsage(usage) {
-			state.usage = usage;
-			state.tokens = { ...state.tokens, total: usage.totalTokens, in: usage.inputTokens };
-			emit();
-		},
-		askDecision(question, options) {
-			return new Promise<string>((resolve) => {
-				state.pendingDecision = {
-					question,
-					options,
-					resolve: (value) => {
-						state.pendingDecision = null;
-						state.phase = "running";
-						emit();
-						resolve(value);
-					},
-				};
-				state.phase = "awaiting-decision";
-				emit();
-			});
-		},
-		finish(summary) {
-			state.summary = summary;
-			state.phase = "done";
-			emit();
-		},
+		...createCoreMethods(deps),
+		...createActivityMethods(deps),
+		...createProgressMethods(deps),
+		...createDecisionMethods(deps),
 	};
 };
