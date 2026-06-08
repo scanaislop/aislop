@@ -5,7 +5,7 @@ export interface TokenUsage {
 	total: number;
 }
 
-export interface Pricing {
+interface Pricing {
 	model: string;
 	inPerMTok: number;
 	outPerMTok: number;

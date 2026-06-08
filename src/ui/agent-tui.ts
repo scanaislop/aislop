@@ -9,7 +9,7 @@ interface AgentTuiContext {
 	targetScore: number;
 }
 
-export interface AgentTuiOptions extends AgentTuiContext {
+interface AgentTuiOptions extends AgentTuiContext {
 	write?: (s: string) => void;
 	tty?: boolean;
 }
@@ -19,7 +19,7 @@ interface CompleteStep {
 	label: string;
 }
 
-export interface AgentTuiFile {
+interface AgentTuiFile {
 	filePath: string;
 	updatedAt: string;
 	source?: string;

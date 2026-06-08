@@ -160,18 +160,22 @@ export const runAgentSession = async (
 			count: findings.length,
 			findings: findings.map(summarizeAgentFinding),
 		});
-		if (findings.length === 0) {
+		// No findings for the agent (LLM). If the deterministic safe fix already
+		// changed files, fall through so those changes get applied; only short-circuit
+		// when nothing changed at all (otherwise the safe fix would be discarded).
+		if (findings.length === 0 && tracker.files().length === 0) {
 			session.append("session.completed", {
 				durationMs: Math.round(performance.now() - started),
 				scoreBefore: before.score,
 				scoreAfter: afterFix.score,
 				reason: "no_agent_findings",
 			});
-			await tui.finish({
-				footer: `Already at ${afterFix.score ?? "?"}/100 · nothing to repair`,
-			});
+			const atTarget = (afterFix.score ?? 0) >= options.targetScore;
+			await tui.finish({ footer: `Score ${afterFix.score ?? "?"}/100 · nothing to repair` });
 			log.success(
-				`Already at ${afterFix.score ?? "?"}/100 — no agent-fixable findings. Nothing to do.`,
+				atTarget
+					? `Already at ${afterFix.score ?? "?"}/100 — nothing to do.`
+					: `Score ${afterFix.score ?? "?"}/100. No agent-fixable findings; run \`aislop fix\` for any auto-fixable issues.`,
 			);
 			return;
 		}
