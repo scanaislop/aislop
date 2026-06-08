@@ -160,6 +160,21 @@ export const runAgentSession = async (
 			count: findings.length,
 			findings: findings.map(summarizeAgentFinding),
 		});
+		if (findings.length === 0) {
+			session.append("session.completed", {
+				durationMs: Math.round(performance.now() - started),
+				scoreBefore: before.score,
+				scoreAfter: afterFix.score,
+				reason: "no_agent_findings",
+			});
+			await tui.finish({
+				footer: `Already at ${afterFix.score ?? "?"}/100 · nothing to repair`,
+			});
+			log.success(
+				`Already at ${afterFix.score ?? "?"}/100 — no agent-fixable findings. Nothing to do.`,
+			);
+			return;
+		}
 		await runProviderStep({
 			tui,
 			session,
