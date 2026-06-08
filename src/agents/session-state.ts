@@ -78,6 +78,7 @@ export interface AgentSessionState {
 	files: FileEntry[];
 	actions: string[];
 	usage: AgentUsage | null;
+	estimatedTokens: number;
 	phase: SessionPhase;
 	pendingDecision: PendingDecision | null;
 	summary: SessionSummary | null;
@@ -97,6 +98,7 @@ export interface SessionStore {
 	setActiveStepLabel(label: string): void;
 	setFiles(files: FileEntry[]): void;
 	setUsage(usage: AgentUsage): void;
+	setEstimatedTokens(tokens: number): void;
 	incPass(): void;
 	askDecision(question: string, options: PendingDecision["options"]): Promise<string>;
 	finish(summary: SessionSummary): void;
@@ -136,6 +138,7 @@ const buildInitialState = (init: SessionInit): AgentSessionState => ({
 	files: [],
 	actions: [],
 	usage: null,
+	estimatedTokens: 0,
 	phase: "starting",
 	pendingDecision: null,
 	summary: null,
@@ -208,7 +211,13 @@ const createProgressMethods = ({
 	emit,
 }: Pick<SessionStoreDeps, "state" | "emit">): Pick<
 	SessionStore,
-	"addTokens" | "incPass" | "addStep" | "completeStep" | "setActiveStepLabel" | "setUsage"
+	| "addTokens"
+	| "incPass"
+	| "addStep"
+	| "completeStep"
+	| "setActiveStepLabel"
+	| "setUsage"
+	| "setEstimatedTokens"
 > => ({
 	addTokens(delta) {
 		const t = state.tokens;
@@ -243,7 +252,13 @@ const createProgressMethods = ({
 	},
 	setUsage(usage) {
 		state.usage = usage;
+		state.estimatedTokens = 0;
 		state.tokens = { ...state.tokens, total: usage.totalTokens, in: usage.inputTokens };
+		emit();
+	},
+	setEstimatedTokens(tokens) {
+		if (state.usage) return;
+		state.estimatedTokens = tokens;
 		emit();
 	},
 });

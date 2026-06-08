@@ -1,5 +1,8 @@
-export const fmtTokens = (n: number): string =>
-	n >= 1000 ? `${Math.round(n / 1000)}k` : String(n);
+export const fmtTokens = (n: number): string => {
+	if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+	if (n >= 1000) return `${Math.round(n / 1000)}k`;
+	return String(n);
+};
 
 export const fmtElapsed = (ms: number): string => {
 	const totalSeconds = Math.round(ms / 1000);

@@ -54,7 +54,16 @@ export const Sidebar = ({ state }: { state: AgentSessionState }) => {
 				/>
 				<Row label="Files" value={String(state.filesChanged.size)} />
 				<Row label="Passes" value={String(state.passes)} />
-				<Row label="Tokens" value={hasUsage ? fmtTokens(state.tokens.total) : "--"} />
+				<Row
+					label="Tokens"
+					value={
+						hasUsage
+							? fmtTokens(state.tokens.total)
+							: state.estimatedTokens > 0
+								? `~${fmtTokens(state.estimatedTokens)}`
+								: "--"
+					}
+				/>
 				{hasUsage && cost != null ? <Row label="Cost" value={`$${cost.toFixed(2)}`} /> : null}
 				{hasUsage && ctx != null ? <Row label="Context" value={`${Math.round(ctx)}%`} /> : null}
 				<Row label="Elapsed" value={fmtElapsed(Date.now() - state.startedAt)} />

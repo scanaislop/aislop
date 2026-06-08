@@ -58,6 +58,7 @@ export class AgentTui {
 	private readonly write: (s: string) => void;
 	private readonly tty: boolean;
 	private handle: Promise<TuiHandle> | null = null;
+	private streamedChars = 0;
 
 	constructor(options: AgentTuiOptions) {
 		this.write = options.write ?? ((s) => process.stdout.write(s));
@@ -112,6 +113,10 @@ export class AgentTui {
 	}
 
 	appendLog(source: string, line: string): void {
+		// Codex only reports real usage once (at turn end), so estimate live from
+		// streamed bytes (~4 chars/token) until the exact number lands.
+		this.streamedChars += line.length;
+		this.store.setEstimatedTokens(Math.round(this.streamedChars / 4));
 		const entry = classify(line);
 		// Drop low-signal lifecycle events (thread/turn/item.*) — the Steps panel
 		// and sidebar already carry session state; only show what the agent did.
