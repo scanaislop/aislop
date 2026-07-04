@@ -3,7 +3,7 @@ import type { AgentProviderSelection } from "../agents/providers.js";
 import { loadConfig } from "../config/index.js";
 import type { AgentMonitorOptions } from "../commands/agent-monitor-types.js";
 import type { AgentOptions } from "../commands/agent-types.js";
-import { type CommandName, withCommandLifecycle } from "../telemetry/index.js";
+import { type CommandName, type ErrorKind, withCommandLifecycle } from "../telemetry/index.js";
 
 export const parseInteger = (value: string): number => Number.parseInt(value, 10);
 
@@ -204,10 +204,11 @@ export const withAgentLifecycle = async (
 			properties,
 		},
 		async () => {
-			const completionProperties = await run();
+			const { errorKind, ...completionProperties } = (await run()) ?? {};
 			return {
 				exitCode: exitCodeFromProcess(),
-				properties: completionProperties ?? undefined,
+				errorKind: errorKind as ErrorKind | undefined,
+				properties: Object.keys(completionProperties).length > 0 ? completionProperties : undefined,
 			};
 		},
 	);

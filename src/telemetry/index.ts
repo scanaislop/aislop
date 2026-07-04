@@ -4,6 +4,7 @@ export {
 	buildMcpToolCalledProps,
 	type CommandName,
 	type EngineCounts,
+	type ErrorKind,
 	errorKindFromException,
 } from "./events.js";
 export { ensureInstallId, resolveInstallIdPath } from "./identity.js";

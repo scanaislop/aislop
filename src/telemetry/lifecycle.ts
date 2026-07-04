@@ -7,6 +7,7 @@ import {
 	buildCommandStartedProps,
 	type CommandName,
 	type EngineCounts,
+	type ErrorKind,
 	errorKindFromException,
 } from "./events.js";
 
@@ -20,6 +21,7 @@ interface CommandLifecycleStart {
 
 interface CommandCompletionInfo {
 	exitCode: number;
+	errorKind?: ErrorKind;
 	score?: number | null;
 	scoreable?: boolean;
 	findingCount?: number;
@@ -63,6 +65,7 @@ export const withCommandLifecycle = async <T extends CommandCompletionInfo>(
 				startProps,
 				exitCode: result.exitCode,
 				durationMs,
+				errorKind: result.errorKind,
 				score: result.score ?? undefined,
 				findingCount: result.findingCount,
 				errorCount: result.errorCount,

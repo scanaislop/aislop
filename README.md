@@ -10,11 +10,17 @@ aislop catches them. 50+ rules across 8 language targets (TypeScript, JavaScript
 
 ## Quick start
 
+**1. Scan** — get your score in seconds. No install needed, works on any project.
+
 ```bash
 npx aislop@latest scan
 ```
 
-No install needed. Works on any project. Get your score in seconds.
+**2. Install the hook** — so your coding agent fixes slop before it lands, on every edit.
+
+```bash
+npx aislop@latest hook install
+```
 
 Also available on npm, Yarn, Bun, Homebrew, and PyPI:
 
