@@ -7,6 +7,7 @@ import { renderDisplayRows, renderDisplaySection } from "../ui/display.js";
 import { renderHeader } from "../ui/header.js";
 import { log } from "../ui/logger.js";
 import { agentConnectCommand } from "./agent-connect.js";
+import { errorKindFromException } from "../telemetry/index.js";
 import { APP_VERSION } from "../version.js";
 import { launchAgentInBackground, renderBackgroundLaunch } from "./agent-background.js";
 import { runAgentSession, type AgentSessionRunTelemetry } from "./agent-session.js";
@@ -121,7 +122,7 @@ export const agentCommand = async (
 	} catch (error) {
 		log.error(error instanceof Error ? error.message : String(error));
 		process.exitCode = 1;
-		return { agent_result: "no_git_root" };
+		return { agent_result: "no_git_root", errorKind: errorKindFromException(error) };
 	}
 	const providerChoice = resolveAgentProviderSelection({
 		root,
@@ -166,7 +167,11 @@ export const agentCommand = async (
 		} catch (error) {
 			log.error(error instanceof Error ? error.message : String(error));
 			process.exitCode = 1;
-			return { agent_result: "failed", ...providerTelemetry(selected, resolvedOptions) };
+			return {
+				agent_result: "failed",
+				errorKind: errorKindFromException(error),
+				...providerTelemetry(selected, resolvedOptions),
+			};
 		}
 	}
 	const result = await runAgentSession(selected, resolvedDir, resolvedOptions, started);
