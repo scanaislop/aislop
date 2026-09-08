@@ -278,6 +278,8 @@ const runFixBody = async (
 	const configDir = findConfigDir(resolvedDir);
 	const rulesPath = configDir ? path.join(configDir, RULES_FILE) : undefined;
 	const engineConfig: EngineConfig = {
+		overrides: config.overrides,
+		rules: config.rules,
 		quality: config.quality,
 		security: config.security,
 		lint: config.lint,

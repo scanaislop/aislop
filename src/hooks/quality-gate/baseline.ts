@@ -109,6 +109,8 @@ export const captureBaseline = async (
 		files: [],
 		installedTools: project.installedTools,
 		config: {
+			overrides: config.overrides,
+			rules: config.rules,
 			quality: config.quality,
 			security: { audit: false, auditTimeout: 0 },
 			lint: { typecheck: false, expoDoctor: false },

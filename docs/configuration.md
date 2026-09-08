@@ -47,6 +47,53 @@ telemetry:
   enabled: true          # set to false to opt out
 ```
 
+## Ordered per-file overrides
+
+Use one `.aislop/config.yml` and one scan for different file policies:
+
+```yaml
+version: 1
+quality:
+  maxFileLoc: 400
+rules:
+  complexity/file-too-large: warning
+overrides:
+  - files: ["**/*.controller.ts"]
+    quality:
+      maxFileLoc: 700
+  - files: ["**/*.generated.ts", "src/legacy/**"]
+    rules:
+      complexity/file-too-large: off
+      ai-slop/trivial-comment: off
+  - files: ["src/legacy/critical.service.ts"]
+    rules:
+      complexity/file-too-large: error
+```
+
+Overrides use ordered glob matching, similar to Biome's overrides. Patterns are
+relative to the scanned project directory, not the `.aislop` directory. Write
+patterns with `/` on every OS; Windows file paths are normalized before matching.
+`**` crosses directories, and dot directories are included. Each entry requires a
+non-empty `files` list. Multiple positive patterns select a union; negative patterns
+such as `!**/*.service.ts` exclude matches from that entry.
+
+Each matching entry merges only the fields it supplies. Later entries win for the
+same field or rule, including re-enabling a rule previously set to `off`. Unmatched
+files retain the top-level policy. Supported fields are `quality.maxFileLoc`,
+`maxFunctionLoc`, `maxNesting`, `maxParams`, and `rules` with `error`, `warning`, or
+`off`. Quality values must be positive. Other settings remain project-wide.
+
+Quality overrides feed the existing complexity checks: language multipliers,
+exemptions, and the existing line-count tolerance still apply. Rule severity is
+resolved before scoring and reporting; `off` suppresses that rule's diagnostic,
+not the entire file or an external formatter. Overrides do not grant an exclusion
+from mutating fix tools; use `exclude` when generated files must never be rewritten.
+The policy is also used by hook/MCP scans and post-fix verification. No LLM or
+network resolver is involved in matching. Without overrides, behavior is unchanged.
+
+When using `extends`, an explicitly supplied child `overrides` array replaces the
+parent's array, like other arrays; if omitted, the parent's array is inherited.
+
 ## Engines
 
 Each engine can be enabled or disabled individually:

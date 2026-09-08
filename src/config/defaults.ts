@@ -65,6 +65,7 @@ export const DEFAULT_CONFIG: AislopConfig = {
 		enabled: true,
 	},
 	rules: {},
+	overrides: [],
 };
 
 export const GITHUB_WORKFLOW_DIR = ".github/workflows";
