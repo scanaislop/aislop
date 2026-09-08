@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Added
+
+- Ordered `overrides` in `.aislop/config.yml` apply project-relative glob patterns to partial quality limits and per-rule `error`, `warning`, or `off` severities. Later matching entries win, so controllers, services, and legacy files can share one scan with different policies. Existing scoring calibration and projects without overrides retain their behavior.
+
 ## 0.16.1 (2026-09-09)
 
 Maintenance release. Three rule fixes from contributors, each removing findings that should never have fired, one fix that closes a matching gap in the other direction, plus dependency patches.

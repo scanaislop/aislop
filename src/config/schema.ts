@@ -101,6 +101,19 @@ const RuleSeverityOverride = z.enum(["error", "warning", "off"]);
 
 const RulesSchema = z.record(z.string(), RuleSeverityOverride).default(() => ({}));
 
+const FileOverrideSchema = z.object({
+	files: z.array(z.string().min(1)).min(1),
+	quality: z
+		.object({
+			maxFunctionLoc: QualitySchema.shape.maxFunctionLoc.unwrap().optional(),
+			maxFileLoc: QualitySchema.shape.maxFileLoc.unwrap().optional(),
+			maxNesting: QualitySchema.shape.maxNesting.unwrap().optional(),
+			maxParams: QualitySchema.shape.maxParams.unwrap().optional(),
+		})
+		.optional(),
+	rules: z.record(z.string(), RuleSeverityOverride).optional(),
+});
+
 const AislopConfigSchema = z.object({
 	version: z.number().default(1),
 	engines: EnginesSchema.default(() => ({
@@ -157,6 +170,7 @@ const AislopConfigSchema = z.object({
 		enabled: true,
 	})),
 	rules: RulesSchema,
+	overrides: z.array(FileOverrideSchema).default(() => []),
 	exclude: z.array(z.string()).default(() => ["node_modules", ".git", "dist", "build", "coverage"]),
 	include: z.array(z.string()).default(() => []),
 });
