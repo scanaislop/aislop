@@ -51,7 +51,7 @@ jobs:
           git commit -m "chore: sync main → develop"
           git push --force origin HEAD:refs/heads/bot/sync-from-main
 
-      - name: Open or update PR with auto-merge
+      - name: Open or update PR for a human to review
         if: steps.plan.outputs.needs_sync == 'true'
         env:
           GH_TOKEN: ${{ secrets.SYNC_BOT_PAT }}
@@ -64,16 +64,12 @@ jobs:
             --jq '.[] | select(.headRefName == "bot/sync-from-main" and .headRepository.nameWithOwner == env.GITHUB_REPOSITORY) | .number' \
             | head -n 1)
           if [ -z "$existing" ]; then
-            num=$(gh pr create \
+            gh pr create \
               --base develop \
               --head bot/sync-from-main \
               --title "chore: sync main → develop" \
-              --body "Auto-opened by \`.github/workflows/sync-develop.yml\`. Brings develop up to main. Auto-merge enabled (squash) — merges itself once CI passes." \
-              | grep -oE '[0-9]+$')
-          else
-            num=$existing
+              --body "Auto-opened by \`.github/workflows/sync-develop.yml\`. Brings develop up to main. Review and merge manually so the develop→main promotion keeps a human in the loop."
           fi
-          gh pr merge "$num" --squash --auto --delete-branch
 
       - name: No-op summary
         if: steps.plan.outputs.needs_sync == 'false'
