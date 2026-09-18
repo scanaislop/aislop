@@ -1,0 +1,66 @@
+name: CI failure notifier
+
+# GitHub's default failure mail only reaches the actor of the run, so a failed
+# scheduled or default-branch workflow is invisible to everyone else — exactly
+# how the weekly subscription reconcile drifted uncorrected for ten days. This
+# workflow turns any completed failure into a durable GitHub issue: one issue per
+# workflow+branch, commented on each recurrence, so a red run is visible in the
+# repo instead of only in the Actions tab.
+
+on:
+  workflow_run:
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+jobs:
+  notify:
+    if: >
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.event != 'pull_request' &&
+      github.event.workflow_run.name != 'CI failure notifier'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open or update an issue for the failed run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          WORKFLOW: ${{ github.event.workflow_run.name }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          EVENT: ${{ github.event.workflow_run.event }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          set -euo pipefail
+
+          title="CI failure: ${WORKFLOW} (${BRANCH})"
+
+          existing=$(gh issue list --repo "$REPO" --state open --limit 200 \
+            --json number,title \
+            | jq -r --arg t "$title" '.[] | select(.title == $t) | .number' | head -n1)
+
+          if [ -n "${existing}" ]; then
+            gh issue comment "${existing}" --repo "$REPO" --body "$(cat <<EOF
+          The **${WORKFLOW}** workflow failed again on \`${BRANCH}\`.
+
+          - Event: \`${EVENT}\`
+          - Commit: \`${SHA}\`
+          - Run: ${RUN_URL}
+          EOF
+          )"
+            exit 0
+          fi
+
+          gh issue create --repo "$REPO" --title "${title}" --body "$(cat <<EOF
+          The **${WORKFLOW}** workflow concluded with **failure** on \`${BRANCH}\`.
+
+          - Event: \`${EVENT}\`
+          - Commit: \`${SHA}\`
+          - Run: ${RUN_URL}
+
+          Opened automatically by the CI failure notifier. It stays open until someone resolves it; further failures of this workflow on this branch are commented here instead of opening a new issue.
+          EOF
+          )"
