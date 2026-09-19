@@ -76,8 +76,11 @@ jobs:
           # Keep this on the latest already-published npm version; release PRs run before the new npm package exists.
           version: "0.11.0"
 
+  # This self-scan runs on every pull request, but it must not publish the required
+  # "Quality gate" context: ci.yml owns that exact name for the main/develop rulesets,
+  # and a second check run with the same name makes the required check ambiguous.
   quality-gate:
-    name: Quality gate
+    name: Quality gate (all branches)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
