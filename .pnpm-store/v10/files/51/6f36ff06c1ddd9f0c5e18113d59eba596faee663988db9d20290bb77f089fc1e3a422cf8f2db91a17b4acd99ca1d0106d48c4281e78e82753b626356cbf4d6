@@ -1,0 +1,493 @@
+import * as _yuku_toolchain_types0 from "@yuku-toolchain/types";
+import { BigIntLiteral, BindingPattern, BooleanLiteral, CallExpression, ComputedMemberExpression, Directive, ExportAllDeclaration, ExportDefaultDeclaration, ExportNamedDeclaration, ExportSpecifier, Expression, Identifier, ImportDeclaration, ImportDeclarationSpecifier, ImportPhase, Node, NodeOfType, NodeType, NullLiteral, NumericLiteral, PrivateFieldExpression, Program, RegExpLiteral, StaticMemberExpression, StringLiteral } from "@yuku-toolchain/types";
+
+//#region src/aliases.d.ts
+declare const ALIAS_GROUPS: {
+  readonly Expression: readonly ["Identifier", "Literal", "ThisExpression", "Super", "ArrayExpression", "ObjectExpression", "FunctionExpression", "ArrowFunctionExpression", "ClassExpression", "TaggedTemplateExpression", "TemplateLiteral", "MemberExpression", "CallExpression", "NewExpression", "ChainExpression", "SequenceExpression", "ParenthesizedExpression", "BinaryExpression", "LogicalExpression", "ConditionalExpression", "UnaryExpression", "UpdateExpression", "AssignmentExpression", "YieldExpression", "AwaitExpression", "ImportExpression", "MetaProperty", "TSAsExpression", "TSSatisfiesExpression", "TSTypeAssertion", "TSNonNullExpression", "TSInstantiationExpression", "JSXElement", "JSXFragment"];
+  readonly Statement: readonly ["ExpressionStatement", "BlockStatement", "EmptyStatement", "DebuggerStatement", "ReturnStatement", "LabeledStatement", "BreakStatement", "ContinueStatement", "IfStatement", "SwitchStatement", "ThrowStatement", "TryStatement", "WhileStatement", "DoWhileStatement", "ForStatement", "ForInStatement", "ForOfStatement", "WithStatement", "FunctionDeclaration", "ClassDeclaration", "VariableDeclaration", "TSDeclareFunction", "TSTypeAliasDeclaration", "TSInterfaceDeclaration", "TSEnumDeclaration", "TSModuleDeclaration", "TSImportEqualsDeclaration"];
+  readonly Declaration: readonly ["FunctionDeclaration", "ClassDeclaration", "VariableDeclaration", "TSDeclareFunction", "TSTypeAliasDeclaration", "TSInterfaceDeclaration", "TSEnumDeclaration", "TSModuleDeclaration", "TSImportEqualsDeclaration"];
+  readonly ModuleDeclaration: readonly ["ImportDeclaration", "ExportNamedDeclaration", "ExportDefaultDeclaration", "ExportAllDeclaration", "TSExportAssignment", "TSNamespaceExportDeclaration"];
+  readonly Function: readonly ["FunctionDeclaration", "FunctionExpression", "TSDeclareFunction", "TSEmptyBodyFunctionExpression", "ArrowFunctionExpression"];
+  readonly Class: readonly ["ClassDeclaration", "ClassExpression"];
+  readonly Method: readonly ["MethodDefinition", "TSAbstractMethodDefinition"];
+  readonly Loop: readonly ["DoWhileStatement", "ForInStatement", "ForOfStatement", "ForStatement", "WhileStatement"];
+  readonly Pattern: readonly ["ArrayPattern", "ObjectPattern", "AssignmentPattern", "RestElement"];
+  readonly JSX: readonly ["JSXAttribute", "JSXClosingElement", "JSXClosingFragment", "JSXElement", "JSXEmptyExpression", "JSXExpressionContainer", "JSXFragment", "JSXIdentifier", "JSXMemberExpression", "JSXNamespacedName", "JSXOpeningElement", "JSXOpeningFragment", "JSXSpreadAttribute", "JSXSpreadChild", "JSXText"];
+  readonly TSType: readonly ["TSAnyKeyword", "TSUnknownKeyword", "TSNeverKeyword", "TSVoidKeyword", "TSNullKeyword", "TSUndefinedKeyword", "TSStringKeyword", "TSNumberKeyword", "TSBigIntKeyword", "TSBooleanKeyword", "TSSymbolKeyword", "TSObjectKeyword", "TSIntrinsicKeyword", "TSThisType", "TSTypeReference", "TSTypeQuery", "TSImportType", "TSLiteralType", "TSTemplateLiteralType", "TSArrayType", "TSIndexedAccessType", "TSTupleType", "TSNamedTupleMember", "TSJSDocNullableType", "TSJSDocNonNullableType", "TSJSDocUnknownType", "TSUnionType", "TSIntersectionType", "TSConditionalType", "TSInferType", "TSTypeOperator", "TSParenthesizedType", "TSFunctionType", "TSConstructorType", "TSTypePredicate", "TSTypeLiteral", "TSMappedType"];
+};
+type AliasName = keyof typeof ALIAS_GROUPS;
+type GroupType<A$1 extends AliasName> = (typeof ALIAS_GROUPS)[A$1][number];
+/** The node union each alias covers, e.g. `AliasMap["Function"]`. */
+type AliasMap = { [A in AliasName]: NodeOfType<GroupType<A>> };
+declare const ALIAS_NAMES: readonly AliasName[];
+//#endregion
+//#region src/builders.d.ts
+type BuilderInput<T> = T extends Node ? Omit<T, "type" | "start" | "end"> & {
+  start?: number;
+  end?: number;
+} : never;
+type Builders = { [K in NodeType]: (fields: BuilderInput<NodeOfType<K>>) => NodeOfType<K> };
+/**
+ * One constructor per node type, its fields derived from the node type
+ * itself. `start` and `end` default to 0, which `ctx.replace` treats
+ * as span-less and fills from the replaced node.
+ *
+ * @example
+ * b.Identifier({ name: "x" })
+ * b.ExpressionStatement({ expression: b.Identifier({ name: "x" }) })
+ */
+declare const b: Builders;
+//#endregion
+//#region src/context.d.ts
+interface Frame {
+  i: number;
+}
+/**
+ * The walk context: one reused object exposing the current position and
+ * the tree mutation operations. Valid only during the visit that
+ * receives it, do not store it. Underscore members are engine state.
+ */
+declare class WalkContext<T extends Node = Node, S = unknown> {
+  #private;
+  _ancestors: Node[];
+  _node: Node | null;
+  _key: string | null;
+  _list: Node[] | null;
+  _frame: Frame | null;
+  _skip: boolean;
+  _stopped: boolean;
+  _removed: boolean;
+  _replacement: Node | null;
+  /** State threaded through the walk, the third `walk` argument. */
+  state: S;
+  /** The node being visited. */
+  get node(): T;
+  /** The node holding {@link node}, or null at the walk root. */
+  get parent(): Node | null;
+  /** The field on {@link parent} holding {@link node}, or null at the root. */
+  get key(): string | null;
+  /** Index within an array field, or null in a plain field. */
+  get index(): number | null;
+  /** Ancestors from the walk root down to {@link parent}. */
+  ancestors(): Node[];
+  /** Do not descend into the current node's children. */
+  skip(): void;
+  /** Stop the walk entirely. */
+  stop(): void;
+  /**
+   * Replace the current node. The walk continues into the replacement's
+   * children and `leave` fires for the replacement's type. A synthetic
+   * node with `start === 0 && end === 0` inherits the original span,
+   * for source maps. Throws at the walk root.
+   */
+  replace(node: Node): void;
+  /**
+   * Remove the current node from its parent: spliced from array fields,
+   * nulled in plain fields. Children are not walked and `leave` does
+   * not fire. Throws at the walk root.
+   */
+  remove(): void;
+  /** Insert a sibling before the current node, not visited. Array fields only. */
+  insertBefore(node: Node): void;
+  /** Insert a sibling after the current node, visited by the walk. Array fields only. */
+  insertAfter(node: Node): void;
+}
+//#endregion
+//#region src/generated.d.ts
+declare const CHILD_KEYS: Readonly<Record<string, readonly string[]>>;
+declare const TYPES: readonly ["SequenceExpression", "ParenthesizedExpression", "ArrowFunctionExpression", "FunctionDeclaration", "FunctionExpression", "TSDeclareFunction", "TSEmptyBodyFunctionExpression", "BlockStatement", "BlockStatement", "BinaryExpression", "LogicalExpression", "ConditionalExpression", "UnaryExpression", "UpdateExpression", "AssignmentExpression", "ArrayExpression", "ObjectExpression", "SpreadElement", "Property", "MemberExpression", "CallExpression", "ChainExpression", "TaggedTemplateExpression", "NewExpression", "AwaitExpression", "YieldExpression", "MetaProperty", "Decorator", "ClassDeclaration", "ClassExpression", "ClassBody", "MethodDefinition", "TSAbstractMethodDefinition", "PropertyDefinition", "AccessorProperty", "TSAbstractPropertyDefinition", "TSAbstractAccessorProperty", "StaticBlock", "Super", "Literal", "Literal", "Literal", "Literal", "Literal", "ThisExpression", "Literal", "TemplateLiteral", "TemplateElement", "Identifier", "PrivateIdentifier", "Identifier", "Identifier", "Identifier", "ExpressionStatement", "IfStatement", "SwitchStatement", "SwitchCase", "ForStatement", "ForInStatement", "ForOfStatement", "WhileStatement", "DoWhileStatement", "BreakStatement", "ContinueStatement", "LabeledStatement", "WithStatement", "ReturnStatement", "ThrowStatement", "TryStatement", "CatchClause", "DebuggerStatement", "EmptyStatement", "VariableDeclaration", "VariableDeclarator", "ExpressionStatement", "AssignmentPattern", "RestElement", "ArrayPattern", "ObjectPattern", "Property", "Program", "ImportExpression", "ImportDeclaration", "ImportSpecifier", "ImportDefaultSpecifier", "ImportNamespaceSpecifier", "ImportAttribute", "ExportNamedDeclaration", "ExportDefaultDeclaration", "ExportAllDeclaration", "ExportSpecifier", "TSTypeAnnotation", "TSAnyKeyword", "TSUnknownKeyword", "TSNeverKeyword", "TSVoidKeyword", "TSNullKeyword", "TSUndefinedKeyword", "TSStringKeyword", "TSNumberKeyword", "TSBigIntKeyword", "TSBooleanKeyword", "TSSymbolKeyword", "TSObjectKeyword", "TSIntrinsicKeyword", "TSThisType", "TSTypeReference", "TSQualifiedName", "TSTypeQuery", "TSImportType", "TSTypeParameter", "TSTypeParameterDeclaration", "TSTypeParameterInstantiation", "TSLiteralType", "TSTemplateLiteralType", "TSArrayType", "TSIndexedAccessType", "TSTupleType", "TSNamedTupleMember", "TSOptionalType", "TSRestType", "TSJSDocNullableType", "TSJSDocNonNullableType", "TSJSDocUnknownType", "TSUnionType", "TSIntersectionType", "TSConditionalType", "TSInferType", "TSTypeOperator", "TSParenthesizedType", "TSFunctionType", "TSConstructorType", "TSTypePredicate", "TSTypeLiteral", "TSMappedType", "TSPropertySignature", "TSMethodSignature", "TSCallSignatureDeclaration", "TSConstructSignatureDeclaration", "TSIndexSignature", "TSTypeAliasDeclaration", "TSInterfaceDeclaration", "TSInterfaceBody", "TSInterfaceHeritage", "TSClassImplements", "TSEnumDeclaration", "TSEnumBody", "TSEnumMember", "TSModuleDeclaration", "TSModuleBlock", "TSModuleDeclaration", "TSParameterProperty", "Identifier", "TSAsExpression", "TSSatisfiesExpression", "TSTypeAssertion", "TSNonNullExpression", "TSInstantiationExpression", "TSExportAssignment", "TSNamespaceExportDeclaration", "TSImportEqualsDeclaration", "TSExternalModuleReference", "JSXElement", "JSXOpeningElement", "JSXClosingElement", "JSXFragment", "JSXOpeningFragment", "JSXClosingFragment", "JSXIdentifier", "JSXNamespacedName", "JSXMemberExpression", "JSXAttribute", "JSXSpreadAttribute", "JSXExpressionContainer", "JSXEmptyExpression", "JSXText", "JSXSpreadChild", "Hashbang"];
+type GeneratedNodeType = (typeof TYPES)[number];
+declare const NODE_TYPES: readonly GeneratedNodeType[];
+//#endregion
+//#region src/identifier.d.ts
+/**
+ * True if the Unicode code point `cp` can start an identifier: any
+ * character with the `ID_Start` property, plus `$` and `_`. Takes a
+ * numeric code point as from `codePointAt`.
+ */
+declare function isIdentifierStart(cp: number): boolean;
+/**
+ * True if the Unicode code point `cp` can appear after the first
+ * character of an identifier: any character with the `ID_Continue`
+ * property, plus `$`, `_`, and the ZWNJ and ZWJ joiners.
+ */
+declare function isIdentifierChar(cp: number): boolean;
+/**
+ * True if `name` is a valid ECMAScript `IdentifierName`, the grammar an
+ * identifier token must satisfy. Validates a raw string, not a node.
+ * Reserved words are syntactically identifier names, so
+ * `isIdentifierName("class")` is true, see {@link isValidIdentifier}.
+ */
+declare function isIdentifierName(name: string): boolean;
+/**
+ * True if `word` is a reserved keyword of the core grammar. Does not
+ * include `enum`, `await`, or the strict-mode-only words, see
+ * {@link isReservedWord} and {@link isStrictReservedWord}.
+ */
+declare function isKeyword(word: string): boolean;
+/**
+ * True if `word` is unconditionally reserved: `enum` in any context,
+ * and `await` when `inModule`.
+ */
+declare function isReservedWord(word: string, inModule?: boolean): boolean;
+/**
+ * True if `word` is reserved in strict mode: everything
+ * {@link isReservedWord} covers, plus `let`, `static`, `yield`, and
+ * friends.
+ */
+declare function isStrictReservedWord(word: string, inModule?: boolean): boolean;
+/** True for `eval` and `arguments`, reserved only as strict-mode binding targets. */
+declare function isStrictBindOnlyReservedWord(word: string): boolean;
+/**
+ * True if `word` is reserved as a strict-mode binding target:
+ * everything {@link isStrictReservedWord} covers, plus `eval` and
+ * `arguments`.
+ */
+declare function isStrictBindReservedWord(word: string, inModule?: boolean): boolean;
+/**
+ * True if `name` can be used as an identifier binding: a valid
+ * {@link isIdentifierName} that, when `reserved` is true (the default),
+ * is neither a keyword nor a strict-mode reserved word. The check to
+ * reach for when turning an arbitrary string into a local binding name.
+ */
+declare function isValidIdentifier(name: string, reserved?: boolean): boolean;
+//#endregion
+//#region src/is.d.ts
+type MaybeNode$1 = Node | null | undefined;
+/**
+ * Type guards, one per concrete node `type` plus alias and shape
+ * guards. Every guard accepts `null` and `undefined` and narrows.
+ *
+ * @example
+ * is.CallExpression(node)
+ * is.Identifier(node, "require")
+ * is.Expression(node)
+ * is.StringLiteral(node)
+ */
+declare const is: {
+  /** True when `node.type` is one of `types`, narrowing to that union. */
+  oneOf: <const K$1 extends NodeType>(node: MaybeNode$1, types: readonly K$1[]) => node is NodeOfType<K$1>;
+  /** An `Identifier`, optionally with the exact `name`. */
+  Identifier: (node: MaybeNode$1, name?: string) => node is Identifier;
+  Expression: (node: MaybeNode$1) => node is NodeOfType<"Identifier" | "Literal" | "ThisExpression" | "Super" | "ArrayExpression" | "ObjectExpression" | "FunctionExpression" | "ArrowFunctionExpression" | "ClassExpression" | "TaggedTemplateExpression" | "TemplateLiteral" | "MemberExpression" | "CallExpression" | "NewExpression" | "ChainExpression" | "SequenceExpression" | "ParenthesizedExpression" | "BinaryExpression" | "LogicalExpression" | "ConditionalExpression" | "UnaryExpression" | "UpdateExpression" | "AssignmentExpression" | "YieldExpression" | "AwaitExpression" | "ImportExpression" | "MetaProperty" | "TSAsExpression" | "TSSatisfiesExpression" | "TSTypeAssertion" | "TSNonNullExpression" | "TSInstantiationExpression" | "JSXElement" | "JSXFragment">;
+  Statement: (node: MaybeNode$1) => node is AliasMap["Statement"];
+  Declaration: (node: MaybeNode$1) => node is AliasMap["Declaration"];
+  ModuleDeclaration: (node: MaybeNode$1) => node is AliasMap["ModuleDeclaration"];
+  Function: (node: MaybeNode$1) => node is AliasMap["Function"];
+  Class: (node: MaybeNode$1) => node is AliasMap["Class"];
+  Method: (node: MaybeNode$1) => node is AliasMap["Method"];
+  Loop: (node: MaybeNode$1) => node is AliasMap["Loop"];
+  Pattern: (node: MaybeNode$1) => node is AliasMap["Pattern"];
+  JSX: (node: MaybeNode$1) => node is AliasMap["JSX"];
+  TSType: (node: MaybeNode$1) => node is AliasMap["TSType"];
+  StringLiteral: (node: MaybeNode$1) => node is StringLiteral;
+  NumericLiteral: (node: MaybeNode$1) => node is NumericLiteral;
+  BooleanLiteral: (node: MaybeNode$1) => node is BooleanLiteral;
+  NullLiteral: (node: MaybeNode$1) => node is NullLiteral;
+  BigIntLiteral: (node: MaybeNode$1) => node is BigIntLiteral;
+  RegExpLiteral: (node: MaybeNode$1) => node is RegExpLiteral;
+  ComputedMemberExpression: (node: MaybeNode$1) => node is ComputedMemberExpression;
+  StaticMemberExpression: (node: MaybeNode$1) => node is StaticMemberExpression;
+  PrivateFieldExpression: (node: MaybeNode$1) => node is PrivateFieldExpression;
+  Directive: (node: MaybeNode$1) => node is Directive;
+  Program: (node: MaybeNode$1) => node is _yuku_toolchain_types0.Program;
+  Hashbang: (node: MaybeNode$1) => node is _yuku_toolchain_types0.Hashbang;
+  ExpressionStatement: (node: MaybeNode$1) => node is NodeOfType<"ExpressionStatement">;
+  BlockStatement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.BlockStatement;
+  EmptyStatement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.EmptyStatement;
+  DebuggerStatement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.DebuggerStatement;
+  ReturnStatement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ReturnStatement;
+  LabeledStatement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.LabeledStatement;
+  BreakStatement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.BreakStatement;
+  ContinueStatement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ContinueStatement;
+  IfStatement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.IfStatement;
+  SwitchStatement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.SwitchStatement;
+  ThrowStatement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ThrowStatement;
+  TryStatement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TryStatement;
+  WhileStatement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.WhileStatement;
+  DoWhileStatement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.DoWhileStatement;
+  ForStatement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ForStatement;
+  ForInStatement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ForInStatement;
+  ForOfStatement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ForOfStatement;
+  WithStatement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.WithStatement;
+  FunctionDeclaration: (node: MaybeNode$1) => node is _yuku_toolchain_types0.FunctionDeclaration;
+  ClassDeclaration: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ClassDeclaration;
+  VariableDeclaration: (node: MaybeNode$1) => node is _yuku_toolchain_types0.VariableDeclaration;
+  TSDeclareFunction: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSDeclareFunction;
+  TSTypeAliasDeclaration: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSTypeAliasDeclaration;
+  TSInterfaceDeclaration: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSInterfaceDeclaration;
+  TSEnumDeclaration: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSEnumDeclaration;
+  TSModuleDeclaration: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSModuleDeclaration;
+  TSImportEqualsDeclaration: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSImportEqualsDeclaration;
+  Literal: (node: MaybeNode$1) => node is NodeOfType<"Literal">;
+  ThisExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ThisExpression;
+  Super: (node: MaybeNode$1) => node is _yuku_toolchain_types0.Super;
+  ArrayExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ArrayExpression;
+  ObjectExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ObjectExpression;
+  FunctionExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.FunctionExpression;
+  ArrowFunctionExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ArrowFunctionExpression;
+  ClassExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ClassExpression;
+  TaggedTemplateExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TaggedTemplateExpression;
+  TemplateLiteral: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TemplateLiteral;
+  MemberExpression: (node: MaybeNode$1) => node is NodeOfType<"MemberExpression">;
+  CallExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.CallExpression;
+  NewExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.NewExpression;
+  ChainExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ChainExpression;
+  SequenceExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.SequenceExpression;
+  ParenthesizedExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ParenthesizedExpression;
+  BinaryExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.BinaryExpression;
+  LogicalExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.LogicalExpression;
+  ConditionalExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ConditionalExpression;
+  UnaryExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.UnaryExpression;
+  UpdateExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.UpdateExpression;
+  AssignmentExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.AssignmentExpression;
+  YieldExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.YieldExpression;
+  AwaitExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.AwaitExpression;
+  ImportExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ImportExpression;
+  MetaProperty: (node: MaybeNode$1) => node is _yuku_toolchain_types0.MetaProperty;
+  TSAsExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSAsExpression;
+  TSSatisfiesExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSSatisfiesExpression;
+  TSTypeAssertion: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSTypeAssertion;
+  TSNonNullExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSNonNullExpression;
+  TSInstantiationExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSInstantiationExpression;
+  JSXElement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.JSXElement;
+  JSXFragment: (node: MaybeNode$1) => node is _yuku_toolchain_types0.JSXFragment;
+  ImportDeclaration: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ImportDeclaration;
+  ExportNamedDeclaration: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ExportNamedDeclaration;
+  ExportDefaultDeclaration: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ExportDefaultDeclaration;
+  ExportAllDeclaration: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ExportAllDeclaration;
+  TSExportAssignment: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSExportAssignment;
+  TSNamespaceExportDeclaration: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSNamespaceExportDeclaration;
+  Property: (node: MaybeNode$1) => node is NodeOfType<"Property">;
+  SpreadElement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.SpreadElement;
+  PrivateIdentifier: (node: MaybeNode$1) => node is _yuku_toolchain_types0.PrivateIdentifier;
+  TemplateElement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TemplateElement;
+  VariableDeclarator: (node: MaybeNode$1) => node is _yuku_toolchain_types0.VariableDeclarator;
+  CatchClause: (node: MaybeNode$1) => node is _yuku_toolchain_types0.CatchClause;
+  SwitchCase: (node: MaybeNode$1) => node is _yuku_toolchain_types0.SwitchCase;
+  RestElement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.RestElement;
+  ArrayPattern: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ArrayPattern;
+  ObjectPattern: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ObjectPattern;
+  AssignmentPattern: (node: MaybeNode$1) => node is _yuku_toolchain_types0.AssignmentPattern;
+  ClassBody: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ClassBody;
+  MethodDefinition: (node: MaybeNode$1) => node is _yuku_toolchain_types0.MethodDefinition;
+  TSAbstractMethodDefinition: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSAbstractMethodDefinition;
+  PropertyDefinition: (node: MaybeNode$1) => node is _yuku_toolchain_types0.PropertyDefinition;
+  TSAbstractPropertyDefinition: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSAbstractPropertyDefinition;
+  AccessorProperty: (node: MaybeNode$1) => node is _yuku_toolchain_types0.AccessorProperty;
+  TSAbstractAccessorProperty: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSAbstractAccessorProperty;
+  StaticBlock: (node: MaybeNode$1) => node is _yuku_toolchain_types0.StaticBlock;
+  Decorator: (node: MaybeNode$1) => node is _yuku_toolchain_types0.Decorator;
+  TSEmptyBodyFunctionExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSEmptyBodyFunctionExpression;
+  ImportSpecifier: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ImportSpecifier;
+  ImportDefaultSpecifier: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ImportDefaultSpecifier;
+  ImportNamespaceSpecifier: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ImportNamespaceSpecifier;
+  ImportAttribute: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ImportAttribute;
+  ExportSpecifier: (node: MaybeNode$1) => node is _yuku_toolchain_types0.ExportSpecifier;
+  JSXOpeningElement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.JSXOpeningElement;
+  JSXClosingElement: (node: MaybeNode$1) => node is _yuku_toolchain_types0.JSXClosingElement;
+  JSXOpeningFragment: (node: MaybeNode$1) => node is _yuku_toolchain_types0.JSXOpeningFragment;
+  JSXClosingFragment: (node: MaybeNode$1) => node is _yuku_toolchain_types0.JSXClosingFragment;
+  JSXIdentifier: (node: MaybeNode$1) => node is _yuku_toolchain_types0.JSXIdentifier;
+  JSXNamespacedName: (node: MaybeNode$1) => node is _yuku_toolchain_types0.JSXNamespacedName;
+  JSXMemberExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.JSXMemberExpression;
+  JSXAttribute: (node: MaybeNode$1) => node is _yuku_toolchain_types0.JSXAttribute;
+  JSXSpreadAttribute: (node: MaybeNode$1) => node is _yuku_toolchain_types0.JSXSpreadAttribute;
+  JSXExpressionContainer: (node: MaybeNode$1) => node is _yuku_toolchain_types0.JSXExpressionContainer;
+  JSXEmptyExpression: (node: MaybeNode$1) => node is _yuku_toolchain_types0.JSXEmptyExpression;
+  JSXText: (node: MaybeNode$1) => node is _yuku_toolchain_types0.JSXText;
+  JSXSpreadChild: (node: MaybeNode$1) => node is _yuku_toolchain_types0.JSXSpreadChild;
+  TSTypeAnnotation: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSTypeAnnotation;
+  TSAnyKeyword: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSAnyKeyword;
+  TSUnknownKeyword: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSUnknownKeyword;
+  TSNeverKeyword: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSNeverKeyword;
+  TSVoidKeyword: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSVoidKeyword;
+  TSNullKeyword: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSNullKeyword;
+  TSUndefinedKeyword: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSUndefinedKeyword;
+  TSStringKeyword: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSStringKeyword;
+  TSNumberKeyword: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSNumberKeyword;
+  TSBigIntKeyword: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSBigIntKeyword;
+  TSBooleanKeyword: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSBooleanKeyword;
+  TSSymbolKeyword: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSSymbolKeyword;
+  TSObjectKeyword: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSObjectKeyword;
+  TSIntrinsicKeyword: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSIntrinsicKeyword;
+  TSThisType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSThisType;
+  TSTypeReference: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSTypeReference;
+  TSTypeQuery: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSTypeQuery;
+  TSImportType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSImportType;
+  TSLiteralType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSLiteralType;
+  TSTemplateLiteralType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSTemplateLiteralType;
+  TSArrayType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSArrayType;
+  TSIndexedAccessType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSIndexedAccessType;
+  TSTupleType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSTupleType;
+  TSNamedTupleMember: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSNamedTupleMember;
+  TSJSDocNullableType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSJSDocNullableType;
+  TSJSDocNonNullableType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSJSDocNonNullableType;
+  TSJSDocUnknownType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSJSDocUnknownType;
+  TSUnionType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSUnionType;
+  TSIntersectionType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSIntersectionType;
+  TSConditionalType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSConditionalType;
+  TSInferType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSInferType;
+  TSTypeOperator: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSTypeOperator;
+  TSParenthesizedType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSParenthesizedType;
+  TSFunctionType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSFunctionType;
+  TSConstructorType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSConstructorType;
+  TSTypePredicate: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSTypePredicate;
+  TSTypeLiteral: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSTypeLiteral;
+  TSMappedType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSMappedType;
+  TSTypeParameter: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSTypeParameter;
+  TSTypeParameterDeclaration: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSTypeParameterDeclaration;
+  TSTypeParameterInstantiation: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSTypeParameterInstantiation;
+  TSQualifiedName: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSQualifiedName;
+  TSPropertySignature: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSPropertySignature;
+  TSMethodSignature: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSMethodSignature;
+  TSCallSignatureDeclaration: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSCallSignatureDeclaration;
+  TSConstructSignatureDeclaration: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSConstructSignatureDeclaration;
+  TSIndexSignature: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSIndexSignature;
+  TSInterfaceBody: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSInterfaceBody;
+  TSInterfaceHeritage: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSInterfaceHeritage;
+  TSClassImplements: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSClassImplements;
+  TSEnumBody: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSEnumBody;
+  TSEnumMember: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSEnumMember;
+  TSModuleBlock: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSModuleBlock;
+  TSParameterProperty: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSParameterProperty;
+  TSExternalModuleReference: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSExternalModuleReference;
+  TSOptionalType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSOptionalType;
+  TSRestType: (node: MaybeNode$1) => node is _yuku_toolchain_types0.TSRestType;
+};
+//#endregion
+//#region src/modules.d.ts
+/** One imported binding, one record per specifier. */
+interface CollectedImport {
+  /** The module specifier string. */
+  source: string;
+  /** The local binding name. */
+  local: string;
+  /** The imported name: `"default"`, `"*"` for namespaces, or the export name. */
+  imported: string;
+  /** True for `import type` and `import { type x }`. */
+  typeOnly: boolean;
+  /** Stage 3 phase modifier, or null. */
+  phase: ImportPhase | null;
+  specifier: ImportDeclarationSpecifier;
+  declaration: ImportDeclaration;
+}
+/**
+ * The imported bindings of one declaration, one record per specifier.
+ * Type-only imports are included with `typeOnly` set, side-effect
+ * imports introduce no bindings and yield no records. Composes with a
+ * walk: `ImportDeclaration(node) { records.push(...collectImportDeclaration(node)) }`.
+ */
+declare function collectImportDeclaration(declaration: ImportDeclaration): CollectedImport[];
+/** Every imported binding of a program, in source order. */
+declare function collectImports(program: Program): CollectedImport[];
+/** One exported name, one record per binding or specifier. */
+interface CollectedExport {
+  /** The exported name, or null for bare `export *`. */
+  exported: string | null;
+  /** The local name backing the export, or null for re-exports and anonymous defaults. */
+  local: string | null;
+  /** The re-export source specifier, or null for local exports. */
+  source: string | null;
+  /** True for `export type` and `export { type x }`. */
+  typeOnly: boolean;
+  node: ExportNamedDeclaration | ExportDefaultDeclaration | ExportAllDeclaration | ExportSpecifier;
+}
+/**
+ * The exports of one declaration: declaration forms expand to one
+ * record per bound name, specifiers to one record each, and `export *`
+ * to a single record with a null `exported`. Composes with a walk.
+ */
+declare function collectExportDeclaration(statement: ExportNamedDeclaration | ExportDefaultDeclaration | ExportAllDeclaration): CollectedExport[];
+/** Every export of a program, in source order. */
+declare function collectExports(program: Program): CollectedExport[];
+//#endregion
+//#region src/utils.d.ts
+type MaybeNode = Node | null | undefined;
+/**
+ * The static name a node denotes: an `Identifier`'s `name` or a string
+ * `Literal`'s `value`. Null for anything else, so the common
+ * `Identifier | StringLiteral` name slots (a `ModuleExportName`, a
+ * static property key) read in one call.
+ */
+declare function nameOf(node: Identifier | StringLiteral): string;
+declare function nameOf(node: MaybeNode): string | null;
+/**
+ * The runtime value of a `Literal` node: string, number, boolean,
+ * bigint, RegExp, or null for the null literal. Undefined for
+ * non-literal nodes.
+ */
+declare function literalValue(node: MaybeNode): string | number | boolean | bigint | RegExp | null | undefined;
+/**
+ * The expression inside parentheses and erased TypeScript assertion
+ * wrappers: `((x as any))!` unwraps to `x`. Returns the node itself
+ * when nothing wraps it.
+ */
+declare function unwrap(node: Expression): Expression;
+/**
+ * True when `node` is a call whose callee is an `Identifier` named
+ * `name`, one of `name` when given an array. The callee is read
+ * through {@link unwrap}.
+ *
+ * @example
+ * isCallOf(node, "require")
+ * isCallOf(node, ["defineConfig", "defineProject"])
+ */
+declare function isCallOf(node: MaybeNode, name: string | readonly string[]): node is CallExpression;
+/**
+ * Every binding `Identifier` a pattern introduces, in source order:
+ * the pattern itself, destructuring leaves, defaults' targets, and
+ * rest elements.
+ */
+declare function bindingIdentifiers(pattern: BindingPattern | null | undefined): Identifier[];
+/** Every node of the given type(s) under `root`, in source order. */
+declare function findAll<K$1 extends NodeType>(root: Node, types: K$1 | readonly K$1[]): NodeOfType<K$1>[];
+//#endregion
+//#region src/walk.d.ts
+/** A visitor function for one node type or alias. */
+type WalkHandler<T extends Node = Node, S = unknown> = (node: T, ctx: WalkContext<T, S>) => void;
+/** Enter and leave hooks for one node type or alias. */
+interface WalkHooks<T extends Node = Node, S = unknown> {
+  enter?: WalkHandler<T, S>;
+  leave?: WalkHandler<T, S>;
+}
+type Visitor<T extends Node, S> = WalkHandler<T, S> | WalkHooks<T, S>;
+/**
+ * Handlers keyed by node `type`, by alias (`Expression`, `Function`,
+ * ...), or the universal `enter` / `leave`. A bare function is an enter
+ * handler. Per node the order is universal `enter`, alias enters in
+ * visitor key order, the typed enter, children, then the mirror for
+ * leave.
+ */
+type Visitors<S = unknown> = { [K in NodeType]?: Visitor<NodeOfType<K>, S> } & { [A in AliasName]?: Visitor<AliasMap[A], S> } & {
+  enter?: WalkHandler<Node, S>;
+  leave?: WalkHandler<Node, S>;
+};
+/**
+ * Walk an AST depth-first, dispatching to typed visitors and mutating
+ * in place. Traversal order is driven by tables generated from the
+ * parser's AST definition, so it can never drift. Returns the root.
+ */
+declare function walk<T extends Node, S = unknown>(root: T, visitors: Visitors<S>, state?: S): T;
+/**
+ * The async counterpart of {@link walk}: identical traversal order and
+ * mutation semantics, with every handler awaited before the walk moves
+ * on. Resolves to the root.
+ */
+declare function walkAsync<T extends Node, S = unknown>(root: T, visitors: AsyncVisitors<S>, state?: S): Promise<T>;
+/** An async visitor function for one node type or alias. */
+type AsyncWalkHandler<T extends Node = Node, S = unknown> = (node: T, ctx: WalkContext<T, S>) => void | Promise<void>;
+/** Enter and leave hooks for one node type or alias in an async walk. */
+interface AsyncWalkHooks<T extends Node = Node, S = unknown> {
+  enter?: AsyncWalkHandler<T, S>;
+  leave?: AsyncWalkHandler<T, S>;
+}
+/** {@link Visitors} whose handlers may return promises. */
+type AsyncVisitors<S = unknown> = { [K in NodeType]?: AsyncWalkHandler<NodeOfType<K>, S> | AsyncWalkHooks<NodeOfType<K>, S> } & { [A in AliasName]?: AsyncWalkHandler<AliasMap[A], S> | AsyncWalkHooks<AliasMap[A], S> } & {
+  enter?: AsyncWalkHandler<Node, S>;
+  leave?: AsyncWalkHandler<Node, S>;
+};
+declare function _walk(root: Node, visitors: Visitors<never> | AsyncVisitors<never>, state: unknown, ctx: WalkContext): void;
+declare function _walkAsync(root: Node, visitors: AsyncVisitors<never>, state: unknown, ctx: WalkContext): Promise<void>;
+//#endregion
+export { ALIAS_GROUPS, ALIAS_NAMES, type AliasMap, type AliasName, type AsyncVisitors, type AsyncWalkHandler, type AsyncWalkHooks, CHILD_KEYS, type CollectedExport, type CollectedImport, NODE_TYPES, type Visitors, WalkContext, type WalkHandler, type WalkHooks, _walk, _walkAsync, b, bindingIdentifiers, collectExportDeclaration, collectExports, collectImportDeclaration, collectImports, findAll, is, isCallOf, isIdentifierChar, isIdentifierName, isIdentifierStart, isKeyword, isReservedWord, isStrictBindOnlyReservedWord, isStrictBindReservedWord, isStrictReservedWord, isValidIdentifier, literalValue, nameOf, unwrap, walk, walkAsync };

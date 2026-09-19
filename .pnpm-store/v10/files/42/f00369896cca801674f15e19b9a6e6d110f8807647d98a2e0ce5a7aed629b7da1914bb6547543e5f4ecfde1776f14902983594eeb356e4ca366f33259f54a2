@@ -1,0 +1,125 @@
+{
+  "name": "unrun",
+  "type": "module",
+  "version": "0.2.29",
+  "description": "A tool to load and execute any JavaScript or TypeScript code at runtime.",
+  "author": "Augustin Mercier <gugustinette@proton.me>",
+  "license": "MIT",
+  "funding": "https://github.com/sponsors/Gugustinette",
+  "homepage": "https://gugustinette.github.io/unrun/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gugustinette/unrun.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Gugustinette/unrun/issues"
+  },
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "bin": {
+    "unrun": "./dist/cli.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "peerDependencies": {
+    "synckit": "^0.11.11"
+  },
+  "peerDependenciesMeta": {
+    "synckit": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "rolldown": "1.0.0-rc.6"
+  },
+  "devDependencies": {
+    "@sxzz/eslint-config": "^7.7.2",
+    "@sxzz/prettier-config": "^2.3.1",
+    "@types/node": "^25.2.3",
+    "@typescript/native-preview": "7.0.0-dev.20260204.1",
+    "@vitest/browser": "4.0.18",
+    "@vitest/browser-playwright": "4.0.18",
+    "@webcontainer/api": "^1.6.1",
+    "acorn": "^8.15.0",
+    "bumpp": "^10.4.1",
+    "bundle-require": "^5.1.0",
+    "config": "^4.3.0",
+    "consola": "^3.4.2",
+    "defu": "^6.1.4",
+    "destr": "^2.0.5",
+    "esbuild": "^0.27.3",
+    "eslint": "^9.39.2",
+    "estree-walker": "^3.0.3",
+    "etag": "^1.8.1",
+    "fast-glob": "^3.3.3",
+    "giget": "^3.1.2",
+    "is-installed-globally": "^1.0.0",
+    "jiti": "^2.6.1",
+    "mime": "^4.1.0",
+    "moment-timezone": "^0.6.0",
+    "nano-jsx": "^0.2.1",
+    "playwright": "^1.58.2",
+    "preact": "^10.28.3",
+    "preact-render-to-string": "^6.6.5",
+    "prettier": "^3.8.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "reflect-metadata": "^0.2.2",
+    "synckit": "^0.11.12",
+    "test-ecosystem-ci": "^0.0.3",
+    "tinyexec": "^1.0.2",
+    "tsdown": "0.20.1",
+    "tsx": "^4.21.0",
+    "typedoc": "^0.28.16",
+    "typedoc-plugin-markdown": "^4.10.0",
+    "typedoc-vitepress-theme": "^1.1.2",
+    "typescript": "^5.9.3",
+    "unconfig": "^7.4.2",
+    "unplugin-vue": "^7.1.1",
+    "vite": "^7.3.1",
+    "vitepress": "2.0.0-alpha.12",
+    "vitepress-plugin-group-icons": "^1.7.1",
+    "vitest": "4.0.18",
+    "vue": "^3.5.28",
+    "vue-tsc": "^3.2.4",
+    "zod": "^4.3.6"
+  },
+  "prettier": "@sxzz/prettier-config",
+  "scripts": {
+    "lint": "eslint --no-cache .",
+    "lint:fix": "pnpm run lint --fix",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "pretest": "pnpm run build && node ./scripts/manage-pnpm-override.mjs add",
+    "test": "vitest",
+    "pretest:browser": "pnpm run build",
+    "test:browser": "vitest run --browser --config vitest.browser.config.ts",
+    "posttest": "node ./scripts/manage-pnpm-override.mjs remove",
+    "pretest:run": "pnpm run build && node ./scripts/manage-pnpm-override.mjs add",
+    "test:run": "vitest run",
+    "posttest:run": "node ./scripts/manage-pnpm-override.mjs remove",
+    "ecosystem-ci": "ecosystem-ci",
+    "ecosystem-ci:force": "ecosystem-ci --force",
+    "test:update-fixtures": "node ./dist/cli.mjs ./scripts/update-fixtures.ts",
+    "benchmark": "tsdown -c benchmark/tsdown.config.ts && node ./benchmark/dist/benchmark.mjs",
+    "typecheck": "tsgo --noEmit",
+    "format": "prettier --cache --write .",
+    "release": "bumpp",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "docs:generate-reference": "node ./dist/cli.mjs ./docs/.vitepress/scripts/generate-reference.ts"
+  }
+}

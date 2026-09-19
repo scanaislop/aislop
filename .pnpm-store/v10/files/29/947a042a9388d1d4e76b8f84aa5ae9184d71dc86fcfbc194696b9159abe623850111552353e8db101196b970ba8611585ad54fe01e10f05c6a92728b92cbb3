@@ -1,0 +1,12 @@
+import type { ImportMaps } from '../types/module-graph.ts';
+type PassThroughReExportCallback = (identifier: string, sources: Set<string>) => boolean | void;
+type AliasReExportCallback = (identifier: string, alias: string, sources: Set<string>) => boolean | void;
+type NamespaceReExportCallback = (namespace: string, sources: Set<string>) => boolean | void;
+export declare const forEachPassThroughReExport: (importMaps: ImportMaps, callback: PassThroughReExportCallback) => boolean;
+export declare const forEachAliasReExport: (importMaps: ImportMaps, callback: AliasReExportCallback) => boolean;
+export declare const forEachNamespaceReExport: (importMaps: ImportMaps, callback: NamespaceReExportCallback) => boolean;
+export declare const getStarReExportSources: (importMaps: ImportMaps) => Set<string> | undefined;
+export declare const getPassThroughReExportSources: (importMaps: ImportMaps, identifier: string) => Set<string> | undefined;
+export declare const getAliasReExportMap: (importMaps: ImportMaps, identifier: string) => Map<string, Set<string>> | undefined;
+export declare const getNamespaceReExportSources: (importMaps: ImportMaps, namespace: string) => Set<string> | undefined;
+export {};

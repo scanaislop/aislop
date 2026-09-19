@@ -1,0 +1,18 @@
+import type { CallExpression, ParseResult, Program } from 'oxc-parser';
+export declare const getPropertyKey: (prop: any) => string | undefined;
+export declare const getImportMap: (program: Program) => Map<string, string>;
+export declare const getPropertyValues: (node: any, propertyName: string) => Set<string>;
+export declare const collectPropertyValues: (program: Program, propertyName: string) => Set<string>;
+export declare const getFirstPropertyValue: (node: any, propertyName: string) => string | undefined;
+export declare const collectFirstPropertyValue: (program: Program, propertyName: string) => string | undefined;
+export declare const resolveObjectArg: (arg: any) => any | undefined;
+type ModuleMatch = string | string[] | ((path: string) => boolean);
+export declare const findImportedCalls: (program: Program, module: ModuleMatch) => CallExpression[];
+export declare const findImportedCallArg: (program: Program, module: ModuleMatch) => any | undefined;
+export declare const findCallArg: (program: Program, fnName: string) => any | undefined;
+export declare const findProperty: (node: any, name: string) => any | undefined;
+export declare const getStringValues: (node: any) => Set<string>;
+export declare const isExternalReExportsOnly: (result: ParseResult) => boolean;
+export declare const hasImportSpecifier: (program: Program, modulePath: string, specifierName: string) => boolean;
+export declare const collectStringLiterals: (sourceText: string, filePath: string) => Set<string>;
+export {};

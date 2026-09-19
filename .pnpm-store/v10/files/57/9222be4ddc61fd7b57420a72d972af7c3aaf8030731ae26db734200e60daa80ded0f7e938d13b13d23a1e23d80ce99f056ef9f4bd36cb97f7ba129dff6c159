@@ -1,0 +1,20 @@
+export declare const nonAlphanumericKeys: string[];
+type ParsedKey = {
+    name: string;
+    ctrl: boolean;
+    meta: boolean;
+    shift: boolean;
+    sequence: string;
+    raw: string | undefined;
+    code?: string;
+    super?: boolean;
+    hyper?: boolean;
+    capsLock?: boolean;
+    numLock?: boolean;
+    eventType?: 'press' | 'repeat' | 'release';
+    isKittyProtocol?: boolean;
+    text?: string;
+    isPrintable?: boolean;
+};
+declare const parseKeypress: (s?: Uint8Array | string) => ParsedKey;
+export default parseKeypress;

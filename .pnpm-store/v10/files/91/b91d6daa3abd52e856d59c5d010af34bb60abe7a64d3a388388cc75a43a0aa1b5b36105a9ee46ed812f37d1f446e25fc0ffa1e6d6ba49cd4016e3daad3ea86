@@ -1,0 +1,46 @@
+{
+	"name": "to-rotated",
+	"version": "1.0.0",
+	"description": "Rotate an array by a given number of steps",
+	"license": "MIT",
+	"repository": "sindresorhus/to-rotated",
+	"funding": "https://github.com/sponsors/sindresorhus",
+	"author": {
+		"name": "Sindre Sorhus",
+		"email": "sindresorhus@gmail.com",
+		"url": "https://sindresorhus.com"
+	},
+	"type": "module",
+	"exports": {
+		"types": "./index.d.ts",
+		"default": "./index.js"
+	},
+	"sideEffects": false,
+	"engines": {
+		"node": ">=18"
+	},
+	"scripts": {
+		"test": "xo && ava"
+	},
+	"files": [
+		"index.js",
+		"index.d.ts"
+	],
+	"keywords": [
+		"array",
+		"rotate",
+		"rotation",
+		"rotated",
+		"shift",
+		"immutable",
+		"steps",
+		"cycle",
+		"cycling",
+		"cycled",
+		"move"
+	],
+	"devDependencies": {
+		"ava": "^6.1.3",
+		"xo": "^0.58.0"
+	}
+}

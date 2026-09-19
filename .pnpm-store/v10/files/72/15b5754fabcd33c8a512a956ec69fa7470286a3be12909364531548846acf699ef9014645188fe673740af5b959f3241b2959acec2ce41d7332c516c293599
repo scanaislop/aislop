@@ -1,0 +1,110 @@
+{
+  "name": "oxlint",
+  "version": "1.81.0",
+  "description": "Linter for the JavaScript Oxidation Compiler",
+  "keywords": [
+    "eslint",
+    "javascript",
+    "linter",
+    "oxc",
+    "oxlint",
+    "typescript"
+  ],
+  "homepage": "https://oxc.rs/docs/guide/usage/linter",
+  "bugs": "https://github.com/oxc-project/oxc/issues",
+  "license": "MIT",
+  "author": "Boshen and oxc contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oxc-project/oxc",
+    "directory": "npm/oxlint"
+  },
+  "funding": {
+    "url": "https://github.com/sponsors/oxc-project"
+  },
+  "bin": {
+    "oxlint": "bin/oxlint"
+  },
+  "files": [
+    "configuration_schema.json",
+    "dist",
+    "README.md",
+    "bin/oxlint"
+  ],
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./plugins-dev": {
+      "types": "./dist/plugins-dev.d.ts",
+      "default": "./dist/plugins-dev.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "oxlint-tsgolint": ">=7.0.2001",
+    "vite-plus": "*"
+  },
+  "peerDependenciesMeta": {
+    "oxlint-tsgolint": {
+      "optional": true
+    },
+    "vite-plus": {
+      "optional": true
+    }
+  },
+  "napi": {
+    "binaryName": "oxlint",
+    "packageName": "@oxlint/binding",
+    "targets": [
+      "aarch64-apple-darwin",
+      "aarch64-linux-android",
+      "aarch64-pc-windows-msvc",
+      "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-linux-musl",
+      "aarch64-unknown-linux-ohos",
+      "armv7-linux-androideabi",
+      "armv7-unknown-linux-gnueabihf",
+      "armv7-unknown-linux-musleabihf",
+      "i686-pc-windows-msvc",
+      "powerpc64le-unknown-linux-gnu",
+      "riscv64gc-unknown-linux-gnu",
+      "riscv64gc-unknown-linux-musl",
+      "s390x-unknown-linux-gnu",
+      "x86_64-apple-darwin",
+      "x86_64-pc-windows-msvc",
+      "x86_64-unknown-freebsd",
+      "x86_64-unknown-linux-gnu",
+      "x86_64-unknown-linux-musl"
+    ]
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "preferUnplugged": true,
+  "optionalDependencies": {
+    "@oxlint/binding-darwin-arm64": "1.81.0",
+    "@oxlint/binding-android-arm64": "1.81.0",
+    "@oxlint/binding-win32-arm64-msvc": "1.81.0",
+    "@oxlint/binding-linux-arm64-gnu": "1.81.0",
+    "@oxlint/binding-linux-arm64-musl": "1.81.0",
+    "@oxlint/binding-openharmony-arm64": "1.81.0",
+    "@oxlint/binding-android-arm-eabi": "1.81.0",
+    "@oxlint/binding-linux-arm-gnueabihf": "1.81.0",
+    "@oxlint/binding-linux-arm-musleabihf": "1.81.0",
+    "@oxlint/binding-win32-ia32-msvc": "1.81.0",
+    "@oxlint/binding-linux-ppc64-gnu": "1.81.0",
+    "@oxlint/binding-linux-riscv64-gnu": "1.81.0",
+    "@oxlint/binding-linux-riscv64-musl": "1.81.0",
+    "@oxlint/binding-linux-s390x-gnu": "1.81.0",
+    "@oxlint/binding-darwin-x64": "1.81.0",
+    "@oxlint/binding-win32-x64-msvc": "1.81.0",
+    "@oxlint/binding-freebsd-x64": "1.81.0",
+    "@oxlint/binding-linux-x64-gnu": "1.81.0",
+    "@oxlint/binding-linux-x64-musl": "1.81.0"
+  }
+}

@@ -1,0 +1,13 @@
+export declare const isDirectory: (cwdOrPath: string, name?: string) => boolean;
+export declare const isFile: (cwdOrPath: string, name?: string) => boolean;
+export declare const findFile: (cwd: string, fileName: string) => string | undefined;
+export declare const findFileWithExtensions: (basePath: string, extensions: string[]) => string | undefined;
+export declare const loadFile: (filePath: string) => Promise<string>;
+export declare const hasFileWithExtension: (cwd: string, dirName: string, extensions: string[]) => boolean;
+export declare const loadJSON: (filePath: string) => Promise<any>;
+export declare const loadJSONC: (filePath: string) => Promise<any>;
+export declare const loadYAML: (filePath: string) => Promise<any>;
+export declare const loadTOML: (filePath: string) => Promise<import("smol-toml").TomlTable>;
+export declare const parseJSONC: (filePath: string, contents: string) => Promise<any>;
+export declare const parseYAML: (contents: string) => any;
+export declare const tryRealpath: (filePath: string) => string;

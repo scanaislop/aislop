@@ -1,0 +1,94 @@
+import type { SYMBOL_TYPE } from '../constants.ts';
+import type { Fixes } from './exports.ts';
+export type SymbolType = (typeof SYMBOL_TYPE)[keyof typeof SYMBOL_TYPE];
+export interface IssueSymbol {
+    symbol: string;
+    kind?: string;
+    specifier?: string;
+    pos?: number;
+    line?: number;
+    col?: number;
+}
+export interface Issue {
+    type: IssueType;
+    filePath: string;
+    workspace: string;
+    symbol: string;
+    symbols?: IssueSymbol[];
+    symbolType?: SymbolType;
+    parentSymbol?: string;
+    specifier?: string;
+    severity?: IssueSeverity;
+    pos?: number;
+    line?: number;
+    col?: number;
+    fixes: Fixes;
+    isFixed?: boolean;
+}
+export type IssueRecords = Record<string, Record<string, Issue>>;
+export type Issues = {
+    files: IssueRecords;
+    dependencies: IssueRecords;
+    devDependencies: IssueRecords;
+    optionalPeerDependencies: IssueRecords;
+    unlisted: IssueRecords;
+    binaries: IssueRecords;
+    unresolved: IssueRecords;
+    exports: IssueRecords;
+    types: IssueRecords;
+    nsExports: IssueRecords;
+    nsTypes: IssueRecords;
+    duplicates: IssueRecords;
+    enumMembers: IssueRecords;
+    namespaceMembers: IssueRecords;
+    catalog: IssueRecords;
+    catalogReferences: IssueRecords;
+    cycles: IssueRecords;
+};
+export type IssueType = keyof Issues;
+export type Report = {
+    [key in keyof Issues]: boolean;
+};
+export type Counters = Record<IssueType | 'processed' | 'total', number>;
+export type ReporterOptions = {
+    report: Report;
+    issues: Issues;
+    counters: Counters;
+    tagHints: TagHints;
+    configurationHints: ConfigurationHint[];
+    enabledPlugins: Record<string, string[]>;
+    isDisableConfigHints: boolean;
+    isDisableTagHints: boolean;
+    isTreatConfigHintsAsErrors: boolean;
+    isTreatTagHintsAsErrors: boolean;
+    cwd: string;
+    isProduction: boolean;
+    isShowProgress: boolean;
+    options: string;
+    preprocessorOptions: string;
+    includedWorkspaceDirs: string[];
+    selectedWorkspaces: string[] | undefined;
+    configFilePath: string | undefined;
+    maxShowIssues?: number;
+};
+export type Reporter = (options: ReporterOptions) => void;
+export type Preprocessor = (options: ReporterOptions) => ReporterOptions;
+export type IssueSeverity = 'error' | 'warn' | 'off';
+export type Rules = Record<IssueType, IssueSeverity>;
+export type ConfigurationHints = Map<string, ConfigurationHint>;
+export type ConfigurationHintType = 'ignore' | 'ignoreFiles' | 'ignoreBinaries' | 'ignoreDependencies' | 'ignoreUnresolved' | 'workspaces' | 'ignoreWorkspaces' | 'entry-redundant' | 'project-redundant' | 'entry-top-level' | 'project-top-level' | 'entry-empty' | 'project-empty' | 'project-extension-unregistered' | 'project-extension-excluded' | 'package-entry' | 'top-level-unconfigured' | 'workspace-unconfigured';
+export type ConfigurationHint = {
+    type: ConfigurationHintType;
+    identifier: string | RegExp;
+    filePath?: string;
+    workspaceName?: string;
+    size?: number;
+};
+type TagHints = Set<TagHint>;
+export type TagHint = {
+    type: 'tag';
+    filePath: string;
+    identifier: string;
+    tagName: string;
+};
+export {};

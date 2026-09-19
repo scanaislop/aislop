@@ -1,0 +1,14 @@
+import type { CompilerSync } from './types.ts';
+export declare const fencedCodeBlockMatcher: RegExp;
+export declare const inlineCodeMatcher: RegExp;
+export declare const scriptExtractor: RegExp;
+export declare const styleExtractor: RegExp;
+export declare const blockCommentMatcher: RegExp;
+export declare const lineCommentMatcher: RegExp;
+export declare const importMatcher: RegExp;
+export declare const collectImports: CompilerSync;
+export declare const importsWithinScripts: CompilerSync;
+export declare const scriptBodies: CompilerSync;
+export declare const getStyleLang: (attrs: string) => string | undefined;
+export declare const frontmatterMatcher: RegExp;
+export declare const importsWithinFrontmatter: (text: string, keys?: string[]) => string;

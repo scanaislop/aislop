@@ -1,0 +1,162 @@
+import { readFile, rm, writeFile } from 'node:fs/promises';
+import { formatly } from 'formatly';
+import { DEFAULT_CATALOG } from './util/catalog.js';
+import { debugLogArray, debugLogObject } from './util/debug.js';
+import { load, save } from './util/package-json.js';
+import { extname, join } from './util/path.js';
+import { removeExport } from './util/remove-export.js';
+const MODULE_MARKER = /^[ \t]*(import|export)\b/m;
+export const fix = async (issues, counters, options) => {
+    const fixer = new IssueFixer(options);
+    const touchedFiles = await fixer.fixIssues(issues);
+    for (const type in issues) {
+        const group = issues[type];
+        if (group instanceof Set)
+            continue;
+        const counterType = (type === '_files' ? 'files' : type);
+        for (const filePath in group)
+            for (const key in group[filePath])
+                if (group[filePath][key].isFixed)
+                    counters[counterType]--;
+    }
+    if (options.isFormat) {
+        const report = await formatly(Array.from(touchedFiles));
+        if (report.ran && report.result && (report.result.runner === 'virtual' || report.result.code === 0)) {
+            debugLogArray('*', `Formatted files using ${report.formatter.name} (${report.formatter.runner})`, touchedFiles);
+        }
+        else {
+            debugLogObject('*', 'Formatting files failed', report);
+        }
+    }
+};
+class IssueFixer {
+    options;
+    constructor(options) {
+        this.options = options;
+    }
+    async fixIssues(issues) {
+        const touchedFiles = new Set();
+        await this.removeUnusedFiles(issues);
+        for (const filePath of await this.removeUnusedExports(issues))
+            touchedFiles.add(filePath);
+        for (const filePath of await this.removeUnusedDependencies(issues))
+            touchedFiles.add(filePath);
+        for (const filePath of await this.removeUnusedCatalogEntries(issues))
+            touchedFiles.add(filePath);
+        return touchedFiles;
+    }
+    async removeUnusedFiles(issues) {
+        if (!this.options.isFixFiles)
+            return;
+        for (const issue of Object.values(issues.files).flatMap(Object.values)) {
+            await rm(issue.filePath);
+            issue.isFixed = true;
+        }
+    }
+    async removeUnusedExports(issues) {
+        const touchedFiles = new Set();
+        const types = [
+            ...(this.options.isFixUnusedTypes ? ['types', 'nsTypes', 'enumMembers', 'namespaceMembers'] : []),
+            ...(this.options.isFixUnusedExports ? ['exports', 'nsExports'] : []),
+        ];
+        if (types.length === 0)
+            return touchedFiles;
+        const allFixes = new Map();
+        for (const type of types) {
+            for (const [filePath, issueMap] of Object.entries(issues[type])) {
+                const fixes = allFixes.get(filePath) ?? [];
+                for (const issue of Object.values(issueMap))
+                    fixes.push(...issue.fixes);
+                allFixes.set(filePath, fixes);
+            }
+        }
+        for (const [filePath, fixes] of allFixes) {
+            if (fixes.length === 0)
+                continue;
+            const absFilePath = join(this.options.cwd, filePath);
+            const originalSource = await readFile(absFilePath, 'utf-8');
+            let sourceFileText = fixes
+                .sort((a, b) => b[0] - a[0])
+                .reduce((text, [start, end, flags]) => removeExport({ text, start, end, flags }), originalSource);
+            if (MODULE_MARKER.test(originalSource) && !MODULE_MARKER.test(sourceFileText)) {
+                sourceFileText = `${sourceFileText.trimEnd()}\n\nexport {};\n`;
+            }
+            await writeFile(absFilePath, sourceFileText);
+            touchedFiles.add(absFilePath);
+            for (const type of types) {
+                const issueMap = issues[type]?.[filePath];
+                if (issueMap)
+                    for (const issue of Object.values(issueMap))
+                        issue.isFixed = true;
+            }
+        }
+        return touchedFiles;
+    }
+    async removeUnusedDependencies(issues) {
+        const touchedFiles = new Set();
+        if (!this.options.isFixDependencies)
+            return touchedFiles;
+        const filePaths = new Set([...Object.keys(issues.dependencies), ...Object.keys(issues.devDependencies)]);
+        for (const filePath of filePaths) {
+            const absFilePath = join(this.options.cwd, filePath);
+            const pkg = await load(absFilePath);
+            const removeDependencies = (key) => {
+                const deps = pkg[key];
+                if (!deps || !(filePath in issues[key]))
+                    return;
+                for (const dependency of Object.keys(issues[key][filePath])) {
+                    delete deps[dependency];
+                    issues[key][filePath][dependency].isFixed = true;
+                }
+            };
+            removeDependencies('dependencies');
+            removeDependencies('devDependencies');
+            await save(absFilePath, pkg);
+            touchedFiles.add(absFilePath);
+        }
+        return touchedFiles;
+    }
+    async removeUnusedCatalogEntries(issues) {
+        const touchedFiles = new Set();
+        if (!this.options.isFixCatalog)
+            return touchedFiles;
+        const filePaths = new Set(Object.keys(issues.catalog));
+        for (const filePath of filePaths) {
+            if (['.yml', '.yaml'].includes(extname(filePath))) {
+                const absFilePath = join(this.options.cwd, filePath);
+                const fileContent = await readFile(absFilePath, 'utf-8');
+                const issuesForFile = Object.values(issues.catalog[filePath]);
+                const takeLine = (issue) => issue.fixes.map(fix => fix[0]);
+                const remove = new Set(issuesForFile.flatMap(takeLine));
+                const keep = (_, i) => !remove.has(i + 1);
+                await writeFile(absFilePath, fileContent.split('\n').filter(keep).join('\n'));
+                for (const issue of issuesForFile)
+                    issue.isFixed = true;
+                touchedFiles.add(filePath);
+            }
+            else {
+                const absFilePath = join(this.options.cwd, filePath);
+                const pkg = await load(absFilePath);
+                const catalog = pkg.catalog || (!Array.isArray(pkg.workspaces) && pkg.workspaces?.catalog);
+                const catalogs = pkg.catalogs || (!Array.isArray(pkg.workspaces) && pkg.workspaces?.catalogs);
+                for (const [key, issue] of Object.entries(issues.catalog[filePath])) {
+                    if (issue.parentSymbol === DEFAULT_CATALOG) {
+                        if (catalog) {
+                            delete catalog[issue.symbol];
+                            issues.catalog[filePath][key].isFixed = true;
+                        }
+                    }
+                    else {
+                        if (catalogs && issue.parentSymbol) {
+                            delete catalogs[issue.parentSymbol][issue.symbol];
+                            issues.catalog[filePath][key].isFixed = true;
+                        }
+                    }
+                }
+                await save(absFilePath, pkg);
+                touchedFiles.add(absFilePath);
+            }
+        }
+        return touchedFiles;
+    }
+}

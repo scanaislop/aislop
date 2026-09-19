@@ -1,0 +1,36 @@
+{
+    "name": "@types/braces",
+    "version": "3.0.5",
+    "description": "TypeScript definitions for braces",
+    "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/braces",
+    "license": "MIT",
+    "contributors": [
+        {
+            "name": "vemoo",
+            "githubUsername": "vemoo",
+            "url": "https://github.com/vemoo"
+        },
+        {
+            "name": "mrmlnc",
+            "githubUsername": "mrmlnc",
+            "url": "https://github.com/mrmlnc"
+        },
+        {
+            "name": "rejunp",
+            "githubUsername": "rejunp",
+            "url": "https://github.com/rejunp"
+        }
+    ],
+    "main": "",
+    "types": "index.d.ts",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+        "directory": "types/braces"
+    },
+    "scripts": {},
+    "dependencies": {},
+    "peerDependencies": {},
+    "typesPublisherContentHash": "7c6b3db42eda6be5305ee19aecb594a1bf3137397bb0309631bac6145f46d37a",
+    "typeScriptVersion": "5.0"
+}

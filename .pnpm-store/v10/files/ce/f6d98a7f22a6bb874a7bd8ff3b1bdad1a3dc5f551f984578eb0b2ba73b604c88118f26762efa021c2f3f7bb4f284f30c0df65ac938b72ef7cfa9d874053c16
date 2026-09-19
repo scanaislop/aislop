@@ -1,0 +1,30 @@
+import { flattenIssues, getColoredTitle, getIssueLine, getIssueTypeTitle } from './util/util.js';
+const logIssueRecord = (issues, cwd) => {
+    const sortedByFilePath = issues.sort((a, b) => (a.filePath > b.filePath ? 1 : -1));
+    for (const issue of sortedByFilePath)
+        console.log(getIssueLine(issue, cwd));
+};
+export default ({ report, issues, isShowProgress, cwd }) => {
+    let totalIssues = 0;
+    for (const [reportType, isReportType] of Object.entries(report)) {
+        if (isReportType) {
+            const title = getIssueTypeTitle(reportType);
+            const issuesForType = reportType === 'duplicates'
+                ? flattenIssues(issues[reportType])
+                : Object.values(issues[reportType])
+                    .filter(issues => Object.keys(issues).length > 0)
+                    .map(issues => {
+                    const items = Object.values(issues);
+                    return { ...items[0], symbols: items };
+                });
+            if (issuesForType.length > 0) {
+                title && console.log(getColoredTitle(title, issuesForType.length));
+                logIssueRecord(issuesForType, cwd);
+            }
+            totalIssues = totalIssues + issuesForType.length;
+        }
+    }
+    if (totalIssues === 0 && isShowProgress) {
+        console.log('✂️  Excellent, Knip found no issues.');
+    }
+};

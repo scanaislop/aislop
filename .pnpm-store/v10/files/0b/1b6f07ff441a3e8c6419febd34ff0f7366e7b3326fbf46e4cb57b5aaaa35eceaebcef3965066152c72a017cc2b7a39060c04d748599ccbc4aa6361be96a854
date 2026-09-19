@@ -1,0 +1,18 @@
+const require_flattenDepth = require("./flattenDepth.js");
+//#region src/compat/array/flatten.ts
+/**
+* Flattens array up to depth times.
+*
+* @template T
+* @param array - The array to flatten.
+* @returns Returns the new flattened array.
+*
+* @example
+* flatten([1, [2, [3, [4]], 5]]);
+* // => [1, 2, [3, [4]], 5]
+*/
+function flatten(array) {
+	return require_flattenDepth.flattenDepth(array, 1);
+}
+//#endregion
+exports.flatten = flatten;

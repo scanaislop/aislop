@@ -1,0 +1,1393 @@
+//#region src/aliases.ts
+const ALIAS_GROUPS = {
+	Expression: [
+		"Identifier",
+		"Literal",
+		"ThisExpression",
+		"Super",
+		"ArrayExpression",
+		"ObjectExpression",
+		"FunctionExpression",
+		"ArrowFunctionExpression",
+		"ClassExpression",
+		"TaggedTemplateExpression",
+		"TemplateLiteral",
+		"MemberExpression",
+		"CallExpression",
+		"NewExpression",
+		"ChainExpression",
+		"SequenceExpression",
+		"ParenthesizedExpression",
+		"BinaryExpression",
+		"LogicalExpression",
+		"ConditionalExpression",
+		"UnaryExpression",
+		"UpdateExpression",
+		"AssignmentExpression",
+		"YieldExpression",
+		"AwaitExpression",
+		"ImportExpression",
+		"MetaProperty",
+		"TSAsExpression",
+		"TSSatisfiesExpression",
+		"TSTypeAssertion",
+		"TSNonNullExpression",
+		"TSInstantiationExpression",
+		"JSXElement",
+		"JSXFragment"
+	],
+	Statement: [
+		"ExpressionStatement",
+		"BlockStatement",
+		"EmptyStatement",
+		"DebuggerStatement",
+		"ReturnStatement",
+		"LabeledStatement",
+		"BreakStatement",
+		"ContinueStatement",
+		"IfStatement",
+		"SwitchStatement",
+		"ThrowStatement",
+		"TryStatement",
+		"WhileStatement",
+		"DoWhileStatement",
+		"ForStatement",
+		"ForInStatement",
+		"ForOfStatement",
+		"WithStatement",
+		"FunctionDeclaration",
+		"ClassDeclaration",
+		"VariableDeclaration",
+		"TSDeclareFunction",
+		"TSTypeAliasDeclaration",
+		"TSInterfaceDeclaration",
+		"TSEnumDeclaration",
+		"TSModuleDeclaration",
+		"TSImportEqualsDeclaration"
+	],
+	Declaration: [
+		"FunctionDeclaration",
+		"ClassDeclaration",
+		"VariableDeclaration",
+		"TSDeclareFunction",
+		"TSTypeAliasDeclaration",
+		"TSInterfaceDeclaration",
+		"TSEnumDeclaration",
+		"TSModuleDeclaration",
+		"TSImportEqualsDeclaration"
+	],
+	ModuleDeclaration: [
+		"ImportDeclaration",
+		"ExportNamedDeclaration",
+		"ExportDefaultDeclaration",
+		"ExportAllDeclaration",
+		"TSExportAssignment",
+		"TSNamespaceExportDeclaration"
+	],
+	Function: [
+		"FunctionDeclaration",
+		"FunctionExpression",
+		"TSDeclareFunction",
+		"TSEmptyBodyFunctionExpression",
+		"ArrowFunctionExpression"
+	],
+	Class: ["ClassDeclaration", "ClassExpression"],
+	Method: ["MethodDefinition", "TSAbstractMethodDefinition"],
+	Loop: [
+		"DoWhileStatement",
+		"ForInStatement",
+		"ForOfStatement",
+		"ForStatement",
+		"WhileStatement"
+	],
+	Pattern: [
+		"ArrayPattern",
+		"ObjectPattern",
+		"AssignmentPattern",
+		"RestElement"
+	],
+	JSX: [
+		"JSXAttribute",
+		"JSXClosingElement",
+		"JSXClosingFragment",
+		"JSXElement",
+		"JSXEmptyExpression",
+		"JSXExpressionContainer",
+		"JSXFragment",
+		"JSXIdentifier",
+		"JSXMemberExpression",
+		"JSXNamespacedName",
+		"JSXOpeningElement",
+		"JSXOpeningFragment",
+		"JSXSpreadAttribute",
+		"JSXSpreadChild",
+		"JSXText"
+	],
+	TSType: [
+		"TSAnyKeyword",
+		"TSUnknownKeyword",
+		"TSNeverKeyword",
+		"TSVoidKeyword",
+		"TSNullKeyword",
+		"TSUndefinedKeyword",
+		"TSStringKeyword",
+		"TSNumberKeyword",
+		"TSBigIntKeyword",
+		"TSBooleanKeyword",
+		"TSSymbolKeyword",
+		"TSObjectKeyword",
+		"TSIntrinsicKeyword",
+		"TSThisType",
+		"TSTypeReference",
+		"TSTypeQuery",
+		"TSImportType",
+		"TSLiteralType",
+		"TSTemplateLiteralType",
+		"TSArrayType",
+		"TSIndexedAccessType",
+		"TSTupleType",
+		"TSNamedTupleMember",
+		"TSJSDocNullableType",
+		"TSJSDocNonNullableType",
+		"TSJSDocUnknownType",
+		"TSUnionType",
+		"TSIntersectionType",
+		"TSConditionalType",
+		"TSInferType",
+		"TSTypeOperator",
+		"TSParenthesizedType",
+		"TSFunctionType",
+		"TSConstructorType",
+		"TSTypePredicate",
+		"TSTypeLiteral",
+		"TSMappedType"
+	]
+};
+const ALIAS_NAMES = Object.keys(ALIAS_GROUPS);
+
+//#endregion
+//#region src/generated.ts
+const KEYS = Object.create(null);
+function ck(type, keys) {
+	const prev = KEYS[type];
+	if (prev === void 0) KEYS[type] = keys;
+	else for (const k of keys) if (!prev.includes(k)) prev.push(k);
+}
+ck("SequenceExpression", ["expressions"]);
+ck("ParenthesizedExpression", ["expression"]);
+ck("ArrowFunctionExpression", [
+	"typeParameters",
+	"params",
+	"returnType",
+	"body"
+]);
+ck("FunctionDeclaration", [
+	"id",
+	"typeParameters",
+	"params",
+	"returnType",
+	"body"
+]);
+ck("FunctionExpression", [
+	"id",
+	"typeParameters",
+	"params",
+	"returnType",
+	"body"
+]);
+ck("TSDeclareFunction", [
+	"id",
+	"typeParameters",
+	"params",
+	"returnType",
+	"body"
+]);
+ck("TSEmptyBodyFunctionExpression", [
+	"id",
+	"typeParameters",
+	"params",
+	"returnType",
+	"body"
+]);
+ck("BlockStatement", ["body"]);
+ck("BlockStatement", ["body"]);
+ck("BinaryExpression", ["left", "right"]);
+ck("LogicalExpression", ["left", "right"]);
+ck("ConditionalExpression", [
+	"test",
+	"consequent",
+	"alternate"
+]);
+ck("UnaryExpression", ["argument"]);
+ck("UpdateExpression", ["argument"]);
+ck("AssignmentExpression", ["left", "right"]);
+ck("ArrayExpression", ["elements"]);
+ck("ObjectExpression", ["properties"]);
+ck("SpreadElement", ["argument"]);
+ck("Property", ["key", "value"]);
+ck("MemberExpression", ["object", "property"]);
+ck("CallExpression", [
+	"callee",
+	"typeArguments",
+	"arguments"
+]);
+ck("ChainExpression", ["expression"]);
+ck("TaggedTemplateExpression", [
+	"tag",
+	"typeArguments",
+	"quasi"
+]);
+ck("NewExpression", [
+	"callee",
+	"typeArguments",
+	"arguments"
+]);
+ck("AwaitExpression", ["argument"]);
+ck("YieldExpression", ["argument"]);
+ck("MetaProperty", ["meta", "property"]);
+ck("Decorator", ["expression"]);
+ck("ClassDeclaration", [
+	"decorators",
+	"id",
+	"typeParameters",
+	"superClass",
+	"superTypeArguments",
+	"implements",
+	"body"
+]);
+ck("ClassExpression", [
+	"decorators",
+	"id",
+	"typeParameters",
+	"superClass",
+	"superTypeArguments",
+	"implements",
+	"body"
+]);
+ck("ClassBody", ["body"]);
+ck("MethodDefinition", [
+	"decorators",
+	"key",
+	"value"
+]);
+ck("TSAbstractMethodDefinition", [
+	"decorators",
+	"key",
+	"value"
+]);
+ck("PropertyDefinition", [
+	"decorators",
+	"key",
+	"typeAnnotation",
+	"value"
+]);
+ck("AccessorProperty", [
+	"decorators",
+	"key",
+	"typeAnnotation",
+	"value"
+]);
+ck("TSAbstractPropertyDefinition", [
+	"decorators",
+	"key",
+	"typeAnnotation",
+	"value"
+]);
+ck("TSAbstractAccessorProperty", [
+	"decorators",
+	"key",
+	"typeAnnotation",
+	"value"
+]);
+ck("StaticBlock", ["body"]);
+ck("Super", []);
+ck("Literal", []);
+ck("Literal", []);
+ck("Literal", []);
+ck("Literal", []);
+ck("Literal", []);
+ck("ThisExpression", []);
+ck("Literal", []);
+ck("TemplateLiteral", ["quasis", "expressions"]);
+ck("TemplateElement", []);
+ck("Identifier", []);
+ck("PrivateIdentifier", []);
+ck("Identifier", ["decorators", "typeAnnotation"]);
+ck("Identifier", []);
+ck("Identifier", []);
+ck("ExpressionStatement", ["expression"]);
+ck("IfStatement", [
+	"test",
+	"consequent",
+	"alternate"
+]);
+ck("SwitchStatement", ["discriminant", "cases"]);
+ck("SwitchCase", ["test", "consequent"]);
+ck("ForStatement", [
+	"init",
+	"test",
+	"update",
+	"body"
+]);
+ck("ForInStatement", [
+	"left",
+	"right",
+	"body"
+]);
+ck("ForOfStatement", [
+	"left",
+	"right",
+	"body"
+]);
+ck("WhileStatement", ["test", "body"]);
+ck("DoWhileStatement", ["body", "test"]);
+ck("BreakStatement", ["label"]);
+ck("ContinueStatement", ["label"]);
+ck("LabeledStatement", ["label", "body"]);
+ck("WithStatement", ["object", "body"]);
+ck("ReturnStatement", ["argument"]);
+ck("ThrowStatement", ["argument"]);
+ck("TryStatement", [
+	"block",
+	"handler",
+	"finalizer"
+]);
+ck("CatchClause", ["param", "body"]);
+ck("DebuggerStatement", []);
+ck("EmptyStatement", []);
+ck("VariableDeclaration", ["declarations"]);
+ck("VariableDeclarator", ["id", "init"]);
+ck("ExpressionStatement", ["expression"]);
+ck("AssignmentPattern", [
+	"decorators",
+	"left",
+	"typeAnnotation",
+	"right"
+]);
+ck("RestElement", [
+	"decorators",
+	"argument",
+	"typeAnnotation"
+]);
+ck("ArrayPattern", [
+	"decorators",
+	"elements",
+	"typeAnnotation"
+]);
+ck("ObjectPattern", [
+	"decorators",
+	"properties",
+	"typeAnnotation"
+]);
+ck("Property", ["key", "value"]);
+ck("Program", ["hashbang", "body"]);
+ck("ImportExpression", ["source", "options"]);
+ck("ImportDeclaration", [
+	"specifiers",
+	"source",
+	"attributes"
+]);
+ck("ImportSpecifier", ["imported", "local"]);
+ck("ImportDefaultSpecifier", ["local"]);
+ck("ImportNamespaceSpecifier", ["local"]);
+ck("ImportAttribute", ["key", "value"]);
+ck("ExportNamedDeclaration", [
+	"declaration",
+	"specifiers",
+	"source",
+	"attributes"
+]);
+ck("ExportDefaultDeclaration", ["declaration"]);
+ck("ExportAllDeclaration", [
+	"exported",
+	"source",
+	"attributes"
+]);
+ck("ExportSpecifier", ["local", "exported"]);
+ck("TSTypeAnnotation", ["typeAnnotation"]);
+ck("TSAnyKeyword", []);
+ck("TSUnknownKeyword", []);
+ck("TSNeverKeyword", []);
+ck("TSVoidKeyword", []);
+ck("TSNullKeyword", []);
+ck("TSUndefinedKeyword", []);
+ck("TSStringKeyword", []);
+ck("TSNumberKeyword", []);
+ck("TSBigIntKeyword", []);
+ck("TSBooleanKeyword", []);
+ck("TSSymbolKeyword", []);
+ck("TSObjectKeyword", []);
+ck("TSIntrinsicKeyword", []);
+ck("TSThisType", []);
+ck("TSTypeReference", ["typeName", "typeArguments"]);
+ck("TSQualifiedName", ["left", "right"]);
+ck("TSTypeQuery", ["exprName", "typeArguments"]);
+ck("TSImportType", [
+	"source",
+	"options",
+	"qualifier",
+	"typeArguments"
+]);
+ck("TSTypeParameter", [
+	"name",
+	"constraint",
+	"default"
+]);
+ck("TSTypeParameterDeclaration", ["params"]);
+ck("TSTypeParameterInstantiation", ["params"]);
+ck("TSLiteralType", ["literal"]);
+ck("TSTemplateLiteralType", ["quasis", "types"]);
+ck("TSArrayType", ["elementType"]);
+ck("TSIndexedAccessType", ["objectType", "indexType"]);
+ck("TSTupleType", ["elementTypes"]);
+ck("TSNamedTupleMember", ["label", "elementType"]);
+ck("TSOptionalType", ["typeAnnotation"]);
+ck("TSRestType", ["typeAnnotation"]);
+ck("TSJSDocNullableType", ["typeAnnotation"]);
+ck("TSJSDocNonNullableType", ["typeAnnotation"]);
+ck("TSJSDocUnknownType", []);
+ck("TSUnionType", ["types"]);
+ck("TSIntersectionType", ["types"]);
+ck("TSConditionalType", [
+	"checkType",
+	"extendsType",
+	"trueType",
+	"falseType"
+]);
+ck("TSInferType", ["typeParameter"]);
+ck("TSTypeOperator", ["typeAnnotation"]);
+ck("TSParenthesizedType", ["typeAnnotation"]);
+ck("TSFunctionType", [
+	"typeParameters",
+	"params",
+	"returnType"
+]);
+ck("TSConstructorType", [
+	"typeParameters",
+	"params",
+	"returnType"
+]);
+ck("TSTypePredicate", ["parameterName", "typeAnnotation"]);
+ck("TSTypeLiteral", ["members"]);
+ck("TSMappedType", [
+	"key",
+	"constraint",
+	"nameType",
+	"typeAnnotation"
+]);
+ck("TSPropertySignature", ["key", "typeAnnotation"]);
+ck("TSMethodSignature", [
+	"key",
+	"typeParameters",
+	"params",
+	"returnType"
+]);
+ck("TSCallSignatureDeclaration", [
+	"typeParameters",
+	"params",
+	"returnType"
+]);
+ck("TSConstructSignatureDeclaration", [
+	"typeParameters",
+	"params",
+	"returnType"
+]);
+ck("TSIndexSignature", ["parameters", "typeAnnotation"]);
+ck("TSTypeAliasDeclaration", [
+	"id",
+	"typeParameters",
+	"typeAnnotation"
+]);
+ck("TSInterfaceDeclaration", [
+	"id",
+	"typeParameters",
+	"extends",
+	"body"
+]);
+ck("TSInterfaceBody", ["body"]);
+ck("TSInterfaceHeritage", ["expression", "typeArguments"]);
+ck("TSClassImplements", ["expression", "typeArguments"]);
+ck("TSEnumDeclaration", ["id", "body"]);
+ck("TSEnumBody", ["members"]);
+ck("TSEnumMember", ["id", "initializer"]);
+ck("TSModuleDeclaration", ["id", "body"]);
+ck("TSModuleBlock", ["body"]);
+ck("TSModuleDeclaration", ["id", "body"]);
+ck("TSParameterProperty", ["decorators", "parameter"]);
+ck("Identifier", ["typeAnnotation"]);
+ck("TSAsExpression", ["expression", "typeAnnotation"]);
+ck("TSSatisfiesExpression", ["expression", "typeAnnotation"]);
+ck("TSTypeAssertion", ["typeAnnotation", "expression"]);
+ck("TSNonNullExpression", ["expression"]);
+ck("TSInstantiationExpression", ["expression", "typeArguments"]);
+ck("TSExportAssignment", ["expression"]);
+ck("TSNamespaceExportDeclaration", ["id"]);
+ck("TSImportEqualsDeclaration", ["id", "moduleReference"]);
+ck("TSExternalModuleReference", ["expression"]);
+ck("JSXElement", [
+	"openingElement",
+	"children",
+	"closingElement"
+]);
+ck("JSXOpeningElement", [
+	"name",
+	"typeArguments",
+	"attributes"
+]);
+ck("JSXClosingElement", ["name"]);
+ck("JSXFragment", [
+	"openingFragment",
+	"children",
+	"closingFragment"
+]);
+ck("JSXOpeningFragment", []);
+ck("JSXClosingFragment", []);
+ck("JSXIdentifier", []);
+ck("JSXNamespacedName", ["namespace", "name"]);
+ck("JSXMemberExpression", ["object", "property"]);
+ck("JSXAttribute", ["name", "value"]);
+ck("JSXSpreadAttribute", ["argument"]);
+ck("JSXExpressionContainer", ["expression"]);
+ck("JSXEmptyExpression", []);
+ck("JSXText", []);
+ck("JSXSpreadChild", ["expression"]);
+ck("Hashbang", []);
+const CHILD_KEYS = KEYS;
+const TYPES = [
+	"SequenceExpression",
+	"ParenthesizedExpression",
+	"ArrowFunctionExpression",
+	"FunctionDeclaration",
+	"FunctionExpression",
+	"TSDeclareFunction",
+	"TSEmptyBodyFunctionExpression",
+	"BlockStatement",
+	"BlockStatement",
+	"BinaryExpression",
+	"LogicalExpression",
+	"ConditionalExpression",
+	"UnaryExpression",
+	"UpdateExpression",
+	"AssignmentExpression",
+	"ArrayExpression",
+	"ObjectExpression",
+	"SpreadElement",
+	"Property",
+	"MemberExpression",
+	"CallExpression",
+	"ChainExpression",
+	"TaggedTemplateExpression",
+	"NewExpression",
+	"AwaitExpression",
+	"YieldExpression",
+	"MetaProperty",
+	"Decorator",
+	"ClassDeclaration",
+	"ClassExpression",
+	"ClassBody",
+	"MethodDefinition",
+	"TSAbstractMethodDefinition",
+	"PropertyDefinition",
+	"AccessorProperty",
+	"TSAbstractPropertyDefinition",
+	"TSAbstractAccessorProperty",
+	"StaticBlock",
+	"Super",
+	"Literal",
+	"Literal",
+	"Literal",
+	"Literal",
+	"Literal",
+	"ThisExpression",
+	"Literal",
+	"TemplateLiteral",
+	"TemplateElement",
+	"Identifier",
+	"PrivateIdentifier",
+	"Identifier",
+	"Identifier",
+	"Identifier",
+	"ExpressionStatement",
+	"IfStatement",
+	"SwitchStatement",
+	"SwitchCase",
+	"ForStatement",
+	"ForInStatement",
+	"ForOfStatement",
+	"WhileStatement",
+	"DoWhileStatement",
+	"BreakStatement",
+	"ContinueStatement",
+	"LabeledStatement",
+	"WithStatement",
+	"ReturnStatement",
+	"ThrowStatement",
+	"TryStatement",
+	"CatchClause",
+	"DebuggerStatement",
+	"EmptyStatement",
+	"VariableDeclaration",
+	"VariableDeclarator",
+	"ExpressionStatement",
+	"AssignmentPattern",
+	"RestElement",
+	"ArrayPattern",
+	"ObjectPattern",
+	"Property",
+	"Program",
+	"ImportExpression",
+	"ImportDeclaration",
+	"ImportSpecifier",
+	"ImportDefaultSpecifier",
+	"ImportNamespaceSpecifier",
+	"ImportAttribute",
+	"ExportNamedDeclaration",
+	"ExportDefaultDeclaration",
+	"ExportAllDeclaration",
+	"ExportSpecifier",
+	"TSTypeAnnotation",
+	"TSAnyKeyword",
+	"TSUnknownKeyword",
+	"TSNeverKeyword",
+	"TSVoidKeyword",
+	"TSNullKeyword",
+	"TSUndefinedKeyword",
+	"TSStringKeyword",
+	"TSNumberKeyword",
+	"TSBigIntKeyword",
+	"TSBooleanKeyword",
+	"TSSymbolKeyword",
+	"TSObjectKeyword",
+	"TSIntrinsicKeyword",
+	"TSThisType",
+	"TSTypeReference",
+	"TSQualifiedName",
+	"TSTypeQuery",
+	"TSImportType",
+	"TSTypeParameter",
+	"TSTypeParameterDeclaration",
+	"TSTypeParameterInstantiation",
+	"TSLiteralType",
+	"TSTemplateLiteralType",
+	"TSArrayType",
+	"TSIndexedAccessType",
+	"TSTupleType",
+	"TSNamedTupleMember",
+	"TSOptionalType",
+	"TSRestType",
+	"TSJSDocNullableType",
+	"TSJSDocNonNullableType",
+	"TSJSDocUnknownType",
+	"TSUnionType",
+	"TSIntersectionType",
+	"TSConditionalType",
+	"TSInferType",
+	"TSTypeOperator",
+	"TSParenthesizedType",
+	"TSFunctionType",
+	"TSConstructorType",
+	"TSTypePredicate",
+	"TSTypeLiteral",
+	"TSMappedType",
+	"TSPropertySignature",
+	"TSMethodSignature",
+	"TSCallSignatureDeclaration",
+	"TSConstructSignatureDeclaration",
+	"TSIndexSignature",
+	"TSTypeAliasDeclaration",
+	"TSInterfaceDeclaration",
+	"TSInterfaceBody",
+	"TSInterfaceHeritage",
+	"TSClassImplements",
+	"TSEnumDeclaration",
+	"TSEnumBody",
+	"TSEnumMember",
+	"TSModuleDeclaration",
+	"TSModuleBlock",
+	"TSModuleDeclaration",
+	"TSParameterProperty",
+	"Identifier",
+	"TSAsExpression",
+	"TSSatisfiesExpression",
+	"TSTypeAssertion",
+	"TSNonNullExpression",
+	"TSInstantiationExpression",
+	"TSExportAssignment",
+	"TSNamespaceExportDeclaration",
+	"TSImportEqualsDeclaration",
+	"TSExternalModuleReference",
+	"JSXElement",
+	"JSXOpeningElement",
+	"JSXClosingElement",
+	"JSXFragment",
+	"JSXOpeningFragment",
+	"JSXClosingFragment",
+	"JSXIdentifier",
+	"JSXNamespacedName",
+	"JSXMemberExpression",
+	"JSXAttribute",
+	"JSXSpreadAttribute",
+	"JSXExpressionContainer",
+	"JSXEmptyExpression",
+	"JSXText",
+	"JSXSpreadChild",
+	"Hashbang"
+];
+const NODE_TYPES = [...new Set(TYPES)];
+
+//#endregion
+//#region src/builders.ts
+/**
+* One constructor per node type, its fields derived from the node type
+* itself. `start` and `end` default to 0, which `ctx.replace` treats
+* as span-less and fills from the replaced node.
+*
+* @example
+* b.Identifier({ name: "x" })
+* b.ExpressionStatement({ expression: b.Identifier({ name: "x" }) })
+*/
+const b = Object.fromEntries(NODE_TYPES.map((type) => [type, (fields) => ({
+	type,
+	start: 0,
+	end: 0,
+	...fields
+})]));
+
+//#endregion
+//#region src/context.ts
+/**
+* The walk context: one reused object exposing the current position and
+* the tree mutation operations. Valid only during the visit that
+* receives it, do not store it. Underscore members are engine state.
+*/
+var WalkContext = class {
+	_ancestors = [];
+	_node = null;
+	_key = null;
+	_list = null;
+	_frame = null;
+	_skip = false;
+	_stopped = false;
+	_removed = false;
+	_replacement = null;
+	/** State threaded through the walk, the third `walk` argument. */
+	state;
+	/** The node being visited. */
+	get node() {
+		return this._node;
+	}
+	/** The node holding {@link node}, or null at the walk root. */
+	get parent() {
+		const a = this._ancestors;
+		return a.length === 0 ? null : a[a.length - 1];
+	}
+	/** The field on {@link parent} holding {@link node}, or null at the root. */
+	get key() {
+		return this._key;
+	}
+	/** Index within an array field, or null in a plain field. */
+	get index() {
+		return this._list === null ? null : this._frame.i;
+	}
+	/** Ancestors from the walk root down to {@link parent}. */
+	ancestors() {
+		return [...this._ancestors];
+	}
+	/** Do not descend into the current node's children. */
+	skip() {
+		this._skip = true;
+	}
+	/** Stop the walk entirely. */
+	stop() {
+		this._stopped = true;
+	}
+	/**
+	* Replace the current node. The walk continues into the replacement's
+	* children and `leave` fires for the replacement's type. A synthetic
+	* node with `start === 0 && end === 0` inherits the original span,
+	* for source maps. Throws at the walk root.
+	*/
+	replace(node) {
+		if (node === null || typeof node !== "object" || typeof node.type !== "string") throw new TypeError("replace: expected an AST node");
+		if (this.parent === null) throw new TypeError("replace: cannot replace the walk root");
+		if (node.start === 0 && node.end === 0) {
+			node.start = this.node.start;
+			node.end = this.node.end;
+		}
+		this._replacement = node;
+	}
+	/**
+	* Remove the current node from its parent: spliced from array fields,
+	* nulled in plain fields. Children are not walked and `leave` does
+	* not fire. Throws at the walk root.
+	*/
+	remove() {
+		if (this.parent === null) throw new TypeError("remove: cannot remove the walk root");
+		this._removed = true;
+	}
+	/** Insert a sibling before the current node, not visited. Array fields only. */
+	insertBefore(node) {
+		this.#insert(node, 0);
+		this._frame.i++;
+	}
+	/** Insert a sibling after the current node, visited by the walk. Array fields only. */
+	insertAfter(node) {
+		this.#insert(node, 1);
+	}
+	#insert(node, offset) {
+		if (this._list === null) throw new TypeError("insertBefore/insertAfter require a node in an array field");
+		this._list.splice(this._frame.i + offset, 0, node);
+	}
+};
+
+//#endregion
+//#region src/identifier.ts
+const ID_START = /^[$_\p{ID_Start}]$/u;
+const ID_CONTINUE = /^[$\u200C\u200D\p{ID_Continue}]$/u;
+const IDENTIFIER_NAME = /^[$_\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*$/u;
+const MAX_CODE_POINT = 1114111;
+/**
+* True if the Unicode code point `cp` can start an identifier: any
+* character with the `ID_Start` property, plus `$` and `_`. Takes a
+* numeric code point as from `codePointAt`.
+*/
+function isIdentifierStart(cp) {
+	if (!Number.isInteger(cp) || cp < 0 || cp > MAX_CODE_POINT) return false;
+	return ID_START.test(String.fromCodePoint(cp));
+}
+/**
+* True if the Unicode code point `cp` can appear after the first
+* character of an identifier: any character with the `ID_Continue`
+* property, plus `$`, `_`, and the ZWNJ and ZWJ joiners.
+*/
+function isIdentifierChar(cp) {
+	if (!Number.isInteger(cp) || cp < 0 || cp > MAX_CODE_POINT) return false;
+	return ID_CONTINUE.test(String.fromCodePoint(cp));
+}
+/**
+* True if `name` is a valid ECMAScript `IdentifierName`, the grammar an
+* identifier token must satisfy. Validates a raw string, not a node.
+* Reserved words are syntactically identifier names, so
+* `isIdentifierName("class")` is true, see {@link isValidIdentifier}.
+*/
+function isIdentifierName(name) {
+	return IDENTIFIER_NAME.test(name);
+}
+const keywords = new Set([
+	"break",
+	"case",
+	"catch",
+	"continue",
+	"debugger",
+	"default",
+	"do",
+	"else",
+	"finally",
+	"for",
+	"function",
+	"if",
+	"return",
+	"switch",
+	"throw",
+	"try",
+	"var",
+	"const",
+	"while",
+	"with",
+	"new",
+	"this",
+	"super",
+	"class",
+	"extends",
+	"export",
+	"import",
+	"null",
+	"true",
+	"false",
+	"in",
+	"instanceof",
+	"typeof",
+	"void",
+	"delete"
+]);
+const strictReservedWords = new Set([
+	"implements",
+	"interface",
+	"let",
+	"package",
+	"private",
+	"protected",
+	"public",
+	"static",
+	"yield"
+]);
+const strictBindOnlyReservedWords = new Set(["eval", "arguments"]);
+/**
+* True if `word` is a reserved keyword of the core grammar. Does not
+* include `enum`, `await`, or the strict-mode-only words, see
+* {@link isReservedWord} and {@link isStrictReservedWord}.
+*/
+function isKeyword(word) {
+	return keywords.has(word);
+}
+/**
+* True if `word` is unconditionally reserved: `enum` in any context,
+* and `await` when `inModule`.
+*/
+function isReservedWord(word, inModule = false) {
+	return inModule && word === "await" || word === "enum";
+}
+/**
+* True if `word` is reserved in strict mode: everything
+* {@link isReservedWord} covers, plus `let`, `static`, `yield`, and
+* friends.
+*/
+function isStrictReservedWord(word, inModule = false) {
+	return isReservedWord(word, inModule) || strictReservedWords.has(word);
+}
+/** True for `eval` and `arguments`, reserved only as strict-mode binding targets. */
+function isStrictBindOnlyReservedWord(word) {
+	return strictBindOnlyReservedWords.has(word);
+}
+/**
+* True if `word` is reserved as a strict-mode binding target:
+* everything {@link isStrictReservedWord} covers, plus `eval` and
+* `arguments`.
+*/
+function isStrictBindReservedWord(word, inModule = false) {
+	return isStrictReservedWord(word, inModule) || isStrictBindOnlyReservedWord(word);
+}
+/**
+* True if `name` can be used as an identifier binding: a valid
+* {@link isIdentifierName} that, when `reserved` is true (the default),
+* is neither a keyword nor a strict-mode reserved word. The check to
+* reach for when turning an arbitrary string into a local binding name.
+*/
+function isValidIdentifier(name, reserved = true) {
+	if (reserved && (isKeyword(name) || isStrictReservedWord(name, true))) return false;
+	return isIdentifierName(name);
+}
+
+//#endregion
+//#region src/is.ts
+function aliasGuard(name) {
+	const set = new Set(ALIAS_GROUPS[name]);
+	return (node) => node != null && set.has(node.type);
+}
+const concrete = Object.fromEntries(NODE_TYPES.map((type) => [type, (node) => node != null && node.type === type]));
+/**
+* Type guards, one per concrete node `type` plus alias and shape
+* guards. Every guard accepts `null` and `undefined` and narrows.
+*
+* @example
+* is.CallExpression(node)
+* is.Identifier(node, "require")
+* is.Expression(node)
+* is.StringLiteral(node)
+*/
+const is = {
+	...concrete,
+	oneOf: (node, types) => node != null && types.some((type) => type === node.type),
+	Identifier: (node, name) => node?.type === "Identifier" && (name === void 0 || node.name === name),
+	Expression: aliasGuard("Expression"),
+	Statement: aliasGuard("Statement"),
+	Declaration: aliasGuard("Declaration"),
+	ModuleDeclaration: aliasGuard("ModuleDeclaration"),
+	Function: aliasGuard("Function"),
+	Class: aliasGuard("Class"),
+	Method: aliasGuard("Method"),
+	Loop: aliasGuard("Loop"),
+	Pattern: aliasGuard("Pattern"),
+	JSX: aliasGuard("JSX"),
+	TSType: aliasGuard("TSType"),
+	StringLiteral: (node) => node?.type === "Literal" && typeof node.value === "string",
+	NumericLiteral: (node) => node?.type === "Literal" && typeof node.value === "number",
+	BooleanLiteral: (node) => node?.type === "Literal" && typeof node.value === "boolean",
+	NullLiteral: (node) => node?.type === "Literal" && node.raw === "null",
+	BigIntLiteral: (node) => node?.type === "Literal" && "bigint" in node,
+	RegExpLiteral: (node) => node?.type === "Literal" && "regex" in node,
+	ComputedMemberExpression: (node) => node?.type === "MemberExpression" && node.computed,
+	StaticMemberExpression: (node) => node?.type === "MemberExpression" && !node.computed && node.property.type === "Identifier",
+	PrivateFieldExpression: (node) => node?.type === "MemberExpression" && node.property.type === "PrivateIdentifier",
+	Directive: (node) => node?.type === "ExpressionStatement" && node.directive != null
+};
+
+//#endregion
+//#region src/walk.ts
+function createDispatch(visitors) {
+	let enter = null;
+	let leave = null;
+	const concrete$1 = /* @__PURE__ */ new Map();
+	const add = (type, handler) => {
+		const hooks = typeof handler === "function" ? { enter: handler } : handler;
+		let entry = concrete$1.get(type);
+		if (entry === void 0) {
+			entry = {
+				enter: [],
+				leave: []
+			};
+			concrete$1.set(type, entry);
+		}
+		if (hooks.enter) entry.enter.push(hooks.enter);
+		if (hooks.leave) entry.leave.unshift(hooks.leave);
+	};
+	for (const [name, value] of Object.entries(visitors)) {
+		if (value == null) continue;
+		if (name === "enter") enter = value;
+		else if (name === "leave") leave = value;
+		else if (name in ALIAS_GROUPS) for (const type of ALIAS_GROUPS[name]) add(type, value);
+	}
+	for (const [name, value] of Object.entries(visitors)) {
+		if (value == null || name === "enter" || name === "leave" || name in ALIAS_GROUPS) continue;
+		add(name, value);
+	}
+	return {
+		enter,
+		leave,
+		typed: (type) => concrete$1.get(type)
+	};
+}
+/**
+* Walk an AST depth-first, dispatching to typed visitors and mutating
+* in place. Traversal order is driven by tables generated from the
+* parser's AST definition, so it can never drift. Returns the root.
+*/
+function walk(root, visitors, state) {
+	_walk(root, visitors, state, new WalkContext());
+	return root;
+}
+/**
+* The async counterpart of {@link walk}: identical traversal order and
+* mutation semantics, with every handler awaited before the walk moves
+* on. Resolves to the root.
+*/
+async function walkAsync(root, visitors, state) {
+	await _walkAsync(root, visitors, state, new WalkContext());
+	return root;
+}
+function position(ctx, node, key, list, frame) {
+	ctx._node = node;
+	ctx._key = key;
+	ctx._list = list;
+	ctx._frame = frame;
+}
+function applyReplace(ctx, parent, key, list, frame) {
+	const next = ctx._replacement;
+	ctx._replacement = null;
+	if (list !== null) list[frame.i] = next;
+	else parent[key] = next;
+	return next;
+}
+function applyRemove(ctx, parent, key, list, frame) {
+	ctx._removed = false;
+	if (list !== null) {
+		list.splice(frame.i, 1);
+		frame.i--;
+	} else parent[key] = null;
+}
+function _walk(root, visitors, state, ctx) {
+	const d = createDispatch(visitors);
+	ctx.state = state;
+	const ancestors = ctx._ancestors;
+	(function visit(node, key, list, frame) {
+		let typed = d.typed(node.type);
+		const parent = ctx.parent;
+		position(ctx, node, key, list, frame);
+		if (d.enter !== null) {
+			d.enter(node, ctx);
+			if (ctx._stopped) return false;
+		}
+		if (typed !== void 0) for (const handler of typed.enter) {
+			handler(node, ctx);
+			if (ctx._stopped) return false;
+		}
+		if (ctx._removed) {
+			applyRemove(ctx, parent, key, list, frame);
+			return true;
+		}
+		if (ctx._replacement !== null) {
+			node = applyReplace(ctx, parent, key, list, frame);
+			typed = d.typed(node.type);
+		}
+		const skipped = ctx._skip;
+		ctx._skip = false;
+		if (!skipped) {
+			const keys = CHILD_KEYS[node.type];
+			if (keys !== void 0 && keys.length > 0) {
+				ancestors.push(node);
+				for (let k = 0; k < keys.length; k++) {
+					const key2 = keys[k];
+					const value = node[key2];
+					if (value === null || value === void 0 || typeof value !== "object") continue;
+					if (Array.isArray(value)) {
+						const childFrame = { i: 0 };
+						for (; childFrame.i < value.length; childFrame.i++) {
+							const item = value[childFrame.i];
+							if (item !== null && !visit(item, key2, value, childFrame)) return false;
+						}
+					} else if (!visit(value, key2, null, null)) return false;
+				}
+				ancestors.pop();
+			}
+		}
+		position(ctx, node, key, list, frame);
+		if (typed !== void 0) for (const handler of typed.leave) {
+			handler(node, ctx);
+			if (ctx._stopped) return false;
+		}
+		if (d.leave !== null) {
+			d.leave(node, ctx);
+			if (ctx._stopped) return false;
+		}
+		if (ctx._removed) applyRemove(ctx, parent, key, list, frame);
+		else if (ctx._replacement !== null) applyReplace(ctx, parent, key, list, frame);
+		return true;
+	})(root, null, null, null);
+}
+async function _walkAsync(root, visitors, state, ctx) {
+	const d = createDispatch(visitors);
+	ctx.state = state;
+	const ancestors = ctx._ancestors;
+	await (async function visit(node, key, list, frame) {
+		let typed = d.typed(node.type);
+		const parent = ctx.parent;
+		position(ctx, node, key, list, frame);
+		if (d.enter !== null) {
+			await d.enter(node, ctx);
+			if (ctx._stopped) return false;
+		}
+		if (typed !== void 0) for (const handler of typed.enter) {
+			await handler(node, ctx);
+			if (ctx._stopped) return false;
+		}
+		if (ctx._removed) {
+			applyRemove(ctx, parent, key, list, frame);
+			return true;
+		}
+		if (ctx._replacement !== null) {
+			node = applyReplace(ctx, parent, key, list, frame);
+			typed = d.typed(node.type);
+		}
+		const skipped = ctx._skip;
+		ctx._skip = false;
+		if (!skipped) {
+			const keys = CHILD_KEYS[node.type];
+			if (keys !== void 0 && keys.length > 0) {
+				ancestors.push(node);
+				for (let k = 0; k < keys.length; k++) {
+					const key2 = keys[k];
+					const value = node[key2];
+					if (value === null || value === void 0 || typeof value !== "object") continue;
+					if (Array.isArray(value)) {
+						const childFrame = { i: 0 };
+						for (; childFrame.i < value.length; childFrame.i++) {
+							const item = value[childFrame.i];
+							if (item !== null && !await visit(item, key2, value, childFrame)) return false;
+						}
+					} else if (!await visit(value, key2, null, null)) return false;
+				}
+				ancestors.pop();
+			}
+		}
+		position(ctx, node, key, list, frame);
+		if (typed !== void 0) for (const handler of typed.leave) {
+			await handler(node, ctx);
+			if (ctx._stopped) return false;
+		}
+		if (d.leave !== null) {
+			await d.leave(node, ctx);
+			if (ctx._stopped) return false;
+		}
+		if (ctx._removed) applyRemove(ctx, parent, key, list, frame);
+		else if (ctx._replacement !== null) applyReplace(ctx, parent, key, list, frame);
+		return true;
+	})(root, null, null, null);
+}
+
+//#endregion
+//#region src/utils.ts
+function nameOf(node) {
+	if (node == null) return null;
+	if (node.type === "Identifier") return node.name;
+	if (node.type === "Literal" && typeof node.value === "string") return node.value;
+	return null;
+}
+/**
+* The runtime value of a `Literal` node: string, number, boolean,
+* bigint, RegExp, or null for the null literal. Undefined for
+* non-literal nodes.
+*/
+function literalValue(node) {
+	if (node?.type !== "Literal") return void 0;
+	if ("bigint" in node) return BigInt(node.bigint);
+	return node.value;
+}
+const WRAPPERS = new Set([
+	"ParenthesizedExpression",
+	"TSAsExpression",
+	"TSSatisfiesExpression",
+	"TSNonNullExpression",
+	"TSTypeAssertion"
+]);
+function isWrapper(node) {
+	return WRAPPERS.has(node.type);
+}
+/**
+* The expression inside parentheses and erased TypeScript assertion
+* wrappers: `((x as any))!` unwraps to `x`. Returns the node itself
+* when nothing wraps it.
+*/
+function unwrap(node) {
+	let current = node;
+	while (isWrapper(current)) current = current.expression;
+	return current;
+}
+/**
+* True when `node` is a call whose callee is an `Identifier` named
+* `name`, one of `name` when given an array. The callee is read
+* through {@link unwrap}.
+*
+* @example
+* isCallOf(node, "require")
+* isCallOf(node, ["defineConfig", "defineProject"])
+*/
+function isCallOf(node, name) {
+	if (node?.type !== "CallExpression") return false;
+	const callee = unwrap(node.callee);
+	if (callee.type !== "Identifier") return false;
+	return typeof name === "string" ? callee.name === name : name.includes(callee.name);
+}
+/**
+* Every binding `Identifier` a pattern introduces, in source order:
+* the pattern itself, destructuring leaves, defaults' targets, and
+* rest elements.
+*/
+function bindingIdentifiers(pattern) {
+	const out = [];
+	const visit = (node) => {
+		if (node == null) return;
+		switch (node.type) {
+			case "Identifier":
+				out.push(node);
+				break;
+			case "ArrayPattern":
+				for (const element of node.elements) visit(element);
+				break;
+			case "ObjectPattern":
+				for (const property of node.properties) visit(property.type === "RestElement" ? property.argument : property.value);
+				break;
+			case "AssignmentPattern":
+				visit(node.left);
+				break;
+			case "RestElement":
+				visit(node.argument);
+				break;
+			default: break;
+		}
+	};
+	visit(pattern);
+	return out;
+}
+/** Every node of the given type(s) under `root`, in source order. */
+function findAll(root, types) {
+	const wanted = typeof types === "string" ? [types] : types;
+	const out = [];
+	walk(root, { enter(node) {
+		if (is.oneOf(node, wanted)) out.push(node);
+	} });
+	return out;
+}
+
+//#endregion
+//#region src/modules.ts
+/**
+* The imported bindings of one declaration, one record per specifier.
+* Type-only imports are included with `typeOnly` set, side-effect
+* imports introduce no bindings and yield no records. Composes with a
+* walk: `ImportDeclaration(node) { records.push(...collectImportDeclaration(node)) }`.
+*/
+function collectImportDeclaration(declaration) {
+	const source = declaration.source.value;
+	const declarationTypeOnly = declaration.importKind === "type";
+	return declaration.specifiers.map((specifier) => ({
+		source,
+		local: specifier.local.name,
+		imported: specifier.type === "ImportSpecifier" ? nameOf(specifier.imported) : specifier.type === "ImportNamespaceSpecifier" ? "*" : "default",
+		typeOnly: declarationTypeOnly || specifier.type === "ImportSpecifier" && specifier.importKind === "type",
+		phase: declaration.phase ?? null,
+		specifier,
+		declaration
+	}));
+}
+/** Every imported binding of a program, in source order. */
+function collectImports(program) {
+	return program.body.flatMap((statement) => statement.type === "ImportDeclaration" ? collectImportDeclaration(statement) : []);
+}
+/**
+* The exports of one declaration: declaration forms expand to one
+* record per bound name, specifiers to one record each, and `export *`
+* to a single record with a null `exported`. Composes with a walk.
+*/
+function collectExportDeclaration(statement) {
+	const out = [];
+	switch (statement.type) {
+		case "ExportNamedDeclaration": {
+			const typeOnly = statement.exportKind === "type";
+			if (statement.declaration !== null) {
+				for (const name of declaredNames(statement.declaration)) out.push({
+					exported: name,
+					local: name,
+					source: null,
+					typeOnly,
+					node: statement
+				});
+				break;
+			}
+			const source = statement.source === null ? null : statement.source.value;
+			for (const specifier of statement.specifiers) out.push({
+				exported: nameOf(specifier.exported),
+				local: source === null ? nameOf(specifier.local) : null,
+				source,
+				typeOnly: typeOnly || specifier.exportKind === "type",
+				node: specifier
+			});
+			break;
+		}
+		case "ExportDefaultDeclaration": {
+			const declaration = statement.declaration;
+			out.push({
+				exported: "default",
+				local: declaration.type === "Identifier" ? declaration.name : "id" in declaration ? declaration.id?.name ?? null : null,
+				source: null,
+				typeOnly: false,
+				node: statement
+			});
+			break;
+		}
+		case "ExportAllDeclaration":
+			out.push({
+				exported: statement.exported === null ? null : nameOf(statement.exported),
+				local: null,
+				source: statement.source.value,
+				typeOnly: statement.exportKind === "type",
+				node: statement
+			});
+			break;
+	}
+	return out;
+}
+/** Every export of a program, in source order. */
+function collectExports(program) {
+	return program.body.flatMap((statement) => statement.type === "ExportNamedDeclaration" || statement.type === "ExportDefaultDeclaration" || statement.type === "ExportAllDeclaration" ? collectExportDeclaration(statement) : []);
+}
+function declaredNames(declaration) {
+	if (declaration.type === "VariableDeclaration") return declaration.declarations.flatMap((declarator) => bindingIdentifiers(declarator.id).map((id) => id.name));
+	if (declaration.type === "TSModuleDeclaration") {
+		const name = nameOf(declaration.id);
+		return name === null ? [] : [name];
+	}
+	return declaration.id === null ? [] : [declaration.id.name];
+}
+
+//#endregion
+export { ALIAS_GROUPS, ALIAS_NAMES, CHILD_KEYS, NODE_TYPES, WalkContext, _walk, _walkAsync, b, bindingIdentifiers, collectExportDeclaration, collectExports, collectImportDeclaration, collectImports, findAll, is, isCallOf, isIdentifierChar, isIdentifierName, isIdentifierStart, isKeyword, isReservedWord, isStrictBindOnlyReservedWord, isStrictBindReservedWord, isStrictReservedWord, isValidIdentifier, literalValue, nameOf, unwrap, walk, walkAsync };

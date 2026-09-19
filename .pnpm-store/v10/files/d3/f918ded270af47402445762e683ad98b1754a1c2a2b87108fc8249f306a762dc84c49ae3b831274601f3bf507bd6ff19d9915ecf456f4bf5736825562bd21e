@@ -1,0 +1,30 @@
+export type DependencySet = Set<string>;
+export type DependencyArray = Array<string>;
+type WorkspaceManifest = {
+    workspaceDir: string;
+    manifestPath: string;
+    manifestStr: string;
+    dependencies: DependencyArray;
+    devDependencies: DependencyArray;
+    peerDependencies: DependencySet;
+    optionalPeerDependencies: DependencySet;
+    requiredPeerDependencies: DependencyArray;
+    allDependencies: DependencySet;
+    engines: Record<string, string>;
+    isPrivate: boolean;
+    ignoreDependencies: (string | RegExp)[];
+    ignoreBinaries: (string | RegExp)[];
+    ignoreUnresolved: (string | RegExp)[];
+    unusedIgnoreDependencies: Set<string | RegExp>;
+    unusedIgnoreBinaries: Set<string | RegExp>;
+    unusedIgnoreUnresolved: Set<string | RegExp>;
+};
+export type WorkspaceManifests = Map<string, WorkspaceManifest>;
+export type HostDependencies = Map<string, Array<{
+    name: string;
+    isPeerOptional: boolean;
+}>>;
+type PackageName = string;
+type BinaryName = string;
+export type InstalledBinaries = Map<PackageName, Set<BinaryName>>;
+export {};

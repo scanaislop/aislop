@@ -1,0 +1,98 @@
+const updateImportMaps = (fromImportMaps, toImportMaps) => {
+    for (const id of fromImportMaps.refs)
+        toImportMaps.refs.add(id);
+    if (fromImportMaps.enumerated) {
+        if (!toImportMaps.enumerated)
+            toImportMaps.enumerated = new Set();
+        for (const id of fromImportMaps.enumerated)
+            toImportMaps.enumerated.add(id);
+    }
+    for (const [id, v] of fromImportMaps.import)
+        addValues(toImportMaps.import, id, v);
+    for (const [id, v] of fromImportMaps.importAs)
+        addNsValues(toImportMaps.importAs, id, v);
+    for (const [id, v] of fromImportMaps.importNs)
+        addValues(toImportMaps.importNs, id, v);
+    for (const [id, v] of fromImportMaps.reExport)
+        addValues(toImportMaps.reExport, id, v);
+    for (const [id, v] of fromImportMaps.reExportAs)
+        addNsValues(toImportMaps.reExportAs, id, v);
+    for (const [id, v] of fromImportMaps.reExportNs)
+        addValues(toImportMaps.reExportNs, id, v);
+};
+export const updateImportMap = (file, importMap, graph) => {
+    for (const [importedByFilePath, fileImportMaps] of importMap) {
+        const importMaps = file.imports.internal.get(importedByFilePath);
+        if (!importMaps)
+            file.imports.internal.set(importedByFilePath, fileImportMaps);
+        else
+            updateImportMaps(fileImportMaps, importMaps);
+        const importedByFile = graph.get(importedByFilePath) ?? createFileNode();
+        if (!importedByFile.importedBy)
+            importedByFile.importedBy = createImports();
+        updateImportMaps(fileImportMaps, importedByFile.importedBy);
+        graph.set(importedByFilePath, importedByFile);
+    }
+};
+export const createFileNode = () => ({
+    imports: {
+        internal: new Map(),
+        external: new Set(),
+        externalRefs: new Set(),
+        unresolved: new Set(),
+        programFiles: new Set(),
+        entryFiles: new Set(),
+        imports: new Set(),
+    },
+    exports: new Map(),
+    duplicates: new Set(),
+    scripts: new Set(),
+    importGlobs: [],
+    importedBy: undefined,
+    internalImportCache: undefined,
+});
+export const createImports = () => ({
+    refs: new Set(),
+    enumerated: undefined,
+    import: new Map(),
+    importAs: new Map(),
+    importNs: new Map(),
+    reExport: new Map(),
+    reExportAs: new Map(),
+    reExportNs: new Map(),
+});
+export const addValue = (map, id, value) => {
+    const existing = map.get(id);
+    if (existing)
+        existing.add(value);
+    else
+        map.set(id, new Set([value]));
+};
+export const addNsValue = (map, id, ns, value) => {
+    const inner = map.get(id);
+    if (!inner) {
+        map.set(id, new Map([[ns, new Set([value])]]));
+        return;
+    }
+    const set = inner.get(ns);
+    if (set)
+        set.add(value);
+    else
+        inner.set(ns, new Set([value]));
+};
+const addValues = (map, id, values) => {
+    const existing = map.get(id);
+    if (existing)
+        for (const v of values)
+            existing.add(v);
+    else
+        map.set(id, values);
+};
+const addNsValues = (map, id, value) => {
+    const existing = map.get(id);
+    if (existing)
+        for (const [ns, v] of value)
+            addValues(existing, ns, v);
+    else
+        map.set(id, value);
+};

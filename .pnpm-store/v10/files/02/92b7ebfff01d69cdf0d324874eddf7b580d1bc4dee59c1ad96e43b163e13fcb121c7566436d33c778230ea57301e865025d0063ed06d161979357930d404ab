@@ -1,0 +1,886 @@
+//#region src/constants.ts
+const SEMVER_SPEC_VERSION = "2.0.0";
+const INCREMENT_TYPES = [
+	"major",
+	"premajor",
+	"minor",
+	"preminor",
+	"patch",
+	"prepatch",
+	"prerelease",
+	"release"
+];
+const TRUNCATION_TYPES = [
+	"major",
+	"premajor",
+	"minor",
+	"preminor",
+	"patch",
+	"prepatch",
+	"prerelease"
+];
+//#endregion
+//#region src/internal/patterns.ts
+const LETTER_DASH_NUMBER = "[a-zA-Z0-9-]";
+const NUMERIC_IDENTIFIER = String.raw`0|[1-9]\d*`;
+const NUMERIC_IDENTIFIER_LOOSE = String.raw`\d+`;
+const NON_NUMERIC_IDENTIFIER = String.raw`\d*[a-zA-Z-]${LETTER_DASH_NUMBER}*`;
+const MAIN_VERSION = String.raw`(${NUMERIC_IDENTIFIER})\.(${NUMERIC_IDENTIFIER})\.(${NUMERIC_IDENTIFIER})`;
+const MAIN_VERSION_LOOSE = String.raw`(${NUMERIC_IDENTIFIER_LOOSE})\.(${NUMERIC_IDENTIFIER_LOOSE})\.(${NUMERIC_IDENTIFIER_LOOSE})`;
+const PRERELEASE_IDENTIFIER = `(?:${NON_NUMERIC_IDENTIFIER}|${NUMERIC_IDENTIFIER})`;
+const PRERELEASE_IDENTIFIER_LOOSE = `(?:${NON_NUMERIC_IDENTIFIER}|${NUMERIC_IDENTIFIER_LOOSE})`;
+const PRERELEASE = String.raw`(?:-(${PRERELEASE_IDENTIFIER}(?:\.${PRERELEASE_IDENTIFIER})*))`;
+const PRERELEASE_LOOSE = String.raw`(?:-?(${PRERELEASE_IDENTIFIER_LOOSE}(?:\.${PRERELEASE_IDENTIFIER_LOOSE})*))`;
+const BUILD_IDENTIFIER = `${LETTER_DASH_NUMBER}+`;
+const BUILD = String.raw`(?:\+(${BUILD_IDENTIFIER}(?:\.${BUILD_IDENTIFIER})*))`;
+const FULL_PLAIN = `v?${MAIN_VERSION}${PRERELEASE}?${BUILD}?`;
+const LOOSE_PLAIN = String.raw`[v=\s]*${MAIN_VERSION_LOOSE}${PRERELEASE_LOOSE}?${BUILD}?`;
+const GREATER_LESS_THAN = "((?:<|>)?=?)";
+const XRANGE_IDENTIFIER = String.raw`${NUMERIC_IDENTIFIER}|x|X|\*`;
+const XRANGE_IDENTIFIER_LOOSE = String.raw`${NUMERIC_IDENTIFIER_LOOSE}|x|X|\*`;
+const XRANGE_PLAIN = String.raw`[v=\s]*(${XRANGE_IDENTIFIER})(?:\.(${XRANGE_IDENTIFIER})(?:\.(${XRANGE_IDENTIFIER})(?:${PRERELEASE})?${BUILD}?)?)?`;
+const XRANGE_PLAIN_LOOSE = String.raw`[v=\s]*(${XRANGE_IDENTIFIER_LOOSE})(?:\.(${XRANGE_IDENTIFIER_LOOSE})(?:\.(${XRANGE_IDENTIFIER_LOOSE})(?:${PRERELEASE_LOOSE})?${BUILD}?)?)?`;
+const LONE_TILDE = "(?:~>?)";
+const LONE_CARET = String.raw`(?:\^)`;
+const COERCE_PLAIN = String.raw`(^|[^\d])(\d{1,${16}})(?:\.(\d{1,${16}}))?(?:\.(\d{1,${16}}))?`;
+const COERCE = String.raw`${COERCE_PLAIN}(?:$|[^\d])`;
+const COERCE_FULL = String.raw`${COERCE_PLAIN}(?:${PRERELEASE})?(?:${BUILD})?(?:$|[^\d])`;
+function makeSafeRegexSource(source) {
+	const replacements = [
+		[String.raw`\s`, 1],
+		[String.raw`\d`, 256],
+		[LETTER_DASH_NUMBER, 250]
+	];
+	for (const [token, maximum] of replacements) source = source.split(`${token}*`).join(`${token}{0,${maximum}}`).split(`${token}+`).join(`${token}{1,${maximum}}`);
+	return source;
+}
+function safeRegex(source, flags) {
+	return new RegExp(makeSafeRegexSource(source), flags);
+}
+//#endregion
+//#region src/identifiers.ts
+const NUMERIC$1 = /^\d+$/;
+function compareIdentifiers(left, right) {
+	if (typeof left === "number" && typeof right === "number") return left === right ? 0 : left < right ? -1 : 1;
+	const leftNumeric = NUMERIC$1.test(String(left));
+	const rightNumeric = NUMERIC$1.test(String(right));
+	const normalizedLeft = leftNumeric ? Number(left) : left;
+	const normalizedRight = rightNumeric ? Number(right) : right;
+	return normalizedLeft === normalizedRight ? 0 : leftNumeric && !rightNumeric ? -1 : rightNumeric && !leftNumeric ? 1 : normalizedLeft < normalizedRight ? -1 : 1;
+}
+function compareIdentifiersReversed(left, right) {
+	return compareIdentifiers(right, left);
+}
+//#endregion
+//#region src/internal/version.ts
+const FULL = safeRegex(`^${FULL_PLAIN}$`);
+const LOOSE = safeRegex(`^${LOOSE_PLAIN}$`);
+const PRERELEASE_EXACT = safeRegex(`^${PRERELEASE}$`);
+const PRERELEASE_LOOSE_EXACT = safeRegex(`^${PRERELEASE_LOOSE}$`);
+const COERCE_EXACT = safeRegex(COERCE);
+const COERCE_FULL_EXACT = safeRegex(COERCE_FULL);
+const NUMERIC = /^\d+$/;
+function formatComparableVersion(version) {
+	const base = `${version.major}.${version.minor}.${version.patch}`;
+	return version.prerelease?.length ? `${base}-${version.prerelease.join(".")}` : base;
+}
+function formatFullVersion(version) {
+	const comparable = formatComparableVersion(version);
+	return version.build?.length ? `${comparable}+${version.build.join(".")}` : comparable;
+}
+function parse(version, options = {}) {
+	if (typeof version !== "string") return version;
+	if (version.length > 256) throw new TypeError(`Version exceeds the maximum length of 256 characters`);
+	const match = version.trim().match(options.loose ? LOOSE : FULL);
+	if (!match) throw new TypeError(`Invalid version syntax: ${version}`);
+	const major = Number(match[1]);
+	const minor = Number(match[2]);
+	const patch = Number(match[3]);
+	if (major > Number.MAX_SAFE_INTEGER || major < 0) throw new TypeError(`Invalid major version: ${match[1]}`);
+	if (minor > Number.MAX_SAFE_INTEGER || minor < 0) throw new TypeError(`Invalid minor version: ${match[2]}`);
+	if (patch > Number.MAX_SAFE_INTEGER || patch < 0) throw new TypeError(`Invalid patch version: ${match[3]}`);
+	const prerelease = match[4] ? match[4].split(".").map((identifier) => {
+		if (NUMERIC.test(identifier)) {
+			const numeric = Number(identifier);
+			if (numeric >= 0 && numeric < Number.MAX_SAFE_INTEGER) return numeric;
+		}
+		return identifier;
+	}) : void 0;
+	return {
+		build: match[5]?.split("."),
+		major,
+		minor,
+		patch,
+		prerelease
+	};
+}
+function tryParse(version, options = {}) {
+	try {
+		return parse(version, options);
+	} catch {
+		return null;
+	}
+}
+function compareMainParsed(left, right) {
+	return left.major === right.major ? left.minor === right.minor ? left.patch === right.patch ? 0 : left.patch < right.patch ? -1 : 1 : left.minor < right.minor ? -1 : 1 : left.major < right.major ? -1 : 1;
+}
+function comparePrereleaseParsed(left, right) {
+	const leftPrerelease = left.prerelease;
+	const rightPrerelease = right.prerelease;
+	if (leftPrerelease?.length && !rightPrerelease?.length) return -1;
+	if (!leftPrerelease?.length && rightPrerelease?.length) return 1;
+	if (!leftPrerelease?.length && !rightPrerelease?.length) return 0;
+	for (let index = 0;; index++) {
+		const leftIdentifier = leftPrerelease?.[index];
+		const rightIdentifier = rightPrerelease?.[index];
+		if (leftIdentifier === void 0 && rightIdentifier === void 0) return 0;
+		if (rightIdentifier === void 0) return 1;
+		if (leftIdentifier === void 0) return -1;
+		if (leftIdentifier !== rightIdentifier) return compareIdentifiers(leftIdentifier, rightIdentifier);
+	}
+}
+function compareParsed(left, right) {
+	return compareMainParsed(left, right) || comparePrereleaseParsed(left, right);
+}
+function compareBuildParsed(left, right) {
+	const precedence = compareParsed(left, right);
+	if (precedence !== 0) return precedence;
+	for (let index = 0;; index++) {
+		const leftIdentifier = left.build?.[index];
+		const rightIdentifier = right.build?.[index];
+		if (leftIdentifier === void 0 && rightIdentifier === void 0) return 0;
+		if (rightIdentifier === void 0) return 1;
+		if (leftIdentifier === void 0) return -1;
+		if (leftIdentifier !== rightIdentifier) return compareIdentifiers(leftIdentifier, rightIdentifier);
+	}
+}
+function isPrereleasePrefix(prerelease, identifier) {
+	const identifiers = identifier.split(".");
+	return identifiers.length <= prerelease.length && identifiers.every((part, index) => compareIdentifiers(prerelease[index], part) === 0);
+}
+function incrementPrerelease(version, identifier, identifierBase) {
+	const base = Number(identifierBase) ? 1 : 0;
+	let prerelease = version.prerelease;
+	if (prerelease?.length) {
+		let foundNumeric = false;
+		for (let index = prerelease.length - 1; index >= 0; index--) if (typeof prerelease[index] === "number") {
+			prerelease[index] = Number(prerelease[index]) + 1;
+			foundNumeric = true;
+			break;
+		}
+		if (!foundNumeric) {
+			if (identifier === prerelease.join(".") && identifierBase === false) throw new Error("invalid increment argument: identifier already exists");
+			prerelease.push(base);
+		}
+	} else {
+		prerelease = [base];
+		version.prerelease = prerelease;
+	}
+	if (!identifier) return;
+	const reset = identifierBase === false ? [identifier] : [identifier, base];
+	if (isPrereleasePrefix(prerelease, identifier)) {
+		const next = prerelease[identifier.split(".").length];
+		if (Number.isNaN(Number(next))) version.prerelease = reset;
+	} else version.prerelease = reset;
+}
+function incrementMutable(version, release, identifier, identifierBase) {
+	switch (release) {
+		case "premajor":
+			version.prerelease = void 0;
+			version.patch = 0;
+			version.minor = 0;
+			version.major++;
+			incrementPrerelease(version, identifier, identifierBase);
+			break;
+		case "preminor":
+			version.prerelease = void 0;
+			version.patch = 0;
+			version.minor++;
+			incrementPrerelease(version, identifier, identifierBase);
+			break;
+		case "prepatch":
+			version.prerelease = void 0;
+			incrementMutable(version, "patch", identifier, identifierBase);
+			incrementPrerelease(version, identifier, identifierBase);
+			break;
+		case "prerelease":
+			if (!version.prerelease?.length) incrementMutable(version, "patch", identifier, identifierBase);
+			incrementPrerelease(version, identifier, identifierBase);
+			break;
+		case "release":
+			if (!version.prerelease?.length) throw new Error(`version ${formatFullVersion(version)} is not a prerelease`);
+			version.prerelease = void 0;
+			break;
+		case "major":
+			if (version.minor !== 0 || version.patch !== 0 || !version.prerelease?.length) version.major++;
+			version.minor = 0;
+			version.patch = 0;
+			version.prerelease = void 0;
+			break;
+		case "minor":
+			if (version.patch !== 0 || !version.prerelease?.length) version.minor++;
+			version.patch = 0;
+			version.prerelease = void 0;
+			break;
+		case "patch":
+			if (!version.prerelease?.length) version.patch++;
+			version.prerelease = void 0;
+			break;
+		case "pre":
+			incrementPrerelease(version, identifier, identifierBase);
+			break;
+		default: throw new Error(`invalid increment argument: ${release}`);
+	}
+}
+function incrementParsedVersion(parsed, release, identifier, identifierBase, loose = false) {
+	if (release.startsWith("pre")) {
+		if (!identifier && identifierBase === false) throw new Error("invalid increment argument: identifier is empty");
+		if (identifier) {
+			const expression = loose ? PRERELEASE_LOOSE_EXACT : PRERELEASE_EXACT;
+			const match = `-${identifier}`.match(expression);
+			if (!match || match[1] !== identifier) throw new Error(`invalid identifier: ${identifier}`);
+		}
+	}
+	const mutable = {
+		build: parsed.build ? [...parsed.build] : void 0,
+		major: parsed.major,
+		minor: parsed.minor,
+		patch: parsed.patch,
+		prerelease: parsed.prerelease ? [...parsed.prerelease] : void 0
+	};
+	incrementMutable(mutable, release, identifier, identifierBase);
+	return formatComparableVersion(mutable);
+}
+function coerceParsedVersion(value, options = {}) {
+	if (typeof value === "object") return value;
+	const input = typeof value === "number" ? String(value) : value;
+	if (typeof input !== "string") return null;
+	let match = null;
+	if (options.rtl) {
+		const expression = safeRegex(options.includePrerelease ? COERCE_FULL : COERCE, "g");
+		let next;
+		while ((next = expression.exec(input)) && (!match || match.index + match[0].length !== input.length)) {
+			if (!match || next.index + next[0].length !== match.index + match[0].length) match = next;
+			expression.lastIndex = next.index + next[1].length + next[2].length;
+		}
+	} else match = (options.includePrerelease ? COERCE_FULL_EXACT : COERCE_EXACT).exec(input);
+	if (!match) return null;
+	const major = match[2];
+	return tryParse(`${major}.${match[3] || "0"}.${match[4] || "0"}${options.includePrerelease && match[5] ? `-${match[5]}` : ""}${options.includePrerelease && match[6] ? `+${match[6]}` : ""}`, options);
+}
+//#endregion
+//#region src/internal/comparator.ts
+const STRICT_COMPARATOR = safeRegex(String.raw`^${GREATER_LESS_THAN}\s*(${FULL_PLAIN})$|^$`);
+const LOOSE_COMPARATOR$1 = safeRegex(String.raw`^${GREATER_LESS_THAN}\s*(${LOOSE_PLAIN})$|^$`);
+function parseComparator(comparator, options = {}) {
+	const normalized = comparator.trim().replaceAll(/\s+/g, " ");
+	const match = normalized.match(options.loose ? LOOSE_COMPARATOR$1 : STRICT_COMPARATOR);
+	if (!match) throw new TypeError(`Invalid comparator: ${normalized}`);
+	const operator = match[1] === "=" ? "" : match[1] || "";
+	const version = match[2] ? parse(match[2], options) : null;
+	return {
+		operator,
+		options,
+		value: version ? `${operator}${formatComparableVersion(version)}` : "",
+		version
+	};
+}
+function testParsedComparator(comparator, version) {
+	if (!comparator.version) return true;
+	const comparison = compareParsed(version, comparator.version);
+	switch (comparator.operator) {
+		case "": return comparison === 0;
+		case ">": return comparison > 0;
+		case ">=": return comparison >= 0;
+		case "<": return comparison < 0;
+		case "<=": return comparison <= 0;
+	}
+}
+function testComparatorVersion(comparator, version) {
+	const parsed = tryParse(version, comparator.options);
+	return parsed ? testParsedComparator(comparator, parsed) : false;
+}
+function parsedComparatorsIntersect(left, right, options = {}) {
+	if (!left.version || !right.version) return true;
+	if (left.operator === "") return testParsedComparator(right, left.version);
+	if (right.operator === "") return testParsedComparator(left, right.version);
+	if (options.includePrerelease && (left.value === "<0.0.0-0" || right.value === "<0.0.0-0")) return false;
+	if (!options.includePrerelease && (left.value.startsWith("<0.0.0") || right.value.startsWith("<0.0.0"))) return false;
+	if (left.operator.startsWith(">") && right.operator.startsWith(">")) return true;
+	if (left.operator.startsWith("<") && right.operator.startsWith("<")) return true;
+	const comparison = compareParsed(left.version, right.version);
+	if (comparison === 0 && left.operator.includes("=") && right.operator.includes("=")) return true;
+	if (comparison < 0 && left.operator.startsWith(">") && right.operator.startsWith("<")) return true;
+	return comparison > 0 && left.operator.startsWith("<") && right.operator.startsWith(">");
+}
+//#endregion
+//#region src/comparator.ts
+function normalizeComparator(comparator, options = {}) {
+	return parseComparator(comparator, options).value;
+}
+function satisfiesComparator(version, comparator, options = {}) {
+	return testComparatorVersion(parseComparator(comparator, options), version);
+}
+function comparatorsIntersect(left, right, options = {}) {
+	return parsedComparatorsIntersect(parseComparator(left, options), parseComparator(right, options), options);
+}
+//#endregion
+//#region src/comparison.ts
+function compare(left, right, options = {}) {
+	return compareParsed(parse(left, options), parse(right, options));
+}
+function compareReversed(left, right, options = {}) {
+	return compare(right, left, options);
+}
+function compareMain(left, right, options = {}) {
+	return compareMainParsed(parse(left, options), parse(right, options));
+}
+function comparePrerelease(left, right, options = {}) {
+	return comparePrereleaseParsed(parse(left, options), parse(right, options));
+}
+function compareBuild(left, right, options = {}) {
+	return compareBuildParsed(parse(left, options), parse(right, options));
+}
+function compareWithOperator(left, operator, right, options = {}) {
+	if (operator === "===") return left === right;
+	if (operator === "!==") return left !== right;
+	const comparison = compare(left, right, options);
+	switch (operator) {
+		case "":
+		case "=":
+		case "==": return comparison === 0;
+		case "!=": return comparison !== 0;
+		case ">": return comparison > 0;
+		case ">=": return comparison >= 0;
+		case "<": return comparison < 0;
+		case "<=": return comparison <= 0;
+		default: throw new TypeError(`Invalid operator: ${operator}`);
+	}
+}
+function isEqual(left, right, options = {}) {
+	return compare(left, right, options) === 0;
+}
+function isNotEqual(left, right, options = {}) {
+	return compare(left, right, options) !== 0;
+}
+function isGreater(left, right, options = {}) {
+	return compare(left, right, options) > 0;
+}
+function isGreaterOrEqual(left, right, options = {}) {
+	return compare(left, right, options) >= 0;
+}
+function isLess(left, right, options = {}) {
+	return compare(left, right, options) < 0;
+}
+function isLessOrEqual(left, right, options = {}) {
+	return compare(left, right, options) <= 0;
+}
+function sort(versions, options = {}) {
+	return versions.toSorted((left, right) => compareBuild(left, right, options));
+}
+function sortReversed(versions, options = {}) {
+	return versions.toSorted((left, right) => compareBuild(right, left, options));
+}
+//#endregion
+//#region src/internal/range.ts
+const BUILD_STRIP = new RegExp(BUILD, "g");
+const BUILD_SAFE = safeRegex(BUILD);
+const STRICT_HYPHEN = safeRegex(String.raw`^\s*(${XRANGE_PLAIN})\s+-\s+(${XRANGE_PLAIN})\s*$`);
+const LOOSE_HYPHEN = safeRegex(String.raw`^\s*(${XRANGE_PLAIN_LOOSE})\s+-\s+(${XRANGE_PLAIN_LOOSE})\s*$`);
+const COMPARATOR_TRIM = safeRegex(String.raw`(\s*)${GREATER_LESS_THAN}\s*(${LOOSE_PLAIN}|${XRANGE_PLAIN})`, "g");
+const TILDE_TRIM = safeRegex(String.raw`(\s*)${LONE_TILDE}\s+`, "g");
+const CARET_TRIM = safeRegex(String.raw`(\s*)${LONE_CARET}\s+`, "g");
+const STRICT_TILDE = safeRegex(`^${LONE_TILDE}${XRANGE_PLAIN}$`);
+const LOOSE_TILDE = safeRegex(`^${LONE_TILDE}${XRANGE_PLAIN_LOOSE}$`);
+const STRICT_CARET = safeRegex(`^${LONE_CARET}${XRANGE_PLAIN}$`);
+const LOOSE_CARET = safeRegex(`^${LONE_CARET}${XRANGE_PLAIN_LOOSE}$`);
+const STRICT_XRANGE = safeRegex(String.raw`^${GREATER_LESS_THAN}\s*${XRANGE_PLAIN}$`);
+const LOOSE_XRANGE = safeRegex(String.raw`^${GREATER_LESS_THAN}\s*${XRANGE_PLAIN_LOOSE}$`);
+const STAR = safeRegex(String.raw`(<|>)?=?\s*\*`);
+const GTE_ZERO = /^\s*>=\s*0\.0\.0\s*$/;
+const GTE_ZERO_PRERELEASE = /^\s*>=\s*0\.0\.0-0\s*$/;
+const LOOSE_COMPARATOR = safeRegex(String.raw`^${GREATER_LESS_THAN}\s*(${LOOSE_PLAIN})$|^$`);
+function isWildcard(value) {
+	return !value || String(value).toLowerCase() === "x" || String(value) === "*";
+}
+function hasInvalidWildcardOrder(major, minor, patch) {
+	return isWildcard(major) && !isWildcard(minor) || isWildcard(minor) && Boolean(patch) && !isWildcard(patch);
+}
+function replaceTilde(comparator, options) {
+	const expression = options.loose ? LOOSE_TILDE : STRICT_TILDE;
+	const lowerPrerelease = options.includePrerelease ? "-0" : "";
+	return comparator.replace(expression, (_match, major, minor, patch, prerelease) => {
+		if (isWildcard(major)) return "";
+		if (isWildcard(minor)) return `>=${major}.0.0${lowerPrerelease} <${Number(major) + 1}.0.0-0`;
+		if (isWildcard(patch)) return `>=${major}.${minor}.0${lowerPrerelease} <${major}.${Number(minor) + 1}.0-0`;
+		return prerelease ? `>=${major}.${minor}.${patch}-${prerelease} <${major}.${Number(minor) + 1}.0-0` : `>=${major}.${minor}.${patch} <${major}.${Number(minor) + 1}.0-0`;
+	});
+}
+function replaceTildes(comparator, options) {
+	return comparator.trim().split(/\s+/).map((part) => replaceTilde(part, options)).join(" ");
+}
+function replaceCaret(comparator, options) {
+	const expression = options.loose ? LOOSE_CARET : STRICT_CARET;
+	const lowerPrerelease = options.includePrerelease ? "-0" : "";
+	return comparator.replace(expression, (_match, major, minor, patch, prerelease) => {
+		if (isWildcard(major)) return "";
+		if (isWildcard(minor)) return `>=${major}.0.0${lowerPrerelease} <${Number(major) + 1}.0.0-0`;
+		if (isWildcard(patch)) return major === "0" ? `>=${major}.${minor}.0${lowerPrerelease} <${major}.${Number(minor) + 1}.0-0` : `>=${major}.${minor}.0${lowerPrerelease} <${Number(major) + 1}.0.0-0`;
+		if (prerelease) return major === "0" ? minor === "0" ? `>=${major}.${minor}.${patch}-${prerelease} <${major}.${minor}.${Number(patch) + 1}-0` : `>=${major}.${minor}.${patch}-${prerelease} <${major}.${Number(minor) + 1}.0-0` : `>=${major}.${minor}.${patch}-${prerelease} <${Number(major) + 1}.0.0-0`;
+		return major === "0" ? minor === "0" ? `>=${major}.${minor}.${patch} <${major}.${minor}.${Number(patch) + 1}-0` : `>=${major}.${minor}.${patch} <${major}.${Number(minor) + 1}.0-0` : `>=${major}.${minor}.${patch} <${Number(major) + 1}.0.0-0`;
+	});
+}
+function replaceCarets(comparator, options) {
+	return comparator.trim().split(/\s+/).map((part) => replaceCaret(part, options)).join(" ");
+}
+function replaceXRange(comparator, options) {
+	const expression = options.loose ? LOOSE_XRANGE : STRICT_XRANGE;
+	return comparator.trim().replace(expression, (match, rawOperator, rawMajor, rawMinor, rawPatch) => {
+		let operator = rawOperator;
+		let major = rawMajor;
+		let minor = rawMinor;
+		let patch = rawPatch;
+		if (hasInvalidWildcardOrder(String(major), minor === void 0 ? void 0 : String(minor), patch === void 0 ? void 0 : String(patch))) return comparator;
+		const wildcardMajor = isWildcard(major);
+		const wildcardMinor = wildcardMajor || isWildcard(minor);
+		const wildcardPatch = wildcardMinor || isWildcard(patch);
+		if (operator === "=" && wildcardPatch) operator = "";
+		if (wildcardMajor) return operator === ">" || operator === "<" ? "<0.0.0-0" : "*";
+		let prerelease = options.includePrerelease ? "-0" : "";
+		if (operator && wildcardPatch) {
+			if (wildcardMinor) minor = 0;
+			patch = 0;
+			if (operator === ">") {
+				operator = ">=";
+				if (wildcardMinor) {
+					major = Number(major) + 1;
+					minor = 0;
+				} else minor = Number(minor) + 1;
+			} else if (operator === "<=") {
+				operator = "<";
+				if (wildcardMinor) major = Number(major) + 1;
+				else minor = Number(minor) + 1;
+			}
+			if (operator === "<") prerelease = "-0";
+			return `${operator}${major}.${minor}.${patch}${prerelease}`;
+		}
+		if (wildcardMinor) return `>=${major}.0.0${prerelease} <${Number(major) + 1}.0.0-0`;
+		if (wildcardPatch) return `>=${major}.${minor}.0${prerelease} <${major}.${Number(minor) + 1}.0-0`;
+		return match;
+	});
+}
+function replaceXRanges(comparator, options) {
+	return comparator.split(/\s+/).map((part) => replaceXRange(part, options)).join(" ");
+}
+function replaceHyphenRange(range, options) {
+	const expression = options.loose ? LOOSE_HYPHEN : STRICT_HYPHEN;
+	return range.replace(expression, (_match, rawFrom, fromMajor, fromMinor, fromPatch, fromPrerelease, _fromBuild, rawTo, toMajor, toMinor, toPatch, toPrerelease) => {
+		let from = rawFrom;
+		let to = rawTo;
+		if (isWildcard(fromMajor)) from = "";
+		else if (isWildcard(fromMinor)) from = `>=${fromMajor}.0.0${options.includePrerelease ? "-0" : ""}`;
+		else if (isWildcard(fromPatch)) from = `>=${fromMajor}.${fromMinor}.0${options.includePrerelease ? "-0" : ""}`;
+		else if (fromPrerelease) from = `>=${from}`;
+		else from = `>=${from}${options.includePrerelease ? "-0" : ""}`;
+		if (isWildcard(toMajor)) to = "";
+		else if (isWildcard(toMinor)) to = `<${Number(toMajor) + 1}.0.0-0`;
+		else if (isWildcard(toPatch)) to = `<${toMajor}.${Number(toMinor) + 1}.0-0`;
+		else if (toPrerelease) to = `<=${toMajor}.${toMinor}.${toPatch}-${toPrerelease}`;
+		else if (options.includePrerelease) to = `<${toMajor}.${toMinor}.${Number(toPatch) + 1}-0`;
+		else to = `<=${to}`;
+		return `${from} ${to}`.trim();
+	});
+}
+function expandComparator(comparator, options) {
+	return replaceXRanges(replaceTildes(replaceCarets(comparator.replace(BUILD_SAFE, ""), options), options), options).trim().replace(STAR, "");
+}
+function parseSimpleRange(input, options) {
+	let parts = replaceHyphenRange(input.replace(BUILD_STRIP, ""), options).replace(COMPARATOR_TRIM, "$1$2$3").replace(TILDE_TRIM, "$1~").replace(CARET_TRIM, "$1^").split(" ").map((part) => expandComparator(part, options)).join(" ").split(/\s+/).map((part) => part.trim().replace(options.includePrerelease ? GTE_ZERO_PRERELEASE : GTE_ZERO, ""));
+	if (options.loose) parts = parts.filter((part) => LOOSE_COMPARATOR.test(part));
+	const unique = /* @__PURE__ */ new Map();
+	for (const comparator of parts.map((part) => parseComparator(part, options))) {
+		if (comparator.value === "<0.0.0-0") return [comparator];
+		unique.set(comparator.value, comparator);
+	}
+	if (unique.size > 1) unique.delete("");
+	return [...unique.values()];
+}
+function parseRange(range, options = {}) {
+	if (typeof range !== "string") return range;
+	const parsedOptions = { ...options };
+	const raw = range.trim().replaceAll(/\s+/g, " ");
+	let sets = raw.split("||").map((part) => parseSimpleRange(part.trim(), parsedOptions)).filter((set) => set.length);
+	if (!sets.length) throw new TypeError(`Range contains no valid comparator sets: ${raw}`);
+	if (sets.length > 1) {
+		const first = sets[0];
+		sets = sets.filter((set) => set[0]?.value !== "<0.0.0-0");
+		if (!sets.length) sets = [first];
+		else if (sets.length > 1) {
+			const any = sets.find((set) => set.length === 1 && set[0]?.value === "");
+			if (any) sets = [any];
+		}
+	}
+	return {
+		normalized: sets.map((set) => set.map((comparator) => comparator.value).join(" ")).join("||"),
+		options: parsedOptions,
+		raw,
+		sets
+	};
+}
+function tryParseRange(range, options = {}) {
+	try {
+		return parseRange(range, options);
+	} catch {
+		return null;
+	}
+}
+function testComparatorSet(set, version, options) {
+	if (set.some((comparator) => !testParsedComparator(comparator, version))) return false;
+	if (!version.prerelease?.length || options.includePrerelease) return true;
+	return set.some((comparator) => {
+		const allowed = comparator.version;
+		return allowed !== null && allowed.prerelease?.length && allowed.major === version.major && allowed.minor === version.minor && allowed.patch === version.patch;
+	});
+}
+function testParsedRange(range, version) {
+	return range.sets.some((set) => testComparatorSet(set, version, range.options));
+}
+function testRangeVersion(range, version) {
+	const parsed = tryParse(version, range.options);
+	return parsed ? testParsedRange(range, parsed) : false;
+}
+function isSatisfiable(comparators, options) {
+	const remaining = [...comparators];
+	let current = remaining.pop();
+	while (current && remaining.length) {
+		if (remaining.some((other) => !parsedComparatorsIntersect(current, other, options))) return false;
+		current = remaining.pop();
+	}
+	return true;
+}
+function parsedRangesIntersect(left, right, options = {}) {
+	return left.sets.some((leftSet) => isSatisfiable(leftSet, options) && right.sets.some((rightSet) => isSatisfiable(rightSet, options) && leftSet.every((leftComparator) => rightSet.every((rightComparator) => parsedComparatorsIntersect(leftComparator, rightComparator, options)))));
+}
+//#endregion
+//#region src/range.ts
+function isValidRange(range, options = {}) {
+	return tryParseRange(range, options) !== null;
+}
+function normalizeRange(range, options = {}) {
+	const parsed = tryParseRange(range, options);
+	return parsed ? parsed.normalized || "*" : null;
+}
+function satisfies(version, range, options = {}) {
+	const parsed = tryParseRange(range, options);
+	return parsed ? testRangeVersion(parsed, version) : false;
+}
+function rangeToComparators(range, options = {}) {
+	return parseRange(range, options).sets.map((set) => set.map((comparator) => comparator.value).join(" ").trim().split(" "));
+}
+function findMaxSatisfying(versions, range, options = {}) {
+	const parsedRange = tryParseRange(range, options);
+	if (!parsedRange) return null;
+	let maximum = null;
+	let maximumParsed = null;
+	for (const version of versions) {
+		const parsedVersion = tryParse(version, parsedRange.options);
+		if (!parsedVersion || !testParsedRange(parsedRange, parsedVersion)) continue;
+		if (!maximumParsed || compareParsed(maximumParsed, parsedVersion) < 0) {
+			maximum = version;
+			maximumParsed = parsedVersion;
+		}
+	}
+	return maximum;
+}
+function findMinSatisfying(versions, range, options = {}) {
+	const parsedRange = tryParseRange(range, options);
+	if (!parsedRange) return null;
+	let minimum = null;
+	let minimumParsed = null;
+	for (const version of versions) {
+		const parsedVersion = tryParse(version, parsedRange.options);
+		if (!parsedVersion || !testParsedRange(parsedRange, parsedVersion)) continue;
+		if (!minimumParsed || compareParsed(minimumParsed, parsedVersion) > 0) {
+			minimum = version;
+			minimumParsed = parsedVersion;
+		}
+	}
+	return minimum;
+}
+function nextVersionAfter(version) {
+	const { prerelease } = version;
+	return parse(formatComparableVersion(prerelease?.length ? {
+		major: version.major,
+		minor: version.minor,
+		patch: version.patch,
+		prerelease: [...prerelease, 0]
+	} : {
+		major: version.major,
+		minor: version.minor,
+		patch: version.patch + 1
+	}));
+}
+function findMinimumForRange(range, options = {}) {
+	const parsedRange = parseRange(range, options);
+	const zero = parse("0.0.0");
+	if (testParsedRange(parsedRange, zero)) return formatComparableVersion(zero);
+	const zeroPrerelease = parse("0.0.0-0");
+	if (testParsedRange(parsedRange, zeroPrerelease)) return formatComparableVersion(zeroPrerelease);
+	let minimum = null;
+	for (const set of parsedRange.sets) {
+		let setMinimum = null;
+		for (const comparator of set) {
+			if (!comparator.version) continue;
+			const candidate = comparator.operator === ">" ? nextVersionAfter(comparator.version) : comparator.operator === "" || comparator.operator === ">=" ? comparator.version : null;
+			if (candidate && (!setMinimum || compareParsed(candidate, setMinimum) > 0)) setMinimum = candidate;
+		}
+		if (setMinimum && (!minimum || compareParsed(minimum, setMinimum) > 0)) minimum = setMinimum;
+	}
+	return minimum && testParsedRange(parsedRange, minimum) ? formatComparableVersion(minimum) : null;
+}
+function compareInDirection(left, right, direction) {
+	const comparison = compareParsed(left, right);
+	return direction === ">" ? comparison > 0 : comparison < 0;
+}
+function compareOppositeOrEqual(left, right, direction) {
+	const comparison = compareParsed(left, right);
+	return direction === ">" ? comparison <= 0 : comparison >= 0;
+}
+function compareOpposite(left, right, direction) {
+	const comparison = compareParsed(left, right);
+	return direction === ">" ? comparison < 0 : comparison > 0;
+}
+function isOutsideRange(version, range, direction, options = {}) {
+	if (direction !== ">" && direction !== "<") throw new TypeError("Must provide a direction of \"<\" or \">\"");
+	const parsedRange = parseRange(range, options);
+	const parsedVersion = parse(version, parsedRange.options);
+	if (testParsedRange(parsedRange, parsedVersion)) return false;
+	const inclusiveDirection = direction === ">" ? ">=" : "<=";
+	for (const set of parsedRange.sets) {
+		const concrete = set.map((comparator) => comparator.version ? comparator : parseComparator(">=0.0.0"));
+		let high = concrete[0];
+		let low = concrete[0];
+		for (const comparator of concrete) if (compareInDirection(comparator.version, high.version, direction)) high = comparator;
+		else if (compareOpposite(comparator.version, low.version, direction)) low = comparator;
+		if (high.operator === direction || high.operator === inclusiveDirection) return false;
+		if ((!low.operator || low.operator === direction) && compareOppositeOrEqual(parsedVersion, low.version, direction)) return false;
+		if (low.operator === inclusiveDirection && compareOpposite(parsedVersion, low.version, direction)) return false;
+	}
+	return true;
+}
+function isGreaterThanRange(version, range, options = {}) {
+	return isOutsideRange(version, range, ">", options);
+}
+function isLessThanRange(version, range, options = {}) {
+	return isOutsideRange(version, range, "<", options);
+}
+function rangesIntersect(left, right, options = {}) {
+	const parsedLeft = parseRange(left, options);
+	const parsedRight = parseRange(right, options);
+	return parsedRangesIntersect(parsedLeft, parsedRight, {
+		...parsedLeft.options,
+		...parsedRight.options,
+		...options
+	});
+}
+function simplifyRange(versions, range, options = {}) {
+	const parsedRange = parseRange(range, options);
+	const sorted = sort(versions, parsedRange.options);
+	const sets = [];
+	let first = null;
+	let previous = null;
+	for (const version of sorted) if (testRangeVersion(parsedRange, version)) {
+		previous = version;
+		first ??= version;
+	} else if (previous) {
+		sets.push([first, previous]);
+		first = null;
+		previous = null;
+	}
+	if (first) sets.push([first, null]);
+	const simplified = sets.map(([minimum, maximum]) => {
+		const minimumValue = formatComparableVersion(parse(minimum, parsedRange.options));
+		const maximumValue = maximum ? formatComparableVersion(parse(maximum, parsedRange.options)) : null;
+		if (minimumValue === maximumValue) return minimumValue;
+		if (!maximum && minimum === sorted[0]) return "*";
+		if (!maximumValue) return `>=${minimumValue}`;
+		if (minimum === sorted[0]) return `<=${maximumValue}`;
+		return `${minimumValue} - ${maximumValue}`;
+	}).join(" || ");
+	const original = typeof range === "string" ? range : range.raw;
+	return simplified.length < original.length ? simplified : original;
+}
+function higherLowerBound(left, right) {
+	if (!left) return right;
+	const comparison = compareParsed(left.version, right.version);
+	return comparison > 0 ? left : comparison < 0 || right.operator === ">" && left.operator === ">=" ? right : left;
+}
+function lowerUpperBound(left, right) {
+	if (!left) return right;
+	const comparison = compareParsed(left.version, right.version);
+	return comparison < 0 ? left : comparison > 0 || right.operator === "<" && left.operator === "<=" ? right : left;
+}
+function samePrereleaseTuple(comparator, version) {
+	const candidate = comparator.version;
+	return candidate !== null && !!candidate.prerelease?.length && candidate.major === version.major && candidate.minor === version.minor && candidate.patch === version.patch;
+}
+function simpleRangeSubset(rawSubset, rawSuperset, options) {
+	let subset = rawSubset;
+	let superset = rawSuperset;
+	const subsetAny = subset.length === 1 && !subset[0].version;
+	const supersetAny = superset.length === 1 && !superset[0].version;
+	if (subsetAny) {
+		if (supersetAny) return true;
+		subset = [parseComparator(options.includePrerelease ? ">=0.0.0-0" : ">=0.0.0")];
+	}
+	if (supersetAny) {
+		if (options.includePrerelease) return true;
+		superset = [parseComparator(">=0.0.0")];
+	}
+	const equal = /* @__PURE__ */ new Map();
+	let lower;
+	let upper;
+	for (const comparator of subset) if (comparator.operator === ">" || comparator.operator === ">=") lower = higherLowerBound(lower, comparator);
+	else if (comparator.operator === "<" || comparator.operator === "<=") upper = lowerUpperBound(upper, comparator);
+	else if (comparator.version) equal.set(formatComparableVersion(comparator.version), comparator.version);
+	if (equal.size > 1) return null;
+	let boundsComparison;
+	if (lower && upper) {
+		boundsComparison = compareParsed(lower.version, upper.version);
+		if (boundsComparison > 0) return null;
+		if (boundsComparison === 0 && (lower.operator !== ">=" || upper.operator !== "<=")) return null;
+	}
+	for (const version of equal.values()) {
+		if (lower && !testParsedComparator(lower, version)) return null;
+		if (upper && !testParsedComparator(upper, version)) return null;
+		return superset.every((comparator) => testParsedComparator(comparator, version));
+	}
+	let needsLowerPrerelease = lower && !options.includePrerelease && lower.version.prerelease?.length ? lower.version : null;
+	let needsUpperPrerelease = upper && !options.includePrerelease && upper.version.prerelease?.length ? upper.version : null;
+	const upperPrerelease = needsUpperPrerelease?.prerelease;
+	if (upperPrerelease?.length === 1 && upper?.operator === "<" && upperPrerelease[0] === 0) needsUpperPrerelease = null;
+	let hasSupersetLower = false;
+	let hasSupersetUpper = false;
+	for (const comparator of superset) {
+		hasSupersetLower ||= comparator.operator === ">" || comparator.operator === ">=";
+		hasSupersetUpper ||= comparator.operator === "<" || comparator.operator === "<=";
+		if (lower) {
+			if (needsLowerPrerelease && samePrereleaseTuple(comparator, needsLowerPrerelease)) needsLowerPrerelease = null;
+			if (comparator.operator === ">" || comparator.operator === ">=") {
+				const higher = higherLowerBound(lower, comparator);
+				if (higher === comparator && higher !== lower) return false;
+			} else if (lower.operator === ">=" && !testParsedComparator(comparator, lower.version)) return false;
+		}
+		if (upper) {
+			if (needsUpperPrerelease && samePrereleaseTuple(comparator, needsUpperPrerelease)) needsUpperPrerelease = null;
+			if (comparator.operator === "<" || comparator.operator === "<=") {
+				const lowerBound = lowerUpperBound(upper, comparator);
+				if (lowerBound === comparator && lowerBound !== upper) return false;
+			} else if (upper.operator === "<=" && !testParsedComparator(comparator, upper.version)) return false;
+		}
+		if (comparator.operator === "" && (lower || upper) && boundsComparison !== 0) return false;
+	}
+	if (lower && hasSupersetUpper && !upper && boundsComparison !== 0) return false;
+	if (upper && hasSupersetLower && !lower && boundsComparison !== 0) return false;
+	return !needsLowerPrerelease && !needsUpperPrerelease;
+}
+function isRangeSubset(subset, superset, options = {}) {
+	if (subset === superset) return true;
+	const parsedSubset = parseRange(subset, options);
+	const parsedSuperset = parseRange(superset, options);
+	const effectiveOptions = {
+		...parsedSubset.options,
+		...parsedSuperset.options,
+		...options
+	};
+	let sawNonNull = false;
+	for (const subsetSet of parsedSubset.sets) {
+		let matched = false;
+		for (const supersetSet of parsedSuperset.sets) {
+			const result = simpleRangeSubset(subsetSet, supersetSet, effectiveOptions);
+			sawNonNull ||= result !== null;
+			if (result) {
+				matched = true;
+				break;
+			}
+		}
+		if (!matched && sawNonNull) return false;
+	}
+	return true;
+}
+//#endregion
+//#region src/version.ts
+function isValid(version, options = {}) {
+	return tryParse(version, options) !== null;
+}
+function normalizeFull(version, options = {}) {
+	const parsed = tryParse(version, options);
+	return parsed ? formatFullVersion(parsed) : null;
+}
+function normalize(version, options = {}) {
+	const parsed = tryParse(version, options);
+	return parsed ? formatComparableVersion(parsed) : null;
+}
+function clean(version, options = {}) {
+	if (typeof version !== "string") return normalize(version, options);
+	return normalize(version.trim().replace(/^[=v]+/, ""), options);
+}
+function coerce(value, options = {}) {
+	const parsed = coerceParsedVersion(value, options);
+	return parsed ? formatFullVersion(parsed) : null;
+}
+function increment(version, release, options = {}) {
+	try {
+		return incrementParsedVersion(parse(version, options), release, options.identifier, options.identifierBase, options.loose);
+	} catch {
+		return null;
+	}
+}
+function truncate(version, truncation, options = {}) {
+	if (!TRUNCATION_TYPES.includes(truncation)) return null;
+	const parsed = tryParse(version, options);
+	if (!parsed) return null;
+	if (truncation.startsWith("pre")) return formatComparableVersion(parsed);
+	return formatComparableVersion({
+		major: parsed.major,
+		minor: truncation === "major" ? 0 : parsed.minor,
+		patch: truncation === "major" || truncation === "minor" ? 0 : parsed.patch
+	});
+}
+function difference(left, right) {
+	const leftVersion = parse(left);
+	const rightVersion = parse(right);
+	const comparison = compareParsed(leftVersion, rightVersion);
+	if (comparison === 0) return null;
+	const high = comparison > 0 ? leftVersion : rightVersion;
+	const low = comparison > 0 ? rightVersion : leftVersion;
+	const highHasPrerelease = high.prerelease?.length;
+	if (low.prerelease?.length && !highHasPrerelease) {
+		if (low.patch === 0 && low.minor === 0) return "major";
+		if (compareMainParsed(low, high) === 0) return low.minor !== 0 && low.patch === 0 ? "minor" : "patch";
+	}
+	const prefix = highHasPrerelease ? "pre" : "";
+	if (leftVersion.major !== rightVersion.major) return `${prefix}major`;
+	if (leftVersion.minor !== rightVersion.minor) return `${prefix}minor`;
+	if (leftVersion.patch !== rightVersion.patch) return `${prefix}patch`;
+	return "prerelease";
+}
+function getMajor(version, options = {}) {
+	return parse(version, options).major;
+}
+function getMinor(version, options = {}) {
+	return parse(version, options).minor;
+}
+function getPatch(version, options = {}) {
+	return parse(version, options).patch;
+}
+function getPrerelease(version, options = {}) {
+	const parsed = tryParse(version, options);
+	return parsed ? [...parsed.prerelease || []] : null;
+}
+function getBuild(version, options = {}) {
+	const parsed = tryParse(version, options);
+	return parsed ? [...parsed.build || []] : null;
+}
+//#endregion
+export { INCREMENT_TYPES, SEMVER_SPEC_VERSION, TRUNCATION_TYPES, clean, coerce, comparatorsIntersect, compare, compareBuild, compareIdentifiers, compareIdentifiersReversed, compareMain, comparePrerelease, compareReversed, compareWithOperator, difference, findMaxSatisfying, findMinSatisfying, findMinimumForRange, getBuild, getMajor, getMinor, getPatch, getPrerelease, increment, isEqual, isGreater, isGreaterOrEqual, isGreaterThanRange, isLess, isLessOrEqual, isLessThanRange, isNotEqual, isOutsideRange, isRangeSubset, isValid, isValidRange, normalize, normalizeComparator, normalizeFull, normalizeRange, parse, parseRange, rangeToComparators, rangesIntersect, satisfies, satisfiesComparator, simplifyRange, sort, sortReversed, truncate, tryParse, tryParseRange };

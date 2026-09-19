@@ -1,0 +1,58 @@
+import { hasFileWithExtension } from '../../util/fs.js';
+import { isDeferResolveEntry, toEntry } from '../../util/input.js';
+import { findByKeyDeep } from '../../util/object.js';
+import { join, relative } from '../../util/path.js';
+const title = 'GitHub Actions';
+const enablers = 'This plugin is enabled when a `.yml` or `.yaml` file is found in the `.github/workflows` folder.';
+const isEnabled = ({ cwd }) => hasFileWithExtension(cwd, '.github/workflows', ['.yml', '.yaml']);
+const isRootOnly = true;
+const config = ['.github/workflows/*.{yml,yaml}', '.github/**/action.{yml,yaml}'];
+const isString = (value) => typeof value === 'string';
+export const getActionDependencies = (config, options) => {
+    const { configFileDir, configFileName } = options;
+    const isActionManifest = configFileName === 'action.yml' || configFileName === 'action.yaml';
+    if (!(isActionManifest && config?.runs?.using?.startsWith('node')))
+        return [];
+    const runs = config.runs;
+    const scripts = [runs.pre, runs.main, runs.post].filter(isString);
+    return scripts.map(script => join(configFileDir, script));
+};
+const ACTION_PATH_VAR = /\$\{\{\s*github\.action_path\s*\}\}|\$\{GITHUB_ACTION_PATH\}|\$GITHUB_ACTION_PATH/g;
+const resolveConfig = async (config, options) => {
+    const { rootCwd, getInputsFromScripts, isProduction, getManifest, configFileDir } = options;
+    const inputs = new Set();
+    const jobs = findByKeyDeep(config, 'steps');
+    for (const steps of jobs) {
+        if (!Array.isArray(steps.steps))
+            continue;
+        const action = steps.steps.find(step => step.uses?.startsWith('actions/checkout@') && typeof step.with?.path === 'string' && !step.with.repository);
+        const path = action?.with?.path;
+        for (const step of steps.steps) {
+            const workingDir = step['working-directory'];
+            const dir = join(rootCwd, path && workingDir ? relative(workingDir, path) : workingDir ? workingDir : '.');
+            if (step.run) {
+                const manifest = getManifest(dir) ?? options.manifest;
+                const actionPath = relative(dir, configFileDir);
+                const run = step.run.replace(ACTION_PATH_VAR, actionPath ? `./${actionPath}` : '.');
+                for (const input of getInputsFromScripts([run], { knownBinsOnly: true, manifest })) {
+                    if (isDeferResolveEntry(input) && path && !workingDir) {
+                        input.specifier = relative(join(dir, path), join(rootCwd, input.specifier));
+                    }
+                    if (isProduction)
+                        Object.assign(input, { optional: true });
+                    inputs.add({ ...input, dir });
+                }
+            }
+        }
+    }
+    return [...inputs, ...getActionDependencies(config, options).map(id => toEntry(id))];
+};
+const plugin = {
+    title,
+    enablers,
+    isEnabled,
+    isRootOnly,
+    config,
+    resolveConfig,
+};
+export default plugin;

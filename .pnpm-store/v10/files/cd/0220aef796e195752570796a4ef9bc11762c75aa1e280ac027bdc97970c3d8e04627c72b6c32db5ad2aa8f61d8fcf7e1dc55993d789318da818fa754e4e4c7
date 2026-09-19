@@ -1,0 +1,28 @@
+{
+    "name": "@types/micromatch",
+    "version": "4.0.10",
+    "description": "TypeScript definitions for micromatch",
+    "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/micromatch",
+    "license": "MIT",
+    "contributors": [
+        {
+            "name": "vemoo",
+            "githubUsername": "vemoo",
+            "url": "https://github.com/vemoo"
+        }
+    ],
+    "main": "",
+    "types": "index.d.ts",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+        "directory": "types/micromatch"
+    },
+    "scripts": {},
+    "dependencies": {
+        "@types/braces": "*"
+    },
+    "peerDependencies": {},
+    "typesPublisherContentHash": "0a0610a3b9b22d7131155721e94d161b22949fc36a56d2f9cff0cb9a0dce7505",
+    "typeScriptVersion": "5.2"
+}

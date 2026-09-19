@@ -1,0 +1,71 @@
+{
+  "name": "verkit",
+  "type": "module",
+  "version": "0.3.0",
+  "description": "Fast, zero-dependency SemVer for ESM and TypeScript, with functional, tree-shakeable APIs.",
+  "author": "Kevin Deng <sxzz@sxzz.moe>",
+  "license": "MIT",
+  "funding": "https://github.com/sponsors/sxzz",
+  "homepage": "https://github.com/sxzz/verkit#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sxzz/verkit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sxzz/verkit/issues"
+  },
+  "keywords": [
+    "semver",
+    "semantic-versioning",
+    "version",
+    "range",
+    "esm",
+    "typescript",
+    "functional",
+    "immutable"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.12.0"
+  },
+  "devDependencies": {
+    "@sxzz/eslint-config": "^8.3.0",
+    "@sxzz/prettier-config": "^2.3.2",
+    "@types/node": "^26.1.1",
+    "@types/semver": "^7.7.1",
+    "@typescript/native-preview": "npm:typescript@7.0.2",
+    "bumpp": "^12.0.0",
+    "eslint": "^10.7.0",
+    "prettier": "^3.9.6",
+    "rolldown": "^1.2.0",
+    "semver": "^7.8.5",
+    "tsdown": "^0.22.13",
+    "tsdown-preset-sxzz": "^0.6.0",
+    "tsnapi": "^1.2.0",
+    "typescript": "~6.0.3",
+    "vitest": "4.1.10"
+  },
+  "prettier": "@sxzz/prettier-config",
+  "scripts": {
+    "lint": "eslint --cache .",
+    "lint:fix": "pnpm run lint --fix",
+    "build": "tsdown",
+    "bench": "vitest bench --run",
+    "dev": "tsdown --watch",
+    "test": "vitest",
+    "test:size": "vitest run tests/bundle-size.test.ts",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --cache --write .",
+    "release": "bumpp"
+  }
+}

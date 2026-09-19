@@ -1,0 +1,12 @@
+import { type ParseResult } from 'oxc-parser';
+import type { AutoImportMaps } from './types.ts';
+export declare const readAndParseFile: (filePath: string) => ParseResult;
+export declare const collectLocalImportPaths: (filePath: string, result: ParseResult) => Set<string>;
+export declare function buildAutoImportMap(filePath: string, result: ParseResult, maps: AutoImportMaps, isComponents: boolean): void;
+export declare const createAutoImportMaps: () => AutoImportMaps;
+export declare const findGeneratedDts: (cwd: string, signature: string) => string[];
+export declare const createVueCompiler: (maps: AutoImportMaps, cwd: string) => (source: string, path: string) => string;
+export declare const createTsCompiler: (maps: AutoImportMaps) => (source: string, path: string) => string;
+export declare const vueAutoImportCompiler: (source: string, path: string) => string;
+export declare const tsAutoImportCompiler: (source: string, path: string) => string;
+export declare const markdownAutoImportCompiler: (source: string, path: string) => string;

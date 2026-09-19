@@ -1,0 +1,1 @@
+{"version":3,"file":"use-stdin.js","sourceRoot":"","sources":["../../src/hooks/use-stdin.ts"],"names":[],"mappings":"AAAA,OAAO,EAAC,UAAU,EAAC,MAAM,OAAO,CAAC;AACjC,OAAO,YAGN,MAAM,+BAA+B,CAAC;AAEvC;;EAEE;AACF,MAAM,QAAQ,GAAG,GAAgB,EAAE,CAAC,UAAU,CAAC,YAAY,CAAC,CAAC;AAE7D,MAAM,CAAC,MAAM,eAAe,GAAG,GAAU,EAAE,CAAC,UAAU,CAAC,YAAY,CAAC,CAAC;AAErE,eAAe,QAAQ,CAAC"}

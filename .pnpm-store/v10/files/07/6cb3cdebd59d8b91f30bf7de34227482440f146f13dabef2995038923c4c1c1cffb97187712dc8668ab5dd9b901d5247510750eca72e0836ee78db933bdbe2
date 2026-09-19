@@ -1,0 +1,4 @@
+import type { Word } from 'unbash';
+import type { BinaryResolver, BinaryResolverOptions } from '../../types/config.ts';
+export declare const resolveDlx: (words: Word[], options: BinaryResolverOptions) => import("../../util/input.ts").Input[];
+export declare const resolve: BinaryResolver;

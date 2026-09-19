@@ -1,0 +1,14 @@
+import path from 'node:path';
+export declare const isAbsolute: typeof path.isAbsolute;
+export declare const dirname: typeof path.dirname;
+export declare const extname: typeof path.extname;
+export declare const basename: typeof path.basename;
+export declare const join: typeof path.join;
+export declare const toPosix: (value: string) => string;
+export declare const resolve: typeof path.resolve;
+export declare const relative: (from: string, to: string) => string;
+export declare const isInNodeModules: (filePath: string) => boolean;
+export declare const toAbsolute: (id: string, base: string) => string;
+export declare const toRelative: (id: string, base: string) => string;
+export declare const isInternal: (id: string) => boolean;
+export declare const normalize: typeof path.normalize;

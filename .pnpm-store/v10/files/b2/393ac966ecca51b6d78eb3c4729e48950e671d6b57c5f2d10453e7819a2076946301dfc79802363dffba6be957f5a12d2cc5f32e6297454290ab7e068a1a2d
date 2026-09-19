@@ -1,0 +1,303 @@
+import { createGraphExplorer } from '../graph-explorer/explorer.js';
+import { getIgnoredCycleImportFlags, getIssueType, getRuntimeImport, hasStrictlyEnumReferences, } from '../graph-explorer/utils.js';
+import traceReporter from '../reporters/trace.js';
+import { shouldCountRefs } from '../typescript/ast-nodes.js';
+import { getPackageNameFromModuleSpecifier } from '../util/modules.js';
+import { relative } from '../util/path.js';
+import { perfObserver, timerify } from '../util/Performance.js';
+import { findMatch } from '../util/regex.js';
+import { getShouldIgnoreHandler, getShouldIgnoreTagHandler, isAlwaysIgnored } from '../util/tag.js';
+import { INTERNAL_TAG } from '../constants.js';
+const toCyclePathKey = (path) => {
+    const length = path.length > 1 && path[0] === path[path.length - 1] ? path.length - 1 : path.length;
+    return path.slice(0, length).join('\0');
+};
+const getAllowedCyclePaths = (cycles) => {
+    if (!cycles.allow?.length)
+        return;
+    const paths = new Set();
+    for (const path of cycles.allow)
+        if (path.length > 0)
+            paths.add(toCyclePathKey(path));
+    return paths;
+};
+const isAllowedCycle = (symbols, paths) => paths?.has(toCyclePathKey(symbols.map(s => s.symbol))) ?? false;
+export const analyze = async ({ analyzedFiles, counselor, chief, collector, deputy, entryPaths, graph, streamer, unreferencedFiles, options, }) => {
+    const shouldIgnore = getShouldIgnoreHandler(options.isProduction);
+    const shouldIgnoreTags = getShouldIgnoreTagHandler(options.tags);
+    const explorer = createGraphExplorer(graph, entryPaths);
+    const isReferencedInUsedExport = (exportedItem, filePath, includeEntryExports, ignoreExportsUsedInFile, visited) => {
+        if (!exportedItem.referencedIn)
+            return false;
+        const file = graph.get(filePath);
+        if (!file)
+            return false;
+        for (const containingExport of exportedItem.referencedIn) {
+            const inExport = file.exports.get(containingExport);
+            if (!inExport)
+                continue;
+            if ((inExport.type === 'type' || inExport.type === 'interface' || inExport.type === 'enum') &&
+                !shouldCountRefs(ignoreExportsUsedInFile, inExport.type)) {
+                continue;
+            }
+            if (inExport.hasRefsInFile || inExport.isRegistered)
+                return true;
+            if (explorer.isReferenced(filePath, containingExport, { traverseEntries: includeEntryExports })[0])
+                return true;
+            if (inExport.referencedIn) {
+                const v = visited ?? new Set();
+                if (!v.has(containingExport)) {
+                    v.add(containingExport);
+                    if (isReferencedInUsedExport(inExport, filePath, includeEntryExports, ignoreExportsUsedInFile, v))
+                        return true;
+                }
+            }
+        }
+        return false;
+    };
+    const analyzeGraph = async () => {
+        if (options.isReportValues || options.isReportTypes) {
+            streamer.cast('Connecting the dots');
+            for (const [filePath, file] of graph) {
+                const exportItems = file.exports;
+                if (!exportItems || exportItems.size === 0)
+                    continue;
+                const workspace = chief.findWorkspaceByFilePath(filePath);
+                if (workspace) {
+                    const { isIncludeEntryExports, ignoreExportsUsedInFile } = workspace.config;
+                    const isEntry = entryPaths.has(filePath);
+                    if (!isIncludeEntryExports && isEntry) {
+                        continue;
+                    }
+                    const importsForExport = file.importedBy;
+                    for (const [identifier, exportedItem] of exportItems) {
+                        if (isAlwaysIgnored(exportedItem.jsDocTags))
+                            continue;
+                        const isInternalProd = options.isProduction && exportedItem.jsDocTags.has(INTERNAL_TAG);
+                        const isIgnored = shouldIgnoreTags(exportedItem.jsDocTags) || isInternalProd;
+                        if (importsForExport) {
+                            const [isReferenced, reExportingEntryFile] = explorer.isReferenced(filePath, identifier, {
+                                traverseEntries: isIncludeEntryExports,
+                            });
+                            if (isIgnored &&
+                                (isReferenced ||
+                                    isReferencedInUsedExport(exportedItem, filePath, isIncludeEntryExports, ignoreExportsUsedInFile))) {
+                                for (const tagName of exportedItem.jsDocTags) {
+                                    if (options.tags[1].includes(tagName) || (isInternalProd && tagName === INTERNAL_TAG)) {
+                                        collector.addTagHint({ type: 'tag', filePath, identifier, tagName });
+                                    }
+                                }
+                            }
+                            if (isIgnored)
+                                continue;
+                            if (reExportingEntryFile) {
+                                if (!isIncludeEntryExports) {
+                                    continue;
+                                }
+                                if (!isReferenced) {
+                                    const reExportedItem = graph.get(reExportingEntryFile)?.exports.get(identifier);
+                                    if (reExportedItem && shouldIgnore(reExportedItem.jsDocTags))
+                                        continue;
+                                }
+                            }
+                            if (isReferenced) {
+                                const isEnumMembers = options.includedIssueTypes.enumMembers && exportedItem.type === 'enum';
+                                const isNsMembers = options.includedIssueTypes.namespaceMembers &&
+                                    exportedItem.members.length > 0 &&
+                                    exportedItem.type !== 'enum';
+                                if ((isEnumMembers || isNsMembers) && exportedItem.members.length > 0) {
+                                    if (explorer.isEnumerated(filePath, identifier))
+                                        continue;
+                                    if (!options.includedIssueTypes.nsTypes && importsForExport.refs.has(identifier))
+                                        continue;
+                                    if (isEnumMembers && hasStrictlyEnumReferences(importsForExport, identifier))
+                                        continue;
+                                    const issueType = isEnumMembers ? 'enumMembers' : 'namespaceMembers';
+                                    for (const member of exportedItem.members) {
+                                        if (findMatch(workspace.ignoreMembers, member.identifier))
+                                            continue;
+                                        if (shouldIgnore(member.jsDocTags))
+                                            continue;
+                                        if (!member.hasRefsInFile) {
+                                            const id = `${identifier}.${member.identifier}`;
+                                            const [isMemberReferenced] = explorer.isReferenced(filePath, id, {
+                                                traverseEntries: true,
+                                                treatStarAtEntryAsReferenced: true,
+                                            });
+                                            const isIgnored = shouldIgnoreTags(member.jsDocTags);
+                                            if (!isMemberReferenced) {
+                                                if (isIgnored)
+                                                    continue;
+                                                collector.addIssue({
+                                                    type: issueType,
+                                                    filePath,
+                                                    workspace: workspace.name,
+                                                    symbol: member.identifier,
+                                                    parentSymbol: identifier,
+                                                    pos: member.pos,
+                                                    line: member.line,
+                                                    col: member.col,
+                                                    fixes: member.fix ? [member.fix] : [],
+                                                });
+                                            }
+                                            else if (isIgnored) {
+                                                for (const tagName of exportedItem.jsDocTags) {
+                                                    if (options.tags[1].includes(tagName)) {
+                                                        collector.addTagHint({ type: 'tag', filePath, identifier: id, tagName });
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                continue;
+                            }
+                        }
+                        const [hasStrictlyNsRefs, namespace] = explorer.hasStrictlyNsReferences(filePath, identifier);
+                        const isType = exportedItem.type === 'enum' || exportedItem.type === 'type' || exportedItem.type === 'interface';
+                        if (isIgnored ||
+                            exportedItem.hasRefsInFile ||
+                            exportedItem.isRegistered ||
+                            isReferencedInUsedExport(exportedItem, filePath, isIncludeEntryExports, ignoreExportsUsedInFile) ||
+                            (hasStrictlyNsRefs &&
+                                ((!options.includedIssueTypes.nsTypes && isType) || !(options.includedIssueTypes.nsExports || isType)))) {
+                            continue;
+                        }
+                        const type = getIssueType(hasStrictlyNsRefs, isType);
+                        collector.addIssue({
+                            type,
+                            filePath,
+                            workspace: workspace.name,
+                            symbol: identifier,
+                            symbolType: exportedItem.type,
+                            parentSymbol: namespace,
+                            pos: exportedItem.pos,
+                            line: exportedItem.line,
+                            col: exportedItem.col,
+                            fixes: exportedItem.fixes,
+                        });
+                    }
+                }
+            }
+        }
+        for (const [filePath, file] of graph) {
+            const ws = chief.findWorkspaceByFilePath(filePath);
+            if (ws) {
+                if (file.duplicates && options.includedIssueTypes.duplicates) {
+                    for (const symbols of file.duplicates) {
+                        if (symbols.length > 1) {
+                            const symbol = symbols.map(s => s.symbol).join('|');
+                            collector.addIssue({ type: 'duplicates', filePath, workspace: ws.name, symbol, symbols, fixes: [] });
+                        }
+                    }
+                }
+                if (file.imports.external) {
+                    for (const extImport of file.imports.external) {
+                        const packageName = getPackageNameFromModuleSpecifier(extImport.specifier);
+                        const isHandled = packageName &&
+                            deputy.maybeAddReferencedExternalDependency(ws, packageName, {
+                                specifier: extImport.specifier,
+                                isTypeOnly: extImport.isTypeOnly,
+                                isResolved: extImport.filePath !== undefined,
+                            });
+                        if (!isHandled && !(extImport.jsDocTags?.size && shouldIgnoreTags(extImport.jsDocTags)))
+                            collector.addIssue({
+                                type: 'unlisted',
+                                filePath,
+                                workspace: ws.name,
+                                symbol: packageName ?? extImport.specifier,
+                                specifier: extImport.specifier,
+                                pos: extImport.pos,
+                                line: extImport.line,
+                                col: extImport.col,
+                                fixes: [],
+                            });
+                    }
+                }
+                if (file.imports.unresolved) {
+                    for (const unresolvedImport of file.imports.unresolved) {
+                        const { specifier, pos, line, col } = unresolvedImport;
+                        collector.addIssue({
+                            type: 'unresolved',
+                            filePath,
+                            workspace: ws.name,
+                            symbol: specifier,
+                            pos,
+                            line,
+                            col,
+                            fixes: [],
+                        });
+                    }
+                }
+            }
+        }
+        if (options.isReportCycles) {
+            const cyclesConfig = chief.config.cycles;
+            const allowedCyclePaths = getAllowedCyclePaths(cyclesConfig);
+            const ignoredFlags = getIgnoredCycleImportFlags(cyclesConfig.dynamicImports ?? false);
+            for (const cycle of timerify(explorer.findAllCycles, 'findAllCycles')(ignoredFlags)) {
+                const filePath = cycle[0];
+                const ws = chief.findWorkspaceByFilePath(filePath);
+                if (!ws)
+                    continue;
+                const symbols = cycle.slice(0, -1).map((file, index) => {
+                    const node = graph.get(file);
+                    const edge = node && getRuntimeImport(node, cycle[index + 1], ignoredFlags);
+                    return edge ? { symbol: relative(options.cwd, file), ...edge } : { symbol: relative(options.cwd, file) };
+                });
+                if (isAllowedCycle(symbols, allowedCyclePaths))
+                    continue;
+                const symbol = symbols.map(s => s.symbol).join(' → ');
+                collector.addIssue({ type: 'cycles', filePath, workspace: ws.name, symbol, symbols, fixes: [] });
+            }
+        }
+        const unusedFiles = options.isReportFiles
+            ? [...unreferencedFiles].filter(filePath => !analyzedFiles.has(filePath))
+            : [];
+        if (options.isReportFiles)
+            collector.addFilesIssues(unusedFiles);
+        collector.addFileCounts({ processed: analyzedFiles.size, unused: unusedFiles.length });
+        if (options.isReportDependencies) {
+            const { dependencyIssues, devDependencyIssues, optionalPeerDependencyIssues } = deputy.settleDependencyIssues();
+            for (const issue of dependencyIssues)
+                collector.addIssue(issue);
+            if (!options.isProduction)
+                for (const issue of devDependencyIssues)
+                    collector.addIssue(issue);
+            for (const issue of optionalPeerDependencyIssues)
+                collector.addIssue(issue);
+            deputy.removeIgnoredIssues(collector.getIssues());
+            const configurationHints = deputy.getConfigurationHints();
+            for (const hint of configurationHints)
+                collector.addConfigurationHint(hint);
+        }
+        const catalogIssues = await counselor.settleCatalogIssues(options);
+        for (const issue of catalogIssues)
+            collector.addIssue(issue);
+        const unusedConfiguredWorkspaces = chief.getUnusedConfiguredWorkspaces();
+        for (const identifier of unusedConfiguredWorkspaces) {
+            collector.addConfigurationHint({ type: 'workspaces', identifier });
+        }
+        const unusedIgnoredWorkspaces = chief.getUnusedIgnoredWorkspaces();
+        for (const identifier of unusedIgnoredWorkspaces) {
+            collector.addConfigurationHint({ type: 'ignoreWorkspaces', identifier });
+        }
+        for (const hint of collector.getUnusedIgnorePatternHints(options)) {
+            collector.addConfigurationHint(hint);
+        }
+        for (const hint of chief.getConfigurationHints())
+            collector.addConfigurationHint(hint);
+    };
+    await analyzeGraph();
+    perfObserver.addMemoryMark('analyze');
+    if (options.isTrace) {
+        traceReporter({
+            graph,
+            explorer,
+            options,
+            workspaceFilePathFilter: chief.workspaceFilePathFilter,
+            issues: collector.getIssues().issues,
+        });
+    }
+    return analyzeGraph;
+};

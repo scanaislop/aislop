@@ -1,0 +1,188 @@
+import type { DeferredCommandExpansion, ParseError, Word, WordPart } from "./types.ts";
+export declare const MAX_SYNTAX_NESTING = 256;
+export declare const Token: {
+    readonly Word: 0;
+    readonly Assignment: 1;
+    readonly Semi: 2;
+    readonly Newline: 3;
+    readonly Pipe: 4;
+    readonly And: 5;
+    readonly Or: 6;
+    readonly Amp: 7;
+    readonly LParen: 8;
+    readonly RParen: 9;
+    readonly LBrace: 10;
+    readonly RBrace: 11;
+    readonly Bang: 12;
+    readonly If: 13;
+    readonly Then: 14;
+    readonly Else: 15;
+    readonly Elif: 16;
+    readonly Fi: 17;
+    readonly Do: 18;
+    readonly Done: 19;
+    readonly For: 20;
+    readonly While: 21;
+    readonly Until: 22;
+    readonly In: 23;
+    readonly Case: 24;
+    readonly Esac: 25;
+    readonly Function: 26;
+    readonly DoubleSemi: 27;
+    readonly SemiAmp: 28;
+    readonly DoubleSemiAmp: 29;
+    readonly Select: 30;
+    readonly DblLBracket: 31;
+    readonly DblRBracket: 32;
+    readonly EOF: 33;
+    readonly ArithCmd: 34;
+    readonly Coproc: 35;
+    readonly Redirect: 36;
+};
+export type Token = (typeof Token)[keyof typeof Token];
+export declare class TokenValue {
+    token: Token;
+    _value: string | null;
+    _owner: Lexer | null;
+    pos: number;
+    end: number;
+    fileDescriptor?: number;
+    variableName?: string;
+    content?: string;
+    targetPos: number;
+    targetEnd: number;
+    assignmentOperatorPos: number;
+    raw: boolean;
+    keywordEligible: boolean;
+    constructor(owner?: Lexer | null);
+    get value(): string;
+    set value(v: string);
+    reset(): void;
+    copyFrom(other: TokenValue): void;
+}
+export declare function requiresFunctionKeyword(name: string): boolean;
+export declare function hasEmbeddedWordStructure(source: string, start: number, end: number): boolean;
+export declare const LexContext: {
+    readonly Normal: 0;
+    readonly CommandStart: 1;
+    readonly TestMode: 2;
+    readonly CommandPrefix: 3;
+};
+export type LexContext = (typeof LexContext)[keyof typeof LexContext];
+export declare class Lexer {
+    private src;
+    private srcEnd;
+    private pos;
+    private current;
+    private nextState;
+    private hasPeek;
+    private pendingHereDocs;
+    private collectedExpansions;
+    _errors: ParseError[] | null;
+    _buildParts: boolean;
+    _buildValue: boolean;
+    _nestingDepth: number;
+    constructor(src: string, start?: number, end?: number);
+    getSource(): string;
+    get errors(): ParseError[];
+    getCollectedExpansions(): [DeferredCommandExpansion, number][];
+    private collect;
+    getPos(): number;
+    /** Materialize a word token's value: raw spans slice directly, others re-lex the span. */
+    _tokenValue(pos: number, end: number, raw: boolean): string;
+    private wordValueOf;
+    /** Find the closing bracket for a shell subscript, ignoring brackets inside nested shell syntax. */
+    findClosingBracket(start: number, end?: number): number;
+    /** Find the closing bracket of `$[ … ]`, which unlike a subscript does not recurse into `${ }`. */
+    private findClosingArithmeticBracket;
+    /** Find the closing brace for a parameter expansion, ignoring braces inside nested shell syntax. */
+    findClosingBrace(start: number, end?: number): number;
+    /** Find the closing parenthesis for a shell substitution using the command-aware scanner. */
+    findClosingParenthesis(start: number, end?: number): number;
+    /** Find the end of one arithmetic expansion using the canonical lexer scanner. */
+    findArithmeticExpansionEnd(start: number, end?: number): number;
+    /** Find the end of one shell-expanded arithmetic word using the canonical lexer scanners. */
+    findArithmeticWordEnd(start: number, end?: number): number;
+    private scanArithmeticWordEnd;
+    private findClosingShellDelimiter;
+    skipSubshellBody(): number;
+    skipCompoundBody(closeToken: Token): number;
+    skipTestGroup(): number;
+    private skipTestCommandBody;
+    /** Set position and scan a word, building parts. Used by computeWordParts. */
+    buildWordParts(startPos: number): WordPart[] | null;
+    /** Scan a bounded word-like span without treating shell operators or whitespace as terminators. */
+    buildEmbeddedWordParts(startPos: number): WordPart[] | null;
+    /** Scan a heredoc body for expansions, building parts. Spaces/newlines are literal. */
+    buildHereDocParts(bodyPos: number, bodyEnd: number): WordPart[] | null;
+    registerHereDocTarget(target: {
+        content?: string;
+        heredocQuoted?: boolean;
+        body?: Word;
+    }): void;
+    readTestRegexWord(): TokenValue;
+    readCStyleForExprs(): [string, string, string, number, number, number];
+    peek(ctx?: LexContext): TokenValue;
+    peekFollow(closers: Uint8Array): TokenValue;
+    next(ctx?: LexContext): TokenValue;
+    unshift(tok: TokenValue): void;
+    private readNext;
+    private tryReadOperator;
+    private readRedirection;
+    private readRedirectTargetText;
+    private redirectToken;
+    private readProcessSubstitution;
+    private readHereDocDelimiter;
+    private consumePendingHereDocs;
+    private readHereDocBody;
+    private matchHereDocDelimiter;
+    private logicalLineEnd;
+    private skipHereDocBody;
+    private parseHereDocBody;
+    private _wordText;
+    private _wordRaw;
+    private _wordQuoted;
+    private _wordHasExpansions;
+    private _wordKeywordEligible;
+    private _wordIsAssignment;
+    private _wordAssignmentOperatorPos;
+    _wordParts: WordPart[] | null;
+    private _resultText;
+    private _resultIsRaw;
+    private _resultHasExpansion;
+    private _resultPart;
+    private _unbalanced;
+    private _notArithmetic;
+    private _dqText;
+    private _dqHasExpansions;
+    private _dqParts;
+    private _dqEnd;
+    private _hereDelim;
+    private _hereQuoted;
+    private readWord;
+    private classifyWord;
+    private readWordText;
+    private readInnerWordText;
+    private parseSubFieldWord;
+    private skipSQ;
+    private skipAnsiCQuoted;
+    private skipDQ;
+    private skipSpacesAndTabs;
+    private readDoubleQuoted;
+    private readDollar;
+    private scanArithmeticBody;
+    private readArithmeticExpansion;
+    private buildArithmeticExpression;
+    private readArithmeticCommand;
+    private readCommandSubstitution;
+    private readBraceCommandSubstitution;
+    private readValueSubstitution;
+    private readBraceSubstitution;
+    private readBacktickExpansion;
+    private readParameterExpansion;
+    private parseParamInner;
+    private findNestedShellEnd;
+    private scanParamName;
+    private readAnsiCQuoted;
+    private extractBalanced;
+}
