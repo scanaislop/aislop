@@ -7,8 +7,10 @@ import {
 	buildCommandStartedProps,
 	type CommandName,
 	type EngineCounts,
+	errorIdentity,
 	errorKindFromException,
 } from "./events.js";
+import { markErrorReported } from "./fatal.js";
 
 interface CommandLifecycleStart {
 	command: CommandName;
@@ -81,6 +83,7 @@ export const withCommandLifecycle = async <T extends CommandCompletionInfo>(
 		return result;
 	} catch (error) {
 		const durationMs = performance.now() - startedAt;
+		const identity = errorIdentity(error);
 		track({
 			event: "cli_command_completed",
 			properties: buildCommandCompletedProps({
@@ -88,9 +91,12 @@ export const withCommandLifecycle = async <T extends CommandCompletionInfo>(
 				exitCode: 1,
 				durationMs,
 				errorKind: errorKindFromException(error),
+				errorName: identity.error_name,
+				errorCode: identity.error_code,
 			}),
 			config: start.config,
 		});
+		markErrorReported(error);
 		await flushTelemetry();
 		throw error;
 	}

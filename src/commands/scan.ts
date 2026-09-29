@@ -210,6 +210,7 @@ const runScanBody = async (
 		engineIssues[r.engine] = r.diagnostics.length;
 		engineTimings[r.engine] = Math.round(r.elapsed);
 	}
+	const enginesSkipped = results.filter((r) => r.skipped).map((r) => r.engine);
 	const completion = {
 		exitCode,
 		score: scoreable ? scoreResult.score : null,
@@ -220,6 +221,7 @@ const runScanBody = async (
 		fixableCount: allDiagnostics.filter((d) => d.fixable).length,
 		engineIssues,
 		engineTimings,
+		...(enginesSkipped.length > 0 ? { properties: { engines_skipped: enginesSkipped } } : {}),
 	};
 
 	if (options.sarif) {
