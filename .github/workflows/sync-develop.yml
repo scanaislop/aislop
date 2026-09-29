@@ -44,13 +44,7 @@ jobs:
       - name: Merge main into develop
         if: steps.plan.outputs.needs_sync == 'true'
         run: |
-          # Merge main into develop with a real merge. Do NOT use
-          # `git read-tree --reset -u origin/main`: it sets the tree to main's
-          # while the commit's parent stays on develop, so the commit is
-          # "make develop's tree equal main's" and merging it silently reverts
-          # every commit that is in develop but not in main. A real merge keeps
-          # develop-only commits and brings main's changes in; a conflict fails
-          # the step before any push.
+          # A real merge keeps develop-only commits; read-tree --reset would revert them.
           git merge --no-ff origin/main -m "chore: sync main → develop"
           git push --force origin HEAD:refs/heads/bot/sync-from-main
 
