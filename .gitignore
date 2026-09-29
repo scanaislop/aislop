@@ -3,6 +3,7 @@ node_modules/
 dist/
 tools/bin/
 tools/analyzers/
+tools/benchmark-data/
 assets/release-fix-scan.*
 *.tgz
 .DS_Store

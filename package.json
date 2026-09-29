@@ -49,7 +49,10 @@
 		"scan:exclude": "pnpm build && node dist/cli.js scan . --exclude .idea --exclude .gitnore --exclude node_modules",
 		"scan:include": "pnpm build && node dist/cli.js scan . --include src --include tests",
 		"scan:json": "pnpm build && node dist/cli.js scan . --json",
-		"quality": "pnpm typecheck && pnpm test && node dist/cli.js scan . --json"
+		"quality": "pnpm typecheck && pnpm test && node dist/cli.js scan . --json",
+		"bench:trending:capture": "node tools/oss-benchmark.mjs capture",
+		"bench:trending:run": "node tools/oss-benchmark.mjs run",
+		"bench:trending:cycle": "node tools/oss-benchmark.mjs cycle"
 	},
 	"keywords": [
 		"aislop",
