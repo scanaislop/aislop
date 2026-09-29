@@ -310,3 +310,36 @@ describe("maskStringsAndComments recognises regex literals", () => {
 		expect(out).toContain("const r = a / b + c;");
 	});
 });
+
+describe("maskStringsAndComments understands Rust literals", () => {
+	it("masks strings, raw strings, chars and nested comments", () => {
+		const src = [
+			'let a = "{ // not a comment";',
+			'let b = br##"a "# { "##;',
+			"let c = '{'; let d = b'}'; let e = '\\'';",
+			"/* outer /* inner { */ still } */ let f = 1;",
+			"",
+		].join("\n");
+		const out = maskStringsAndComments(src, ".rs");
+		expect(out).not.toMatch(/[{}]/);
+		expect(out).toContain("let f = 1;");
+		expect(out.split("\n")).toHaveLength(5);
+	});
+
+	it("keeps lifetimes and labels as code", () => {
+		const src = "fn f<'a>(x: &'a str) -> &'static str { 'outer: loop { break 'outer; } }";
+		expect(maskStringsAndComments(src, ".rs")).toBe(src);
+	});
+
+	it("does not treat an identifier ending in r as a raw string prefix", () => {
+		const out = maskStringsAndComments('let bar = 1; f(bar, "{");', ".rs");
+		expect(out).toContain("let bar = 1; f(bar,");
+		expect(out).not.toContain("{");
+	});
+
+	it("maskComments keeps Rust string bodies", () => {
+		const out = maskComments('let u = "https://x.dev/{id}"; // drop me\n', ".rs");
+		expect(out).toContain("https://x.dev/{id}");
+		expect(out).not.toContain("drop me");
+	});
+});
