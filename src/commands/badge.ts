@@ -1,11 +1,7 @@
-import { execSync } from "node:child_process";
-import path from "node:path";
 import { renderDisplayRows, renderDisplaySection } from "../ui/display.js";
 import { renderHeader } from "../ui/header.js";
+import { detectGithubSlug } from "../utils/github-slug.js";
 import { APP_VERSION } from "../version.js";
-
-const GITHUB_REMOTE_RE =
-	/^(?:git@github\.com:|https:\/\/(?:[^@]+@)?github\.com\/)([^/]+)\/([^/.\s]+?)(?:\.git)?\s*$/;
 
 interface BadgeOptions {
 	owner?: string;
@@ -60,31 +56,12 @@ export const renderBadgeOutput = ({ owner, repo, svgUrl, pageUrl }: BadgeRenderI
 	].join("\n");
 };
 
-const detectGithubSlugFromGit = (directory: string): { owner: string; repo: string } | null => {
-	let raw: string;
-	try {
-		raw = execSync("git remote get-url origin", {
-			cwd: path.resolve(directory),
-			encoding: "utf-8",
-			stdio: ["ignore", "pipe", "ignore"],
-		});
-	} catch {
-		return null;
-	}
-	const match = raw.trim().match(GITHUB_REMOTE_RE);
-	if (!match) return null;
-	const owner = match[1];
-	const repo = match[2];
-	if (!owner || !repo) return null;
-	return { owner, repo };
-};
-
 export const badgeCommand = async (options: BadgeOptions = {}): Promise<BadgeResult> => {
 	let owner = options.owner?.trim();
 	let repo = options.repo?.trim();
 
 	if (!owner || !repo) {
-		const detected = detectGithubSlugFromGit(options.directory ?? ".");
+		const detected = detectGithubSlug(options.directory ?? ".");
 		if (!detected) {
 			throw new Error(
 				"Could not detect a GitHub remote. Run from a repo with `git remote get-url origin` set, or pass --owner and --repo.",
