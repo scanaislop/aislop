@@ -15,6 +15,7 @@ import {
 } from "../agents/session-activity.js";
 import { createAgentWorktree, removeAgentWorktree } from "../agents/worktree.js";
 import type { Diagnostic } from "../engines/types.js";
+import { errorKindFromException } from "../telemetry/index.js";
 import { AgentTui } from "../ui/agent-tui.js";
 import { log } from "../ui/logger.js";
 import { runSafeFix, scanJson } from "./agent-local-cli.js";
@@ -403,7 +404,7 @@ export const runAgentSession = async (
 		await tui.abort();
 		log.error(error instanceof Error ? error.message : String(error));
 		process.exitCode = 1;
-		return { agent_result: "failed" };
+		return { agent_result: "failed", errorKind: errorKindFromException(error) };
 	} finally {
 		const safeToCleanup =
 			changedFiles.length === 0 || applied || Boolean(published) || options.cleanup;

@@ -13,7 +13,9 @@ export const buildHookNudge = (ctx: HookNudgeContext): string | null => {
 	return [
 		"",
 		"Next: install the per-edit hook so your coding agent fixes slop before it lands.",
-		`  ${ctx.invocation} hook install`,
+		ctx.invocation === "aislop"
+			? "  aislop hook install"
+			: "  npm install -g aislop && aislop hook install",
 		"",
 	].join("\n");
 };

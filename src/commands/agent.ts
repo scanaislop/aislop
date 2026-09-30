@@ -152,7 +152,7 @@ export const agentCommand = async (
 		log.muted(`Using saved provider preference: ${providerChoice.selection}.`);
 	}
 	const selected = await resolveReadyProvider(resolvedOptions.provider);
-	if (!selected) return { agent_result: "provider_unavailable" };
+	if (!selected) return { agent_result: "provider_unavailable", errorKind: "provider_unavailable" };
 	if (resolvedOptions.dryRun) {
 		renderDryRun(selected, resolvedDir, resolvedOptions);
 		return { agent_result: "dry_run", ...providerTelemetry(selected, resolvedOptions) };

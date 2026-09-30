@@ -19,7 +19,7 @@ import { getChangedLineMap } from "../utils/git.js";
 import { readAislopIgnorePatterns } from "../utils/source-files.js";
 import { applySuppressions } from "../utils/suppress.js";
 import { APP_VERSION } from "../version.js";
-import { detectInstalledAgents } from "../hooks/install/registry.js";
+import { detectAislopHooks } from "../hooks/install/registry.js";
 import { renderCoverageNotice } from "./scan-coverage.js";
 import { runEnginesWithProgress } from "./scan-engine-runner.js";
 import { computeScanExitCode } from "./scan-exit-code.js";
@@ -286,7 +286,7 @@ const runScanBody = async (
 
 	if (options.command !== "ci" && options.printBrand !== false) {
 		const nudge = buildHookNudge({
-			installedAgentCount: detectInstalledAgents({ home: os.homedir(), cwd: resolvedDir }).length,
+			installedAgentCount: detectAislopHooks({ home: os.homedir(), cwd: resolvedDir }).length,
 			isTty: Boolean(process.stdout.isTTY),
 			isCi: isCiEnv(),
 			invocation: detectInvocation(),

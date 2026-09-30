@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import {
 	installAntigravity,
 	resolveAntigravityPaths,
@@ -119,3 +120,19 @@ export const detectInstalledAgents = (opts: { home: string; cwd: string }): Agen
 	}
 	return hits;
 };
+
+const AISLOP_MARKERS = ["__aislop", "aislop:begin", "@AISLOP.md"];
+
+const hasAislopHook = (target: string): boolean => {
+	if (!fs.existsSync(target)) return false;
+	if (path.basename(target).toLowerCase().startsWith("aislop")) return true;
+	const content = fs.readFileSync(target, "utf8");
+	return AISLOP_MARKERS.some((marker) => content.includes(marker));
+};
+
+export const detectAislopHooks = (opts: { home: string; cwd: string }): AgentName[] =>
+	ALL_AGENTS.filter((agent) =>
+		REGISTRY[agent]
+			.paths({ home: opts.home, cwd: opts.cwd, scope: defaultScopeFor(agent) })
+			.some(hasAislopHook),
+	);

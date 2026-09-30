@@ -16,9 +16,10 @@ describe("hook nudge gating", () => {
 		expect(nudge).toContain("aislop hook install");
 	});
 
-	it("uses the npx invocation so it works without a global install", () => {
+	it("asks npx users to install globally, since the hook calls aislop directly", () => {
 		const nudge = buildHookNudge(ctx({ invocation: "npx aislop@latest" }));
-		expect(nudge).toContain("npx aislop@latest hook install");
+		expect(nudge).toContain("npm install -g aislop && aislop hook install");
+		expect(nudge).not.toContain("npx aislop@latest hook install");
 	});
 
 	it("stays silent when a hook is already installed", () => {

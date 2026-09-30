@@ -16,10 +16,10 @@ aislop catches them. 50+ rules across 10 language targets (TypeScript, JavaScrip
 npx aislop@latest scan
 ```
 
-**2. Install the hook** so your coding agent fixes slop before it lands, on every edit.
+**2. Install the hook** so your coding agent fixes slop before it lands, on every edit. The hook calls `aislop` directly, so install the CLI first.
 
 ```bash
-npx aislop@latest hook install
+npm install -g aislop && aislop hook install
 ```
 
 Also available on npm, Yarn, Bun, Homebrew, and PyPI:
