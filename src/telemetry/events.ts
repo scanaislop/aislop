@@ -178,6 +178,7 @@ export const errorKindFromException = (error: unknown): ErrorKind => {
 	return "unknown";
 };
 
+const SAFE_ERROR_NAME = /^[A-Za-z_$][A-Za-z0-9_$]{0,39}$/;
 const SAFE_ERROR_CODE = /^[A-Za-z][A-Za-z0-9_]{0,39}$/;
 
 interface ErrorIdentity {
@@ -196,7 +197,7 @@ export const errorIdentity = (error: unknown): ErrorIdentity => {
 	} else {
 		name = typeof error;
 	}
-	const identity: ErrorIdentity = { error_name: name.slice(0, 40) };
+	const identity: ErrorIdentity = { error_name: SAFE_ERROR_NAME.test(name) ? name : "Error" };
 	const code = (error as { code?: unknown } | null | undefined)?.code;
 	if (typeof code === "string" && SAFE_ERROR_CODE.test(code)) identity.error_code = code;
 	else if (typeof code === "number" && Number.isFinite(code)) identity.error_code = String(code);

@@ -2,6 +2,7 @@ import { performance } from "node:perf_hooks";
 import { flushTelemetry, type TelemetryConfig, track } from "./client.js";
 
 const STARTED_FLUSH_TIMEOUT_MS = 100;
+
 import {
 	buildCommandCompletedProps,
 	buildCommandStartedProps,
@@ -10,7 +11,7 @@ import {
 	errorIdentity,
 	errorKindFromException,
 } from "./events.js";
-import { markErrorReported } from "./fatal.js";
+import { markErrorReported, rememberTelemetryConfig } from "./fatal.js";
 
 interface CommandLifecycleStart {
 	command: CommandName;
@@ -46,6 +47,7 @@ export const withCommandLifecycle = async <T extends CommandCompletionInfo>(
 		fileCount: start.fileCount,
 		properties: start.properties,
 	});
+	rememberTelemetryConfig(start.config);
 
 	track({
 		event: "cli_command_started",

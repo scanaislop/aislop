@@ -22,7 +22,7 @@ const SAFE_PROPERTY_NAMES: ReadonlySet<string> = new Set([
 	"error_name",
 	"error_code",
 	"failed_stage",
-	"engines_skipped",
+	"engines_failed",
 	"score",
 	"score_bucket",
 	"finding_count",

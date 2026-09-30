@@ -33,6 +33,7 @@ export interface EngineResult {
 	elapsed: number;
 	skipped: boolean;
 	skipReason?: string;
+	failed?: boolean;
 }
 
 export interface EngineContext {

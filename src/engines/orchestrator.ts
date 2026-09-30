@@ -52,6 +52,7 @@ export const runEngines = async (
 					diagnostics: [],
 					elapsed: performance.now() - start,
 					skipped: true,
+					failed: true,
 					skipReason: error instanceof Error ? error.message : String(error),
 				};
 				onComplete?.(result);
@@ -68,6 +69,7 @@ export const runEngines = async (
 					diagnostics: [],
 					elapsed: 0,
 					skipped: true,
+					failed: true,
 					skipReason: r.reason instanceof Error ? r.reason.message : String(r.reason),
 				},
 	);

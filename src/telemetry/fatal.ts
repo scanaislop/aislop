@@ -1,29 +1,27 @@
 import { flushTelemetry, type TelemetryConfig, track } from "./client.js";
 import { buildCommandFailedProps, type FailedStage } from "./events.js";
 
-const REPORTED = Symbol.for("aislop.telemetry.error-reported");
+const reportedErrors = new Set<unknown>();
+let activeTelemetryConfig: TelemetryConfig | undefined;
 
 export const markErrorReported = (error: unknown): void => {
-	if (error !== null && typeof error === "object" && Object.isExtensible(error)) {
-		Object.defineProperty(error, REPORTED, { value: true, configurable: true });
-	}
+	reportedErrors.add(error);
 };
 
-const isErrorReported = (error: unknown): boolean =>
-	error !== null &&
-	typeof error === "object" &&
-	(error as Record<symbol, unknown>)[REPORTED] === true;
+export const rememberTelemetryConfig = (config: TelemetryConfig | undefined): void => {
+	activeTelemetryConfig = config;
+};
 
 export const reportFatalError = async (
 	error: unknown,
 	stage: FailedStage,
 	config?: TelemetryConfig,
 ): Promise<void> => {
-	if (isErrorReported(error)) return;
+	if (reportedErrors.has(error)) return;
 	track({
 		event: "cli_command_failed",
 		properties: buildCommandFailedProps({ error, stage }),
-		config,
+		config: activeTelemetryConfig ?? config,
 	});
 	await flushTelemetry(2000);
 };

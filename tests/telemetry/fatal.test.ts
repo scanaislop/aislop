@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { resetTelemetryForTests } from "../../src/telemetry/client.js";
 import { buildCommandFailedProps, errorIdentity } from "../../src/telemetry/events.js";
-import { markErrorReported, reportFatalError } from "../../src/telemetry/fatal.js";
+import {
+	markErrorReported,
+	rememberTelemetryConfig,
+	reportFatalError,
+} from "../../src/telemetry/fatal.js";
 
 const captureStderr = (): { lines: string[]; restore: () => void } => {
 	const lines: string[] = [];
@@ -72,6 +76,14 @@ describe("buildCommandFailedProps", () => {
 	});
 });
 
+describe("errorIdentity name safety", () => {
+	it("replaces a free-text error name with a generic one", () => {
+		const err = new Error("boom");
+		err.name = "Failed reading /Users/me/secret-project";
+		expect(errorIdentity(err).error_name).toBe("Error");
+	});
+});
+
 describe("reportFatalError", () => {
 	const originalEnv = { ...process.env };
 
@@ -86,6 +98,7 @@ describe("reportFatalError", () => {
 
 	afterEach(() => {
 		process.env = { ...originalEnv };
+		rememberTelemetryConfig(undefined);
 		resetTelemetryForTests();
 	});
 
@@ -120,6 +133,31 @@ describe("reportFatalError", () => {
 			markErrorReported(err);
 			await reportFatalError(err, "main");
 			expect(parseEvents(cap.lines).find((e) => e.event === "cli_command_failed")).toBeUndefined();
+		} finally {
+			cap.restore();
+		}
+	});
+
+	it.each([
+		["a primitive", "string failure"],
+		["a frozen error", Object.freeze(new Error("frozen"))],
+	])("does not double-report %s", async (_label, thrown) => {
+		const cap = captureStderr();
+		try {
+			markErrorReported(thrown);
+			await reportFatalError(thrown, "main");
+			expect(parseEvents(cap.lines).find((e) => e.event === "cli_command_failed")).toBeUndefined();
+		} finally {
+			cap.restore();
+		}
+	});
+
+	it("honors the active command's telemetry opt-out over the fallback config", async () => {
+		const cap = captureStderr();
+		try {
+			rememberTelemetryConfig({ enabled: false });
+			await reportFatalError(new Error("boom"), "uncaught_exception", { enabled: true });
+			expect(cap.lines.filter((l) => l.startsWith("[telemetry]"))).toHaveLength(0);
 		} finally {
 			cap.restore();
 		}

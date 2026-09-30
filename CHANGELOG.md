@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- **Command failure telemetry (PII-free).** A new `cli_command_failed` event records crashes that escape the command lifecycle (top-level uncaught exceptions and unhandled rejections), so hard failures are no longer silent. Failed commands now also report the error class (`error_name`) and machine code (`error_code`) rather than only a heuristic `error_kind`, and scans report which engines were skipped by an internal error (`engines_skipped`). All fields are allowlisted (never the error message, stack, or file paths), and capture honors the existing opt-out (`AISLOP_NO_TELEMETRY`, `DO_NOT_TRACK`, CI, config).
+- **Command failure telemetry (PII-free).** A new `cli_command_failed` event records crashes that escape the command lifecycle (top-level uncaught exceptions and unhandled rejections), so hard failures are no longer silent. Failed commands now also report the error class (`error_name`) and machine code (`error_code`) rather than only a heuristic `error_kind`, and scans report which engines crashed (`engines_failed`). All fields are allowlisted (never the error message, stack, or file paths), and capture honors the existing opt-out (`AISLOP_NO_TELEMETRY`, `DO_NOT_TRACK`, CI, config).
 
 ## 0.16.1 (2026-09-09)
 

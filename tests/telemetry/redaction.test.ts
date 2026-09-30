@@ -84,7 +84,7 @@ describe("redactProperties", () => {
 			error_name: "TypeError",
 			error_code: "ENOENT",
 			failed_stage: "uncaught_exception",
-			engines_skipped: ["ai-slop", "security"],
+			engines_failed: ["ai-slop", "security"],
 			error_message: "ENOENT: /Users/me/.env",
 			stack: "at readConfig (/Users/me/app.ts:1)",
 		});
@@ -92,7 +92,7 @@ describe("redactProperties", () => {
 			error_name: "TypeError",
 			error_code: "ENOENT",
 			failed_stage: "uncaught_exception",
-			engines_skipped: ["ai-slop", "security"],
+			engines_failed: ["ai-slop", "security"],
 		});
 		expect(dropped.sort()).toEqual(["error_message", "stack"]);
 	});
