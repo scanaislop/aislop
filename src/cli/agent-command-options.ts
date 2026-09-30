@@ -18,7 +18,7 @@ type AgentOption = {
 const AGENT_OPTIONS: AgentOption[] = [
 	{
 		flag: "--provider <provider>",
-		description: "provider to use: auto, codex, claude, opencode, pi",
+		description: "provider to use: auto, codex, claude, opencode",
 		defaultValue: "auto",
 	},
 	{
@@ -174,7 +174,7 @@ export const addMonitorOptions = (command: Command): void => {
 const providerSourceFrom = (command: Command): "cli" | "auto" =>
 	command.getOptionValueSourceWithGlobals("provider") === "default" ? "auto" : "cli";
 
-const TELEMETRY_PROVIDERS = new Set(["auto", "codex", "claude", "opencode", "pi"]);
+const TELEMETRY_PROVIDERS = new Set(["auto", "codex", "claude", "opencode"]);
 
 export const telemetryProvider = (provider: string | undefined): string => {
 	if (!provider) return "none";

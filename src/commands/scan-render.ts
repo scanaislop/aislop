@@ -73,7 +73,7 @@ const buildScanNextSteps = (input: {
 				emphasis: "primary",
 				label: "Provider",
 				command: `${input.invocation} agent --provider codex`,
-				detail: "or use --provider claude/opencode/pi",
+				detail: "or use --provider claude/opencode",
 			},
 			{
 				emphasis: "muted",
