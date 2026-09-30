@@ -41,17 +41,14 @@ jobs:
             echo "needs_sync=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build sync commit (parent = develop, tree = main)
+      - name: Merge main into develop
         if: steps.plan.outputs.needs_sync == 'true'
         run: |
-          # Don't replay main's commits onto develop — that conflicts when
-          # both branches squashed the same content under different SHAs.
-          # Capture the diff as a single commit on top of develop instead.
-          git read-tree --reset -u origin/main
-          git commit -m "chore: sync main → develop"
+          # A real merge keeps develop-only commits; read-tree --reset would revert them.
+          git merge --no-ff origin/main -m "chore: sync main → develop"
           git push --force origin HEAD:refs/heads/bot/sync-from-main
 
-      - name: Open or update PR with auto-merge
+      - name: Open or update PR for a human to review
         if: steps.plan.outputs.needs_sync == 'true'
         env:
           GH_TOKEN: ${{ secrets.SYNC_BOT_PAT }}
@@ -64,16 +61,12 @@ jobs:
             --jq '.[] | select(.headRefName == "bot/sync-from-main" and .headRepository.nameWithOwner == env.GITHUB_REPOSITORY) | .number' \
             | head -n 1)
           if [ -z "$existing" ]; then
-            num=$(gh pr create \
+            gh pr create \
               --base develop \
               --head bot/sync-from-main \
               --title "chore: sync main → develop" \
-              --body "Auto-opened by \`.github/workflows/sync-develop.yml\`. Brings develop up to main. Auto-merge enabled (squash) — merges itself once CI passes." \
-              | grep -oE '[0-9]+$')
-          else
-            num=$existing
+              --body "Auto-opened by \`.github/workflows/sync-develop.yml\`. Brings develop up to main. Review and merge manually so the develop→main promotion keeps a human in the loop."
           fi
-          gh pr merge "$num" --squash --auto --delete-branch
 
       - name: No-op summary
         if: steps.plan.outputs.needs_sync == 'false'
