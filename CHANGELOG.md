@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Added
+
+- **Command failure telemetry (PII-free).** A new `cli_command_failed` event records crashes that escape the command lifecycle (top-level uncaught exceptions and unhandled rejections), so hard failures are no longer silent. Failed commands now also report the error class (`error_name`) and machine code (`error_code`) rather than only a heuristic `error_kind`, and scans report which engines crashed (`engines_failed`). All fields are allowlisted (never the error message, stack, or file paths), and capture honors the existing opt-out (`AISLOP_NO_TELEMETRY`, `DO_NOT_TRACK`, CI, config).
+
+- Ordered `overrides` in `.aislop/config.yml` apply project-relative glob patterns to partial quality limits and per-rule `error`, `warning`, or `off` severities. Later matching entries win, so controllers, services, and legacy files can share one scan with different policies. Existing scoring calibration and projects without overrides retain their behavior.
+
 ### Fixed
 
 - **`aislop fix` no longer deletes exports that are still used in their own file.** An export that no other file imports was removed along with its declaration, which broke any code in the same file that still called it. The fix now drops only the `export` keyword in that case, and skips default exports it cannot safely un-export.

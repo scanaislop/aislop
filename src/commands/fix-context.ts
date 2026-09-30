@@ -24,7 +24,13 @@ export const createEngineContext = (
 	installedTools: options.safe
 		? { ...projectInfo.installedTools, rubocop: false, "php-cs-fixer": false }
 		: projectInfo.installedTools,
-	config: { quality: config.quality, security: config.security, lint: config.lint },
+	config: {
+		quality: config.quality,
+		security: config.security,
+		lint: config.lint,
+		overrides: config.overrides,
+		rules: config.rules,
+	},
 	...(options.scope
 		? {
 				// Kept apart the way scan does it: merging them made scoped fixers rewrite test

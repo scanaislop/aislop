@@ -118,6 +118,8 @@ export const runScopedScan = async (
 		],
 		installedTools: project.installedTools,
 		config: {
+			overrides: config.overrides,
+			rules: config.rules,
 			quality: config.quality,
 			// Agent hooks run automatically when an editor changes a file. Keep this
 			// path hook-safe: no network audits, no typecheck subprocesses, and no
@@ -141,7 +143,7 @@ export const runScopedScan = async (
 	const results = await runEngines(context, enabled);
 	const diagnostics = applyRuleSeverities(
 		results.flatMap((result) => result.diagnostics),
-		config.rules,
+		config.overrides.length ? {} : config.rules,
 	);
 	const { score } = calculateScore(
 		diagnostics,

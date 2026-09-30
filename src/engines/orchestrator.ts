@@ -1,4 +1,5 @@
 import { performance } from "node:perf_hooks";
+import { applyFileOverrides } from "../config/overrides.js";
 import { filterExcludedDiagnostics } from "../utils/exclude.js";
 import { aiSlopEngine } from "./ai-slop/index.js";
 import { architectureEngine } from "./architecture/index.js";
@@ -44,6 +45,7 @@ export const runEngines = async (
 					context.excludePatterns,
 				);
 				result.elapsed = performance.now() - start;
+				result.diagnostics = applyFileOverrides(result.diagnostics, context);
 				onComplete?.(result);
 				return result;
 			} catch (error) {
@@ -52,6 +54,7 @@ export const runEngines = async (
 					diagnostics: [],
 					elapsed: performance.now() - start,
 					skipped: true,
+					failed: true,
 					skipReason: error instanceof Error ? error.message : String(error),
 				};
 				onComplete?.(result);
@@ -68,6 +71,7 @@ export const runEngines = async (
 					diagnostics: [],
 					elapsed: 0,
 					skipped: true,
+					failed: true,
 					skipReason: r.reason instanceof Error ? r.reason.message : String(r.reason),
 				},
 	);
