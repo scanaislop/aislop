@@ -237,7 +237,7 @@
 					"good": 75,
 					"ok": 50
 				},
-				"smoothing": 20,
+				"smoothing": 5,
 				"maxPerRule": 40
 			},
 			"type": "object",
@@ -277,7 +277,7 @@
 					}
 				},
 				"smoothing": {
-					"default": 20,
+					"default": 5,
 					"type": "number",
 					"minimum": 0
 				},
@@ -332,6 +332,61 @@
 					"error",
 					"warning",
 					"off"
+				]
+			}
+		},
+		"overrides": {
+			"default": [],
+			"type": "array",
+			"items": {
+				"type": "object",
+				"properties": {
+					"files": {
+						"minItems": 1,
+						"type": "array",
+						"items": {
+							"type": "string",
+							"minLength": 1
+						}
+					},
+					"quality": {
+						"type": "object",
+						"properties": {
+							"maxFunctionLoc": {
+								"type": "number",
+								"exclusiveMinimum": 0
+							},
+							"maxFileLoc": {
+								"type": "number",
+								"exclusiveMinimum": 0
+							},
+							"maxNesting": {
+								"type": "number",
+								"exclusiveMinimum": 0
+							},
+							"maxParams": {
+								"type": "number",
+								"exclusiveMinimum": 0
+							}
+						}
+					},
+					"rules": {
+						"type": "object",
+						"propertyNames": {
+							"type": "string"
+						},
+						"additionalProperties": {
+							"type": "string",
+							"enum": [
+								"error",
+								"warning",
+								"off"
+							]
+						}
+					}
+				},
+				"required": [
+					"files"
 				]
 			}
 		},
