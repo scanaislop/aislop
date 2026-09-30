@@ -214,6 +214,7 @@ const runScanBody = async (
 		engineIssues[r.engine] = r.diagnostics.length;
 		engineTimings[r.engine] = Math.round(r.elapsed);
 	}
+	const enginesFailed = results.filter((r) => r.failed).map((r) => r.engine);
 	const completion = {
 		exitCode,
 		score: scoreable ? scoreResult.score : null,
@@ -224,6 +225,7 @@ const runScanBody = async (
 		fixableCount: allDiagnostics.filter((d) => d.fixable).length,
 		engineIssues,
 		engineTimings,
+		...(enginesFailed.length > 0 ? { properties: { engines_failed: enginesFailed } } : {}),
 	};
 
 	if (options.sarif) {
