@@ -138,6 +138,8 @@ const runScanBody = async (
 	const rulesPath = configDir ? path.join(configDir, RULES_FILE) : undefined;
 
 	const engineConfig: EngineConfig = {
+		overrides: config.overrides,
+		rules: config.rules,
 		quality: config.quality,
 		security: config.security,
 		lint: config.lint,
@@ -165,7 +167,9 @@ const runScanBody = async (
 
 	const severityAdjusted = rawResults.map((result) => ({
 		...result,
-		diagnostics: applyRuleSeverities(result.diagnostics, config.rules),
+		diagnostics: config.overrides.length
+			? result.diagnostics
+			: applyRuleSeverities(result.diagnostics, config.rules),
 	}));
 	const { results: unannotated, suppressedCount } = applySuppressions(
 		severityAdjusted,

@@ -1,4 +1,5 @@
 import { performance } from "node:perf_hooks";
+import { applyFileOverrides } from "../config/overrides.js";
 import { filterExcludedDiagnostics } from "../utils/exclude.js";
 import { aiSlopEngine } from "./ai-slop/index.js";
 import { architectureEngine } from "./architecture/index.js";
@@ -44,6 +45,7 @@ export const runEngines = async (
 					context.excludePatterns,
 				);
 				result.elapsed = performance.now() - start;
+				result.diagnostics = applyFileOverrides(result.diagnostics, context);
 				onComplete?.(result);
 				return result;
 			} catch (error) {
