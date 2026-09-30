@@ -45,18 +45,14 @@ function usageFrom(value: unknown): Partial<ProviderUsage> | null {
 		"inputTokens",
 		"prompt_tokens",
 		"promptTokens",
-		// pi --mode json usage shape (packages/ai TokenUsage)
-		"in",
 	]);
 	const cacheReadTokenValue = tokenValue(value, [
 		"cache_read_input_tokens",
 		"cacheReadInputTokens",
-		"cacheRead",
 	]);
 	const cacheCreationTokenValue = tokenValue(value, [
 		"cache_creation_input_tokens",
 		"cacheCreationInputTokens",
-		"cacheWrite",
 	]);
 	const cacheReadTokens = cacheReadTokenValue ?? 0;
 	const cacheCreationTokens = cacheCreationTokenValue ?? 0;
@@ -70,18 +66,9 @@ function usageFrom(value: unknown): Partial<ProviderUsage> | null {
 		"outputTokens",
 		"completion_tokens",
 		"completionTokens",
-		// pi --mode json usage shape (packages/ai TokenUsage)
-		"out",
 	]);
-	const directTotalTokens = tokenValue(value, ["total_tokens", "totalTokens", "total"]);
-	// pi --mode json reports cost as a plain `cost` field
-	const costUsd = tokenValue(value, [
-		"cost_usd",
-		"total_cost_usd",
-		"costUsd",
-		"totalCostUsd",
-		"cost",
-	]);
+	const directTotalTokens = tokenValue(value, ["total_tokens", "totalTokens"]);
+	const costUsd = tokenValue(value, ["cost_usd", "total_cost_usd", "costUsd", "totalCostUsd"]);
 	const hasTokenUsage =
 		inputTokens !== null ||
 		cachedInputTokens !== null ||
@@ -148,8 +135,6 @@ function collectFilePaths(value: unknown, files: Set<string>): void {
 	}
 	if (isObject(value.item)) collectFilePaths(value.item, files);
 	if (isObject(value.message)) collectFilePaths(value.message, files);
-	if (isObject(value.assistantMessageEvent)) collectFilePaths(value.assistantMessageEvent, files);
-	if (isObject(value.args)) collectFilePaths(value.args, files);
 }
 
 export function extractProviderOutputMetadata(line: string): ProviderOutputMetadata {

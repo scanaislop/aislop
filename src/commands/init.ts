@@ -12,7 +12,7 @@ import { CONFIG_DIR, CONFIG_FILE, RULES_FILE } from "../config/index.js";
 import { renderHeader } from "../ui/header.js";
 import { detectInvocation } from "../ui/invocation.js";
 import { renderHintLine } from "../ui/logger.js";
-import { isCancel, multiselect, runCancellable, select, text } from "../ui/prompts.js";
+import { isCancel, multiselect, select, text } from "../ui/prompts.js";
 import { type RailStep, renderRail } from "../ui/rail.js";
 import { createSymbols } from "../ui/symbols.js";
 import { createTheme } from "../ui/theme.js";
@@ -99,15 +99,13 @@ export const writeGithubWorkflow = (
 };
 
 const promptForConfigChoices = async (): Promise<InitChoices | null> => {
-	const enginesSelection = await runCancellable(() =>
-		multiselect<EngineKey>({
-			message: "Which engines should run?",
-			options: ENGINE_CHOICES,
-			initialValues: DEFAULT_ENGINE_SELECTION,
-			required: false,
-		}),
-	);
-	if (enginesSelection === undefined) return null;
+	const enginesSelection = await multiselect<EngineKey>({
+		message: "Which engines should run?",
+		options: ENGINE_CHOICES,
+		initialValues: DEFAULT_ENGINE_SELECTION,
+		required: false,
+	});
+	if (isCancel(enginesSelection)) return null;
 
 	const failBelowRaw = await text({
 		message: "CI quality gate — fail the build when the score drops below (0-100)",
