@@ -29,7 +29,12 @@ export type CommandName =
 	| "hook_status"
 	| "hook_baseline";
 
-type ErrorKind = "config_invalid" | "engine_crash" | "timeout" | "unknown";
+export type ErrorKind =
+	| "config_invalid"
+	| "engine_crash"
+	| "provider_unavailable"
+	| "timeout"
+	| "unknown";
 
 interface CommandStartedInput {
 	command: CommandName;

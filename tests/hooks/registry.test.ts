@@ -7,6 +7,7 @@ import {
 	AGENTS_SUPPORTING_BOTH_SCOPES,
 	ALL_AGENTS,
 	defaultScopeFor,
+	detectAislopHooks,
 	detectInstalledAgents,
 	REGISTRY,
 } from "../../src/hooks/install/registry.js";
@@ -84,5 +85,37 @@ describe("detectInstalledAgents", () => {
 		fs.writeFileSync(path.join(dir, "AGENTS.md"), "# rules");
 		const installed = detectInstalledAgents({ home, cwd });
 		expect(installed).toContain("codex");
+	});
+});
+
+describe("detectAislopHooks", () => {
+	it("ignores agent config that has no aislop hook in it", () => {
+		fs.mkdirSync(path.join(home, ".claude"), { recursive: true });
+		fs.writeFileSync(path.join(home, ".claude", "settings.json"), JSON.stringify({ hooks: {} }));
+		fs.mkdirSync(path.join(home, ".codex"), { recursive: true });
+		fs.writeFileSync(path.join(home, ".codex", "AGENTS.md"), "# my rules\n");
+		expect(detectAislopHooks({ home, cwd })).toEqual([]);
+	});
+
+	it("detects a JSON hook carrying the aislop sentinel", () => {
+		fs.mkdirSync(path.join(home, ".claude"), { recursive: true });
+		fs.writeFileSync(
+			path.join(home, ".claude", "settings.json"),
+			JSON.stringify({
+				hooks: {
+					PostToolUse: [{ hooks: [{ command: "aislop hook claude", __aislop: { v: 1 } }] }],
+				},
+			}),
+		);
+		expect(detectAislopHooks({ home, cwd })).toContain("claude");
+	});
+
+	it("detects fenced aislop rules in a markdown rules file", () => {
+		fs.mkdirSync(path.join(home, ".codex"), { recursive: true });
+		fs.writeFileSync(
+			path.join(home, ".codex", "AGENTS.md"),
+			"# my rules\n<!-- aislop:begin v1 hash=abc -->\nbody\n<!-- aislop:end v1 -->\n",
+		);
+		expect(detectAislopHooks({ home, cwd })).toContain("codex");
 	});
 });

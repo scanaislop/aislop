@@ -1,3 +1,4 @@
+import os from "node:os";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { type AislopConfig, findConfigDir, RULES_FILE } from "../config/index.js";
@@ -10,6 +11,7 @@ import { isCiEnv } from "../telemetry/env.js";
 import { type EngineCounts, withCommandLifecycle } from "../telemetry/index.js";
 import { renderDisplayRows } from "../ui/display.js";
 import { renderHeader } from "../ui/header.js";
+import { detectInvocation } from "../ui/invocation.js";
 import { log } from "../ui/logger.js";
 import { applyChangeContext } from "../utils/change-context.js";
 import { detectSourceLanguages, discoverProject, type Language } from "../utils/discover.js";
@@ -17,6 +19,7 @@ import { getChangedLineMap } from "../utils/git.js";
 import { readAislopIgnorePatterns } from "../utils/source-files.js";
 import { applySuppressions } from "../utils/suppress.js";
 import { APP_VERSION } from "../version.js";
+import { detectAislopHooks } from "../hooks/install/registry.js";
 import { renderCoverageNotice } from "./scan-coverage.js";
 import { runEnginesWithProgress } from "./scan-engine-runner.js";
 import { computeScanExitCode } from "./scan-exit-code.js";
@@ -28,6 +31,7 @@ import {
 	resolveScanScopeMode,
 	type ScanOptions,
 } from "./scan-options.js";
+import { buildHookNudge } from "./scan-hook-nudge.js";
 import { buildScanRender } from "./scan-render.js";
 import { scanTargetError } from "./scan-validation.js";
 
@@ -285,6 +289,16 @@ const runScanBody = async (
 			showPilotInvitation,
 		}),
 	);
+
+	if (options.command !== "ci" && options.printBrand !== false) {
+		const nudge = buildHookNudge({
+			installedAgentCount: detectAislopHooks({ home: os.homedir(), cwd: resolvedDir }).length,
+			isTty: Boolean(process.stdout.isTTY),
+			isCi: isCiEnv(),
+			invocation: detectInvocation(),
+		});
+		if (nudge) process.stdout.write(nudge);
+	}
 
 	return completion;
 };

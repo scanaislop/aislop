@@ -4,6 +4,7 @@ export {
 	buildMcpToolCalledProps,
 	type CommandName,
 	type EngineCounts,
+	type ErrorKind,
 	errorKindFromException,
 	type FailedStage,
 } from "./events.js";

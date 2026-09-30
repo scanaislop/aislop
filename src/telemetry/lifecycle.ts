@@ -9,6 +9,7 @@ import {
 	type CommandName,
 	type EngineCounts,
 	errorIdentity,
+	type ErrorKind,
 	errorKindFromException,
 } from "./events.js";
 import { markErrorReported, rememberTelemetryConfig } from "./fatal.js";
@@ -23,6 +24,7 @@ interface CommandLifecycleStart {
 
 interface CommandCompletionInfo {
 	exitCode: number;
+	errorKind?: ErrorKind;
 	score?: number | null;
 	scoreable?: boolean;
 	findingCount?: number;
@@ -67,6 +69,7 @@ export const withCommandLifecycle = async <T extends CommandCompletionInfo>(
 				startProps,
 				exitCode: result.exitCode,
 				durationMs,
+				errorKind: result.errorKind,
 				score: result.score ?? undefined,
 				findingCount: result.findingCount,
 				errorCount: result.errorCount,
