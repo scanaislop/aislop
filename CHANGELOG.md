@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Fixed
+
+- **`aislop fix` no longer deletes exports that are still used in their own file.** An export that no other file imports was removed along with its declaration, which broke any code in the same file that still called it. The fix now drops only the `export` keyword in that case, and skips default exports it cannot safely un-export.
+
 ## 0.16.1 (2026-09-09)
 
 Maintenance release. Three rule fixes from contributors, each removing findings that should never have fired, one fix that closes a matching gap in the other direction, plus dependency patches.
