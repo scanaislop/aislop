@@ -484,7 +484,9 @@ aislop rules are shaped by public scans and benchmark-derived failure modes, not
 
 ## Docs
 
-[Installation](docs/installation.md) · [Commands](docs/commands.md) · [Rules](docs/rules.md) · [Config](docs/configuration.md) · [Scoring](docs/scoring.md) · [CI/CD](docs/ci.md) · [Telemetry](docs/telemetry.md) · [Research program](docs/research-program.md)
+Docs on the website (preferred for search and agents): [start](https://scanaislop.com/docs) · [commands](https://scanaislop.com/docs/commands) · [rules](https://scanaislop.com/docs/rules) · [configure](https://scanaislop.com/docs/configure) · [scoring](https://scanaislop.com/docs/scoring) · [CI](https://scanaislop.com/docs/ci) · [hooks](https://scanaislop.com/docs/hooks)
+
+In this repo: [Installation](docs/installation.md) · [Commands](docs/commands.md) · [Rules](docs/rules.md) · [Config](docs/configuration.md) · [Scoring](docs/scoring.md) · [CI/CD](docs/ci.md) · [Telemetry](docs/telemetry.md) · [Research program](docs/research-program.md)
 
 ## Community
 
