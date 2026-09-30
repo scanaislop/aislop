@@ -69,6 +69,25 @@ describe("CLI override policy", () => {
 		]);
 	});
 
+	it.each([
+		{ override: true, reported: false },
+		{ override: false, reported: true },
+	])("applies file overrides to lint findings left after fix (override: $override)", ({ override, reported }) => {
+		fs.writeFileSync(path.join(root, "legacy.js"), "export function run(n) {\n\tdebugger;\n\treturn n + 1;\n}\n");
+		fs.writeFileSync(
+			path.join(root, ".aislop", "config.yml"),
+			YAML.stringify({
+				engines: { format: false, lint: true, "code-quality": false, "ai-slop": false, security: false, architecture: false },
+				overrides: override ? [{ files: ["legacy.js"], rules: { "eslint/no-debugger": "off" } }] : [],
+			}),
+		);
+		const result = spawnSync(process.execPath, [cli, "fix", root], {
+			encoding: "utf8",
+			env: { ...process.env, CI: "1", AISLOP_NO_TELEMETRY: "1", AISLOP_NO_UPDATE_NOTIFIER: "1", NO_COLOR: "1" },
+		});
+		expect(result.stdout.includes("eslint/no-debugger")).toBe(reported);
+	});
+
 	it("retains globally disabled rules without overrides", () => {
 		writeConfig();
 		const result = run("scan");
