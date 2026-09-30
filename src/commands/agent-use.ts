@@ -43,7 +43,7 @@ const renderCurrentPreference = (root: string): string => {
 			"",
 			renderDisplaySection("Next"),
 			...renderDisplayCommandRows([
-				{ label: "Set", command: "aislop agent use codex|claude|opencode|pi" },
+				{ label: "Set", command: "aislop agent use codex|claude|opencode" },
 			]),
 			"",
 		].join("\n");
