@@ -119,6 +119,51 @@ const computeRemovalRange = (
 	return { start, end: finalEnd };
 };
 
+const isReferencedOutside = (sourceFile: ts.SourceFile, statement: ts.Statement, name: string) => {
+	const start = statement.getStart(sourceFile);
+	const end = statement.getEnd();
+	let found = false;
+	const visit = (node: ts.Node): void => {
+		if (found) return;
+		if (ts.isIdentifier(node) && node.text === name) {
+			const pos = node.getStart(sourceFile);
+			if (pos < start || pos >= end) found = true;
+			return;
+		}
+		ts.forEachChild(node, visit);
+	};
+	visit(sourceFile);
+	return found;
+};
+
+const exportKeywordRange = (
+	sourceFile: ts.SourceFile,
+	statement: ts.Statement,
+	content: string,
+) => {
+	const modifiers = ts.canHaveModifiers(statement) ? (ts.getModifiers(statement) ?? []) : [];
+	if (modifiers.some((m) => m.kind === ts.SyntaxKind.DefaultKeyword)) return null;
+	const exportKeyword = modifiers.find((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+	if (!exportKeyword) return null;
+	let end = exportKeyword.getEnd();
+	while (end < content.length && (content[end] === " " || content[end] === "\t")) end++;
+	return { start: exportKeyword.getStart(sourceFile), end };
+};
+
+const removalFor = (
+	sourceFile: ts.SourceFile,
+	statement: ts.Statement,
+	content: string,
+	decl: UnusedDeclaration,
+): MatchResult | SkipResult | null => {
+	if (!isReferencedOutside(sourceFile, statement, decl.name)) return null;
+	const range = exportKeywordRange(sourceFile, statement, content);
+	if (!range) {
+		return { type: "skip", reason: "still referenced in its own file", declaration: decl };
+	}
+	return { type: "match", removal: { ...range, declaration: decl } };
+};
+
 const kindOfStatement = (node: ts.Statement): UnusedKind | null => {
 	if (ts.isVariableStatement(node)) return "variable";
 	if (ts.isFunctionDeclaration(node)) return "function";
@@ -178,6 +223,9 @@ export const matchStatement = (
 			};
 		}
 
+		const referenced = removalFor(sourceFile, statement, content, decl);
+		if (referenced) return referenced;
+
 		if (initializerHasSideEffects(match.initializer)) {
 			return {
 				type: "skip",
@@ -194,6 +242,8 @@ export const matchStatement = (
 		if (!statement.name) return { type: "none" };
 		if (statement.name.text !== decl.name) return { type: "none" };
 		if (!nodeContainsLine(sourceFile, statement, decl.line)) return { type: "none" };
+		const referenced = removalFor(sourceFile, statement, content, decl);
+		if (referenced) return referenced;
 		const range = computeRemovalRange(sourceFile, statement, content);
 		return { type: "match", removal: { ...range, declaration: decl } };
 	}
@@ -205,6 +255,8 @@ export const matchStatement = (
 	) {
 		if (statement.name.text !== decl.name) return { type: "none" };
 		if (!nodeContainsLine(sourceFile, statement, decl.line)) return { type: "none" };
+		const referenced = removalFor(sourceFile, statement, content, decl);
+		if (referenced) return referenced;
 		const range = computeRemovalRange(sourceFile, statement, content);
 		return { type: "match", removal: { ...range, declaration: decl } };
 	}
