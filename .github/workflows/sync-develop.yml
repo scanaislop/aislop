@@ -41,14 +41,11 @@ jobs:
             echo "needs_sync=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build sync commit (parent = develop, tree = main)
+      - name: Merge main into develop
         if: steps.plan.outputs.needs_sync == 'true'
         run: |
-          # Don't replay main's commits onto develop — that conflicts when
-          # both branches squashed the same content under different SHAs.
-          # Capture the diff as a single commit on top of develop instead.
-          git read-tree --reset -u origin/main
-          git commit -m "chore: sync main → develop"
+          # A real merge keeps develop-only commits; read-tree --reset would revert them.
+          git merge --no-ff origin/main -m "chore: sync main → develop"
           git push --force origin HEAD:refs/heads/bot/sync-from-main
 
       - name: Open or update PR for a human to review
