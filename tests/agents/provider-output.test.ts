@@ -164,6 +164,16 @@ describe("provider output formatting", () => {
 		expect(final.usageScope).toBe("response");
 	});
 
+	it("labels only assistant pi message_end events as assistant output", () => {
+		const end = (role: string) =>
+			formatProviderOutputLine(
+				JSON.stringify({ type: "message_end", message: { role, content: "fix the slop" } }),
+			);
+		expect(end("user")).toBeNull();
+		expect(end("toolResult")).toBeNull();
+		expect(end("assistant")).toBe("assistant: fix the slop");
+	});
+
 	it("suppresses pi text delta message_update events", () => {
 		expect(
 			formatProviderOutputLine(

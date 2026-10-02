@@ -64,4 +64,21 @@ describe("file policy matching", () => {
 		expect(resolveFilePolicy(config, ".generated/a.ts").quality.maxParams).toBe(2);
 		expect(resolveFilePolicy(config, "a.service.ts").quality.maxParams).toBe(6);
 	});
+
+	it("applies negative patterns after every positive pattern in an entry", () => {
+		const config = parseConfig({
+			overrides: [{ files: ["!**/*.generated.ts", "**/*.ts"], quality: { maxFileLoc: 700 } }],
+		});
+		expect(resolveFilePolicy(config, "src/users.ts").quality.maxFileLoc).toBe(700);
+		expect(resolveFilePolicy(config, "src/api.generated.ts").quality.maxFileLoc).not.toBe(700);
+	});
+
+	it("treats a negated extglob as a positive selector", () => {
+		const config = parseConfig({
+			overrides: [{ files: ["!(*.test).ts"], quality: { maxFileLoc: 700 } }],
+		});
+		expect(resolveFilePolicy(config, "users.ts").quality.maxFileLoc).toBe(700);
+		expect(resolveFilePolicy(config, "users.test.ts").quality.maxFileLoc).not.toBe(700);
+		expect(resolveFilePolicy(config, "users.js").quality.maxFileLoc).not.toBe(700);
+	});
 });

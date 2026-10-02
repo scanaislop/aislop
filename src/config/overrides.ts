@@ -19,6 +19,17 @@ export const overrideRelativePath = (rootDirectory: string, filePath: string): s
 		.replaceAll("\\", "/");
 };
 
+const matchesEntry = (relativePath: string, patterns: string[]): boolean => {
+	const isExclusion = (pattern: string) => micromatch.scan(pattern).negated;
+	const positives = patterns.filter((pattern) => !isExclusion(pattern));
+	const negatives = patterns.filter(isExclusion).map((pattern) => pattern.slice(1));
+	const included =
+		positives.length === 0 || micromatch.isMatch(relativePath, positives, { dot: true });
+	const excluded =
+		negatives.length > 0 && micromatch.isMatch(relativePath, negatives, { dot: true });
+	return included && !excluded;
+};
+
 export const resolveFilePolicy = (config: FilePolicy, relativePath: string) => {
 	let quality = config.quality;
 	let rules = config.rules ?? {};
@@ -30,7 +41,7 @@ export const resolveFilePolicy = (config: FilePolicy, relativePath: string) => {
 		return { quality, rules };
 	}
 	for (const entry of config.overrides ?? []) {
-		if (micromatch([relativePath], entry.files, { dot: true }).length === 0) continue;
+		if (!matchesEntry(relativePath, entry.files)) continue;
 		if (entry.quality) quality = { ...quality, ...entry.quality };
 		if (entry.rules) rules = { ...rules, ...entry.rules };
 	}

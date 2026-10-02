@@ -157,7 +157,9 @@ export function extractProviderOutputMetadata(line: string): ProviderOutputMetad
 	const files = new Set<string>();
 	collectFilePaths(event, files);
 	const type = typeof event.type === "string" ? event.type : null;
-	const usage = type === "message_update" ? null : collectUsage(event);
+	const nonAssistantEnd =
+		type === "message_end" && isObject(event.message) && event.message.role !== "assistant";
+	const usage = type === "message_update" || nonAssistantEnd ? null : collectUsage(event);
 	return {
 		...(usage ? { usage } : {}),
 		...(usage && type === "message_end" ? { usageScope: "response" as const } : {}),
