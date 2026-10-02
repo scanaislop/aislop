@@ -90,6 +90,7 @@ export const formatProviderOutputLine = (line: string): string | null => {
 		const failed = event.isError === true;
 		return compact(`tool done${failed ? " (error)" : ""}`);
 	}
+	if (type === "message_end" && asString(message?.role) !== "assistant") return null;
 	if (messageContent) return compact(`assistant: ${messageContent}`);
 	if (eventContent) return compact(`assistant: ${eventContent}`);
 	if (directText) return compact(`${type ?? "message"}: ${directText}`);
