@@ -19,7 +19,11 @@ const SCAN_ENV_PREFIX = Object.entries(SCAN_ENV)
 export const SCAN_COMMAND_TEMPLATE = `${SCAN_ENV_PREFIX} node dist/cli.js scan "<repo>" --json`;
 
 export const ensureBuiltCli = () => {
-	const build = spawnSync("pnpm", ["build"], { cwd: PACKAGE_ROOT, stdio: "inherit" });
+	const build = spawnSync("pnpm", ["build"], {
+		cwd: PACKAGE_ROOT,
+		stdio: "inherit",
+		shell: process.platform === "win32",
+	});
 	if (build.status !== 0) {
 		throw new Error("pnpm build failed; the benchmark needs a fresh dist/cli.js.");
 	}
