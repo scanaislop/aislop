@@ -10,6 +10,7 @@ export interface ProviderUsage {
 
 interface ProviderOutputMetadata {
 	usage?: Partial<ProviderUsage>;
+	usageScope?: "response";
 	files: string[];
 }
 
@@ -155,9 +156,11 @@ export function extractProviderOutputMetadata(line: string): ProviderOutputMetad
 	if (!event) return { files: [] };
 	const files = new Set<string>();
 	collectFilePaths(event, files);
-	const usage = collectUsage(event);
+	const type = typeof event.type === "string" ? event.type : null;
+	const usage = type === "message_update" ? null : collectUsage(event);
 	return {
 		...(usage ? { usage } : {}),
+		...(usage && type === "message_end" ? { usageScope: "response" as const } : {}),
 		files: [...files],
 	};
 }

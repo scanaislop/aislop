@@ -126,10 +126,10 @@ describe("provider output formatting", () => {
 		);
 	});
 
-	it("extracts token usage from pi message_update events", () => {
+	it("extracts token usage from pi message_end events, not partial message_update ones", () => {
 		const metadata = extractProviderOutputMetadata(
 			JSON.stringify({
-				type: "message_update",
+				type: "message_end",
 				usage: { input: 500, output: 120, cached: 0, total: 620 },
 				assistantMessageEvent: {
 					type: "toolcall_start",
@@ -152,6 +152,16 @@ describe("provider output formatting", () => {
 			}),
 		);
 		expect(metadata.usage).toMatchObject({ cachedInputTokens: 400 });
+	});
+
+	it("ignores partial pi usage and marks final usage as per response", () => {
+		const usage = { input: 500, output: 120, total: 620 };
+		const partial = extractProviderOutputMetadata(
+			JSON.stringify({ type: "message_update", usage }),
+		);
+		const final = extractProviderOutputMetadata(JSON.stringify({ type: "message_end", usage }));
+		expect(partial.usage).toBeUndefined();
+		expect(final.usageScope).toBe("response");
 	});
 
 	it("suppresses pi text delta message_update events", () => {
@@ -185,7 +195,7 @@ describe("provider output formatting", () => {
 	it("extracts pi usage cost from the plain cost field", () => {
 		const metadata = extractProviderOutputMetadata(
 			JSON.stringify({
-				type: "message_update",
+				type: "message_end",
 				usage: { in: 500, out: 120, cached: 0, total: 620, cost: 0.0123 },
 				}),
 			);
