@@ -8,6 +8,7 @@ const PYTHON_MANIFEST_FILES = new Set(["pyproject.toml", "Pipfile"]);
 const REQUIREMENTS_FILE_RE = /^(?:[\w.-]*[-_.])?requirements(?:[-_.][\w.-]*)?\.(?:txt|in)$/i;
 const REQUIREMENTS_DIR = "requirements";
 const REQUIREMENTS_INCLUDE_RE = /^(?:-r|--requirement)(?:\s+|=)(\S+)/;
+const CONSTRAINT_INCLUDE_RE = /^(?:-c|--constraint)(?:\s+|=)(\S+)/;
 const MAX_REQUIREMENTS_FILES = 64;
 
 const isRequirementsFileName = (name: string): boolean => REQUIREMENTS_FILE_RE.test(name);
@@ -88,21 +89,33 @@ export const addPyDep = (pyDeps: Set<string>, name: string): void => {
 	pyDeps.add(normalized);
 };
 
-const addRequirementsLines = (
-	content: string,
-	filePath: string,
-	pending: string[],
-	pyDeps: Set<string>,
-): void => {
+interface RequirementsFile {
+	content: string;
+	requirements: string[];
+	constraints: string[];
+}
+
+const includedPaths = (content: string, filePath: string, pattern: RegExp): string[] =>
+	content
+		.split("\n")
+		.map((line) => line.trim().match(pattern)?.[1])
+		.filter((target): target is string => target !== undefined)
+		.map((target) => path.resolve(path.dirname(filePath), target));
+
+const readRequirementsFile = (filePath: string, rootDir: string): RequirementsFile | null => {
+	const content = readPythonManifest(filePath, rootDir);
+	if (content === null) return null;
+	return {
+		content,
+		requirements: includedPaths(content, filePath, REQUIREMENTS_INCLUDE_RE),
+		constraints: includedPaths(content, filePath, CONSTRAINT_INCLUDE_RE),
+	};
+};
+
+const addRequirementsLines = (content: string, pyDeps: Set<string>): void => {
 	for (const line of content.split("\n")) {
 		const trimmed = line.trim();
-		if (!trimmed || trimmed.startsWith("#")) continue;
-		const include = trimmed.match(REQUIREMENTS_INCLUDE_RE);
-		if (include) {
-			pending.push(path.resolve(path.dirname(filePath), include[1]));
-			continue;
-		}
-		if (trimmed.startsWith("-")) continue;
+		if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("-")) continue;
 		const match = trimmed.match(/^([a-zA-Z0-9_\-.]+)/);
 		if (match) addPyDep(pyDeps, match[1]);
 	}
@@ -111,17 +124,22 @@ const addRequirementsLines = (
 export const collectFromRequirementsFiles = (rootDir: string, pyDeps: Set<string>): boolean => {
 	const pending = requirementsFilesIn(rootDir, listDirectory(rootDir));
 	const visited = new Set<string>();
-	let found = false;
+	const constraints = new Set<string>();
+	const files = new Map<string, string>();
 	for (let i = 0; i < pending.length && visited.size < MAX_REQUIREMENTS_FILES; i += 1) {
 		const filePath = pending[i];
 		if (visited.has(filePath)) continue;
 		visited.add(filePath);
-		const content = readPythonManifest(filePath, rootDir);
-		if (content === null) continue;
-		found = true;
-		addRequirementsLines(content, filePath, pending, pyDeps);
+		const file = readRequirementsFile(filePath, rootDir);
+		if (!file) continue;
+		files.set(filePath, file.content);
+		pending.push(...file.requirements);
+		for (const constraint of file.constraints) constraints.add(constraint);
 	}
-	return found;
+	for (const [filePath, content] of files) {
+		if (!constraints.has(filePath)) addRequirementsLines(content, pyDeps);
+	}
+	return files.size > 0;
 };
 
 const TOML_HEADER_RE = /^\s*\[([^\]]+)\]\s*$/;
@@ -301,6 +319,7 @@ export const collectFromPipfile = (rootDir: string, pyDeps: Set<string>): boolea
 	}
 };
 
+const TOML_TABLE_LINE_RE = /^\s*\[{1,2}[^[\]\n]+\]{1,2}\s*(?:#.*)?$/m;
 const INLINE_SCRIPT_BLOCK_RE = /^# \/\/\/ script\r?\n((?:^#(?: .*)?\r?\n)+)^# \/\/\/\s*$/m;
 
 export const collectFromInlineScriptMetadata = (source: string, pyDeps: Set<string>): boolean => {
@@ -310,8 +329,9 @@ export const collectFromInlineScriptMetadata = (source: string, pyDeps: Set<stri
 		.split(/\r?\n/)
 		.map((line) => line.replace(/^# ?/, ""))
 		.join("\n");
-	const body = extractTomlArrayBody(toml, "dependencies");
-	if (body === null) return false;
-	for (const value of extractTomlStrings(body)) addPyDep(pyDeps, value);
+	const firstTable = toml.search(TOML_TABLE_LINE_RE);
+	const topLevel = firstTable === -1 ? toml : toml.slice(0, firstTable);
+	const body = extractTomlArrayBody(topLevel, "dependencies");
+	for (const value of body === null ? [] : extractTomlStrings(body)) addPyDep(pyDeps, value);
 	return true;
 };

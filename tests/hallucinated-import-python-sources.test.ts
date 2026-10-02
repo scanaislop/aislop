@@ -124,6 +124,41 @@ describe("Python dependency sources", () => {
 		expect(await flaggedImports()).toEqual(["ghostlib"]);
 	});
 
+	it("does not read constraint files kept in a requirements/ directory", async () => {
+		writeFile("requirements/base.txt", "-c constraints.txt\nrequests\n");
+		writeFile("requirements/constraints.txt", "ghostlib==1.0\n");
+		writeFile("app/main.py", ["import requests", "import ghostlib"].join("\n"));
+
+		expect(await flaggedImports()).toEqual(["ghostlib"]);
+	});
+
+	it("treats a PEP 723 block without dependencies as an empty list", async () => {
+		writeFile("pyproject.toml", '[project]\nname = "app"\ndependencies = ["requests"]\n');
+		writeFile(
+			"tools/check.py",
+			["# /// script", '# requires-python = ">=3.11"', "# ///", "import requests"].join("\n"),
+		);
+
+		expect(await flaggedImports()).toEqual(["requests"]);
+	});
+
+	it("ignores dependencies declared under PEP 723 tool tables", async () => {
+		writeFile(
+			"tools/check.py",
+			[
+				"# /// script",
+				'# dependencies = ["rich"]',
+				"# [tool.example]",
+				'# dependencies = ["ghostlib"]',
+				"# ///",
+				"import rich",
+				"import ghostlib",
+			].join("\n"),
+		);
+
+		expect(await flaggedImports()).toEqual(["ghostlib"]);
+	});
+
 	it("skips modules listed in imports.provided, including submodules", async () => {
 		writeFile("pyproject.toml", '[project]\nname = "integration"\ndependencies = []\n');
 		writeFile(
