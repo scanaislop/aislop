@@ -39,6 +39,19 @@ const writeReports = (runRoot, report) => {
 	info(`Wrote Markdown summary to ${relativeToRoot(summaryMdPath)}`);
 };
 
+const pinRevisions = (manifestPath, manifest, results) => {
+	let pinned = 0;
+	manifest.repos.forEach((repo, index) => {
+		const sha = results[index]?.sha;
+		if (repo.revision || !sha) return;
+		repo.revision = sha;
+		pinned += 1;
+	});
+	if (pinned === 0) return;
+	writeJson(manifestPath, manifest);
+	info(`Pinned ${pinned} repo(s) to their scanned revision in ${relativeToRoot(manifestPath)}`);
+};
+
 export const runBenchmark = async ({ manifestPath, iteration, jobs }) => {
 	ensureBuiltCli();
 	const manifest = readJson(manifestPath);
@@ -67,5 +80,6 @@ export const runBenchmark = async ({ manifestPath, iteration, jobs }) => {
 	});
 
 	writeReports(runRoot, report);
+	pinRevisions(manifestPath, manifest, results);
 	return report;
 };

@@ -81,7 +81,7 @@ export const formatProviderOutputLine = (line: string): string | null => {
 		asString(message?.name);
 	const command = asString(event.command) ?? asString(message?.command);
 
-	if (toolName && (type === "tool_execution_start" || type === "message_update")) {
+	if (toolName && type === "tool_execution_start") {
 		return compact(`tool: ${toolName}`);
 	}
 	// pi's final text arrives on `message_end`; `message_update` deltas are skipped.

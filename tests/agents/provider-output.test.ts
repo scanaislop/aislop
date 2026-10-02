@@ -100,16 +100,16 @@ describe("provider output formatting", () => {
 		});
 	});
 
-	it("renders pi toolcall stream events as tool lines", () => {
-		expect(
-			formatProviderOutputLine(
-				JSON.stringify({
-					type: "message_update",
-					usage: { totalTokens: 900 },
-					assistantMessageEvent: { type: "toolcall_start", id: "t1", toolName: "edit" },
-				}),
-			),
-		).toBe("tool: edit");
+	it("counts a pi tool call once, from its execution event, not the streamed toolcall", () => {
+		const lines = [
+			JSON.stringify({
+				type: "message_update",
+				usage: { totalTokens: 900 },
+				assistantMessageEvent: { type: "toolcall_start", id: "t1", toolName: "edit" },
+			}),
+			JSON.stringify({ type: "tool_execution_start", toolCallId: "t1", toolName: "edit" }),
+		].map(formatProviderOutputLine);
+		expect(lines.filter((line) => line?.startsWith("tool:"))).toEqual(["tool: edit"]);
 	});
 
 	it("renders pi tool execution events and completion state", () => {
