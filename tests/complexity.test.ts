@@ -118,7 +118,7 @@ describe("checkComplexity — file too large", () => {
 		const diagnostics = await checkComplexity(makeContext([filePath], { maxFileLoc: 10 }));
 		const fileDiags = diagnostics.filter((d) => d.rule === "complexity/file-too-large");
 		expect(fileDiags).toHaveLength(1);
-		expect(fileDiags[0].message).toContain("max: 15");
+		expect(fileDiags[0].message).toContain("limit: 15");
 	});
 
 	it("applies a 10% buffer over maxFileLoc to .ts files (no JSX multiplier)", async () => {
@@ -141,7 +141,7 @@ describe("checkComplexity — file too large", () => {
 		const fileDiags = diagnostics.filter((d) => d.rule === "complexity/file-too-large");
 		expect(fileDiags).toHaveLength(1);
 		expect(fileDiags[0].filePath).toContain("big.cpp");
-		expect(fileDiags[0].message).toContain("max: 25");
+		expect(fileDiags[0].message).toContain("limit: 25");
 	});
 
 	it("points oversized C++ files at the component-as-translation-unit pattern", async () => {
@@ -1304,5 +1304,21 @@ describe("analyzeFunctions: C++ member-initializer lists", () => {
 		].join("\n");
 		const ctor = analyzeFunctions(src, ".cpp").find((f) => f.name === "Widget::Widget");
 		expect(ctor?.lineCount).toBe(7);
+	});
+});
+
+describe("checkComplexity — size messages", () => {
+	it("states the line count that triggers a file-too-large finding", async () => {
+		const filePath = writeFile("big.ts", makeLines(15, "const x = 1;"));
+		const diagnostics = await checkComplexity(makeContext([filePath], { maxFileLoc: 10 }));
+		const finding = diagnostics.find((d) => d.rule === "complexity/file-too-large");
+		expect(finding?.message).toBe("File too large (limit: 10, flagged above 11 lines)");
+	});
+
+	it("states the line count that triggers a function-too-long finding", async () => {
+		const filePath = writeFile("long.ts", `function longOne() {\n${makeLines(90)}\n}\n`);
+		const diagnostics = await checkComplexity(makeContext([filePath]));
+		const finding = diagnostics.find((d) => d.rule === "complexity/function-too-long");
+		expect(finding?.message).toBe("Function too long (limit: 80, flagged above 88 lines)");
 	});
 });

@@ -36,6 +36,7 @@ const RULE_LABELS: Record<string, string> = {
 	"ai-slop/unsafe-type-assertion": "Unsafe type cast",
 	"ai-slop/double-type-assertion": "Double type cast",
 	"ai-slop/ts-directive": "@ts-ignore / @ts-expect-error",
+	"ai-slop/unknown-directive": "Unrecognised aislop-ignore directive",
 	"ai-slop/narrative-comment": "Narrative comment block",
 	"ai-slop/duplicate-import": "Duplicate import statement",
 	"ai-slop/hardcoded-url": "Hardcoded URL",
@@ -147,6 +148,8 @@ const RULE_DESCRIPTIONS: Record<string, string> = {
 	"ai-slop/unsafe-type-assertion": "Type assertion bypasses useful checking.",
 	"ai-slop/double-type-assertion": "Value is cast through unknown/any to force a type.",
 	"ai-slop/ts-directive": "TypeScript error is suppressed with a directive.",
+	"ai-slop/unknown-directive":
+		"An aislop-ignore comment uses a scope aislop does not recognise, so it suppresses nothing.",
 	"ai-slop/narrative-comment": "Comment narrates implementation instead of adding context.",
 	"ai-slop/duplicate-import": "Same module is imported more than once.",
 	"ai-slop/hardcoded-url": "URL-like value is embedded directly in code.",

@@ -119,6 +119,10 @@ Control what triggers code quality warnings:
 | `maxNesting` | 5 | Max control-flow nesting depth |
 | `maxParams` | 6 | Max function parameters |
 
+File length counts every physical line, including blank and comment lines. `.tsx`, `.jsx`, and `.go` files get 1.5x `maxFileLoc`, Rust and C/C++ files 2.5x, and `.d.ts` and data-only files are skipped. Function length runs from the signature to the closing brace, minus lines inside multi-line template literals. Python counts only the logical body code (no signature, docstrings, comments, or blank lines). React components get 2x `maxFunctionLoc`, and Rust functions 1.5x.
+
+Both size rules allow 10% over the limit before reporting, so with the defaults a file is flagged above 440 lines and a function above 88. The finding message shows both numbers, for example `File too large (limit: 400, flagged above 440 lines)`.
+
 ## Engine weights
 
 Control how much each engine contributes to the final score:

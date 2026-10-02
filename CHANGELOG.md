@@ -6,8 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Added
+
+- **`ai-slop/unknown-directive`.** An `aislop-ignore-*` comment with a scope aislop does not recognise (for example `aislop-ignore-nextline`) used to be silently ignored. It is now reported as a warning, with the closest valid directive suggested.
+
 ### Fixed
 
+- **A bare `aislop-ignore` comment suppresses its own line.** `# aislop-ignore` and `// aislop-ignore rule-id` now work like `aislop-ignore-line`. Before, they suppressed nothing.
+- **Size findings state their real trigger.** `complexity/file-too-large` and `complexity/function-too-long` allow 10% over the limit before reporting, but the message only showed the limit. The message now shows both, for example `File too large (limit: 400, flagged above 440 lines)`, and the docs describe how lines are counted. When findings fire is unchanged.
 - **Biome formatting respects the project's Biome config.** When a project has `biome.json` or `biome.jsonc`, `scan` and `fix` now use its settings instead of forcing a 120-column line width. Before, a project that relied on Biome's default width of 80 got formatting findings that its own Biome rejected, and `aislop fix` rewrote files so the project's `biome format` failed. `biome.jsonc` is now detected too.
 
 ## 0.17.0 (2026-10-02)

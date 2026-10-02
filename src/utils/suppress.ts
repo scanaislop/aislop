@@ -5,12 +5,12 @@ import type { Diagnostic, EngineResult } from "../engines/types.js";
 // Directives are only honored when they appear in an actual comment segment.
 // Inline comments are found by scanning outside common string literal delimiters
 // so text like "https://aislop-ignore-file" cannot hide diagnostics.
-const DIRECTIVE_RE = /^\s*(?:\/\/|\/\*+|#|<!--|\*)\s*aislop-ignore-(next-line|line|file)\b([^\n]*)/;
+const DIRECTIVE_RE =
+	/^\s*(?:\/\/|\/\*+|#|<!--|\*)\s*aislop-ignore(?:-([A-Za-z][\w-]*))?(?![\w-])([^\n]*)/;
+const KNOWN_SCOPES = new Set(["next-line", "line", "file"]);
 const INLINE_COMMENT_MARKERS = ["//", "/*", "#", "<!--"] as const;
 
 export const isAislopDirectiveLine = (line: string): boolean => findDirective(line) !== null;
-
-type SuppressScope = "next-line" | "line" | "file";
 
 interface Directive {
 	rules: Set<string>;
@@ -52,6 +52,15 @@ const findDirective = (line: string): RegExpExecArray | null => {
 	return null;
 };
 
+const scopeOf = (match: RegExpExecArray): string => match[1] ?? "line";
+
+export const findUnknownDirectiveScope = (line: string): string | null => {
+	const match = findDirective(line);
+	if (!match) return null;
+	const scope = scopeOf(match);
+	return KNOWN_SCOPES.has(scope) ? null : scope;
+};
+
 const parseDirective = (rest: string): Directive => {
 	const beforeReason = rest.split("--")[0];
 	const tokens = beforeReason.match(/[A-Za-z0-9@][\w@/.-]*/g) ?? [];
@@ -74,7 +83,8 @@ const parseFileDirectives = (content: string): FileDirectives => {
 	for (let i = 0; i < lines.length; i++) {
 		const match = findDirective(lines[i]);
 		if (!match) continue;
-		const scope = match[1] as SuppressScope;
+		const scope = scopeOf(match);
+		if (!KNOWN_SCOPES.has(scope)) continue;
 		const directive = parseDirective(match[2] ?? "");
 		if (scope === "file") file.push(directive);
 		else if (scope === "next-line") addLine(i + 2, directive);

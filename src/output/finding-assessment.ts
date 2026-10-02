@@ -65,6 +65,7 @@ const STYLE_POLICY_RULES = new Set([
 	"ai-slop/meta-comment",
 	"ai-slop/console-leftover",
 	"ai-slop/ts-directive",
+	"ai-slop/unknown-directive",
 	"complexity/file-too-large",
 	"complexity/function-too-long",
 	"complexity/deep-nesting",
