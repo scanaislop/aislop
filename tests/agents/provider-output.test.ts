@@ -144,6 +144,16 @@ describe("provider output formatting", () => {
 		expect(metadata.files).toEqual(["src/pi-edit.ts"]);
 	});
 
+	it("records pi's cached token count", () => {
+		const metadata = extractProviderOutputMetadata(
+			JSON.stringify({
+				type: "message_end",
+				usage: { in: 900, out: 100, cached: 400, total: 1400 },
+			}),
+		);
+		expect(metadata.usage).toMatchObject({ cachedInputTokens: 400 });
+	});
+
 	it("suppresses pi text delta message_update events", () => {
 		expect(
 			formatProviderOutputLine(

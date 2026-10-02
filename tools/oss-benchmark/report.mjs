@@ -1,6 +1,6 @@
 const formatNumber = (value) => (value === null ? "-" : Number(value).toFixed(1));
 
-const escapeCell = (value) => value.replace(/\|/g, "\\|");
+const escapeCell = (value) => value.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
 
 const renderRuleSamples = (samples) => {
 	if (!samples || samples.length === 0) return "-";

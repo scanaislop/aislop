@@ -118,4 +118,21 @@ describe("detectAislopHooks", () => {
 		);
 		expect(detectAislopHooks({ home, cwd })).toContain("codex");
 	});
+
+	it("treats an unreadable hook path as no hook instead of throwing", () => {
+		const target = REGISTRY.claude.paths({ home, cwd, scope: "global" })[0];
+		fs.mkdirSync(target, { recursive: true });
+		expect(() => detectAislopHooks({ home, cwd })).not.toThrow();
+		expect(detectAislopHooks({ home, cwd })).not.toContain("claude");
+	});
+
+	it("detects a hook installed in the project scope", () => {
+		const target = REGISTRY.claude.paths({ home, cwd, scope: "project" })[0];
+		fs.mkdirSync(path.dirname(target), { recursive: true });
+		fs.writeFileSync(
+			target,
+			JSON.stringify({ hooks: { PostToolUse: [{ hooks: [{ __aislop: { v: 1 } }] }] } }),
+		);
+		expect(detectAislopHooks({ home, cwd })).toContain("claude");
+	});
 });
