@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+## 0.17.0 (2026-10-02)
+
+Per-file overrides, a fourth agent provider, and clearer failure reporting. `overrides` in `.aislop/config.yml` give different paths their own quality limits and rule severities in one scan, `aislop agent` can run on pi, and a scan with no hook installed suggests one.
+
 ### Added
 
 - **Command failure telemetry (PII-free).** A new `cli_command_failed` event records crashes that escape the command lifecycle (top-level uncaught exceptions and unhandled rejections), so hard failures are no longer silent. Failed commands now also report the error class (`error_name`) and machine code (`error_code`) rather than only a heuristic `error_kind`, and scans report which engines crashed (`engines_failed`). All fields are allowlisted (never the error message, stack, or file paths), and capture honors the existing opt-out (`AISLOP_NO_TELEMETRY`, `DO_NOT_TRACK`, CI, config).
@@ -17,7 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **Suggested commands work for `npx` users.** Next-step hints from `scan`, `doctor`, and `init` used to say `aislop ...`, which fails without a global install. When run through `npx`, they now say `npx aislop@latest ...`.
 - **`aislop badge` detects repositories with dots in their names.** Remotes such as `vercel/next.js` failed with "Could not detect a GitHub remote".
-- **Dependency advisories.** `adm-zip`, `fast-uri`, and `ip-address` are raised to patched releases.
+- **Dependency advisories.** `adm-zip`, `fast-uri`, `hono`, and `ip-address` are raised to patched releases.
 - **`aislop fix` no longer deletes exports that are still used in their own file.** An export that no other file imports was removed along with its declaration, which broke any code in the same file that still called it. The fix now drops only the `export` keyword in that case, and skips default exports it cannot safely un-export.
 
 ## 0.16.1 (2026-09-09)
