@@ -10,6 +10,7 @@ export interface ProviderUsage {
 
 interface ProviderOutputMetadata {
 	usage?: Partial<ProviderUsage>;
+	usageScope?: "response";
 	files: string[];
 }
 
@@ -76,14 +77,10 @@ function usageFrom(value: unknown): Partial<ProviderUsage> | null {
 		"output",
 	]);
 	const directTotalTokens = tokenValue(value, ["total_tokens", "totalTokens", "total"]);
-	// pi --mode json reports cost as a plain `cost` field
-	const costUsd = tokenValue(value, [
-		"cost_usd",
-		"total_cost_usd",
-		"costUsd",
-		"totalCostUsd",
-		"cost",
-	]);
+	// pi --mode json reports cost as `cost` or as `cost.total`
+	const costUsd =
+		tokenValue(value, ["cost_usd", "total_cost_usd", "costUsd", "totalCostUsd", "cost"]) ??
+		(isObject(value.cost) ? tokenValue(value.cost, ["total"]) : null);
 	const hasTokenUsage =
 		inputTokens !== null ||
 		cachedInputTokens !== null ||
@@ -159,9 +156,11 @@ export function extractProviderOutputMetadata(line: string): ProviderOutputMetad
 	if (!event) return { files: [] };
 	const files = new Set<string>();
 	collectFilePaths(event, files);
-	const usage = collectUsage(event);
+	const type = typeof event.type === "string" ? event.type : null;
+	const usage = type === "message_update" ? null : collectUsage(event);
 	return {
 		...(usage ? { usage } : {}),
+		...(usage && type === "message_end" ? { usageScope: "response" as const } : {}),
 		files: [...files],
 	};
 }

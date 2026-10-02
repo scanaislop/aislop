@@ -555,7 +555,26 @@ export function parse(input: string | number): string | number {
 		]);
 
 		expect(result.removed).toBe(0);
-		expect(result.skipped[0]?.reason).toBe("overloaded function");
+		expect(result.skipped[0]?.reason).toBe("merged declaration");
+		expect(fs.readFileSync(file, "utf-8")).toBe(source);
+	});
+
+	it("skips merged interface declarations instead of half-exporting them", () => {
+		const source = `export interface Options {
+	verbose: boolean;
+}
+export interface Options {
+	quiet: boolean;
+}
+export const read = (options: Options) => options.verbose;
+`;
+		const file = writeFixture("merged.ts", source);
+		const result = removeUnusedDeclarations(tmpDir, [
+			{ filePath: file, line: 1, column: 18, name: "Options", kind: "interface" },
+		]);
+
+		expect(result.removed).toBe(0);
+		expect(result.skipped[0]?.reason).toBe("merged declaration");
 		expect(fs.readFileSync(file, "utf-8")).toBe(source);
 	});
 
