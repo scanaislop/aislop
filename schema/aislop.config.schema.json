@@ -223,6 +223,22 @@
 				}
 			}
 		},
+		"imports": {
+			"default": {
+				"provided": []
+			},
+			"type": "object",
+			"properties": {
+				"provided": {
+					"default": [],
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					}
+				}
+			}
+		},
 		"scoring": {
 			"default": {
 				"weights": {

@@ -73,6 +73,10 @@ const SecurityConfigSchema = z.object({
 	auditTimeout: z.number().positive().default(25000),
 });
 
+const ImportsSchema = z.object({
+	provided: z.array(z.string().min(1)).default(() => []),
+});
+
 const ThresholdsSchema = z.object({
 	good: z.number().default(75),
 	ok: z.number().default(50),
@@ -152,6 +156,9 @@ const AislopConfigSchema = z.object({
 	security: SecurityConfigSchema.default(() => ({
 		audit: true,
 		auditTimeout: 25000,
+	})),
+	imports: ImportsSchema.default(() => ({
+		provided: [],
 	})),
 	scoring: ScoringSchema.default(() => ({
 		weights: { ...DEFAULT_WEIGHTS },

@@ -22,6 +22,7 @@ import {
 import { collectTsPathAliases } from "./js-import-aliases.js";
 import { collectWorkspaceDirs } from "./js-workspaces.js";
 import { isNonProductionPath } from "./non-production-paths.js";
+import { collectFromInlineScriptMetadata } from "./python-dependency-parser.js";
 import { PYTHON_IMPORT_TO_PIP, PYTHON_STDLIB } from "./python-data.js";
 
 const JS_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
@@ -145,6 +146,14 @@ const checkPyImport = (
 	return root;
 };
 
+const isProvidedImport = (spec: string, provided: string[], separator: string): boolean =>
+	provided.some((name) => spec === name || spec.startsWith(`${name}${separator}`));
+
+const withInlineScriptDeps = (content: string, pyDeps: Set<string>): Set<string> => {
+	const scriptDeps = new Set(pyDeps);
+	return collectFromInlineScriptMetadata(content, scriptDeps) ? scriptDeps : pyDeps;
+};
+
 export const detectHallucinatedImports = async (context: EngineContext): Promise<Diagnostic[]> => {
 	const rootPkg = readJson(path.join(context.rootDirectory, "package.json"), context.rootDirectory);
 	const workspaceDirs = collectWorkspaceDirs(context.rootDirectory, rootPkg);
@@ -154,6 +163,7 @@ export const detectHallucinatedImports = async (context: EngineContext): Promise
 		? collectTsPathAliases(context.rootDirectory, workspaceDirs)
 		: [];
 
+	const provided = context.config.imports?.provided ?? [];
 	const diagnostics: Diagnostic[] = [];
 	const files = getSourceFiles(context);
 	const projectFiles = getProjectSourceFiles(context);
@@ -185,8 +195,10 @@ export const detectHallucinatedImports = async (context: EngineContext): Promise
 		if (isNonProductionPath(relPath)) continue;
 
 		const jsDeps = isJs ? jsDepsForFile(manifest, filePath, context.rootDirectory) : null;
+		const filePyDeps = pyDeps ? withInlineScriptDeps(content, pyDeps) : manifest.pyDeps;
 		const imports = isJs ? extractJsImports(content) : extractPyImports(content);
 		for (const { spec, line } of imports) {
+			if (isProvidedImport(spec, provided, isJs ? "/" : ".")) continue;
 			const hallucinated = isJs
 				? checkJsImport(
 						spec,
@@ -196,16 +208,18 @@ export const detectHallucinatedImports = async (context: EngineContext): Promise
 						filePath,
 						context.rootDirectory,
 					)
-				: checkPyImport(spec, pyDeps ?? manifest.pyDeps, filePath, pyImportRoot);
+				: checkPyImport(spec, filePyDeps, filePath, pyImportRoot);
 			if (!hallucinated) continue;
-			const manifestLabel = isJs ? "package.json" : "requirements.txt / pyproject.toml / Pipfile";
+			const manifestLabel = isJs
+				? "package.json"
+				: "requirements files, pyproject.toml, or Pipfile";
 			diagnostics.push({
 				filePath: relPath,
 				engine: "ai-slop",
 				rule: "ai-slop/hallucinated-import",
 				severity: "error",
 				message: `Imports "${hallucinated}" but it's not declared in ${manifestLabel}${isPy ? " and isn't Python stdlib" : ""}`,
-				help: "Most often this is an LLM hallucinating a plausible-sounding package name. Either add the package to your manifest, or correct the import.",
+				help: "Most often this is an LLM hallucinating a plausible-sounding package name. Either add the package to your manifest, or correct the import. If your runtime provides it, list it under imports.provided in .aislop/config.yml.",
 				line,
 				column: 1,
 				category: "AI Slop",
