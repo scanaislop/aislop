@@ -108,6 +108,126 @@ describe("detectSwallowedExceptions (Go blank identifier)", () => {
 		expect(await flaggedLines()).toEqual(["main.go:4"]);
 	});
 
+	it("keeps flagging results whose type may be an error", async () => {
+		write(
+			"main.go",
+			[
+				"package main",
+				"",
+				"type Err = error",
+				"type myErr struct{}",
+				"",
+				"func a() (string, Err) { return \"\", nil }",
+				"func b() (string, *myErr) { return \"\", nil }",
+				"func c() (string, any) { return \"\", nil }",
+				"func d() (n int, ok bool) { return 0, false }",
+				"func e() (string, []byte) { return \"\", nil }",
+				"",
+				"func run() {",
+				"\tv1, _ := a()",
+				"\tv2, _ := b()",
+				"\tv3, _ := c()",
+				"\tv4, _ := d()",
+				"\tv5, _ := e()",
+				"\t_, _, _, _, _ = v1, v2, v3, v4, v5",
+				"}",
+			].join("\n"),
+		);
+		expect(await flaggedLines()).toEqual(["main.go:13", "main.go:14", "main.go:15"]);
+	});
+
+	it("only resolves declarations from the caller's package", async () => {
+		write(
+			"pkg/a_test.go",
+			["package pkg_test", "", "func load() (string, string) { return \"\", \"\" }"].join("\n"),
+		);
+		write(
+			"pkg/b.go",
+			[
+				"package pkg",
+				"",
+				"func load() (string, error) { return \"\", nil }",
+				"",
+				"func run() {",
+				"\tv, _ := load()",
+				"\t_ = v",
+				"}",
+			].join("\n"),
+		);
+		expect(await flaggedLines()).toEqual(["pkg/b.go:6"]);
+	});
+
+	it("treats conflicting declarations across build variants as unresolved", async () => {
+		write(
+			"pkg/load_linux.go",
+			["package pkg", "", "func load() (string, string) { return \"\", \"\" }"].join("\n"),
+		);
+		write(
+			"pkg/load_other.go",
+			["package pkg", "", "func load() (string, error) { return \"\", nil }"].join("\n"),
+		);
+		write(
+			"pkg/use.go",
+			["package pkg", "", "func run() {", "\tv, _ := load()", "\t_ = v", "}"].join("\n"),
+		);
+		expect(await flaggedLines()).toEqual(["pkg/use.go:4"]);
+	});
+
+	it("treats a locally shadowed function as unresolved", async () => {
+		write(
+			"main.go",
+			[
+				"package main",
+				"",
+				"func load() (string, string) { return \"\", \"\" }",
+				"",
+				"func run() {",
+				"\tload := func() (string, error) { return \"\", nil }",
+				"\tv, _ := load()",
+				"\t_ = v",
+				"}",
+			].join("\n"),
+		);
+		expect(await flaggedLines()).toEqual(["main.go:7"]);
+	});
+
+	it("ignores declarations inside comments", async () => {
+		write(
+			"main.go",
+			[
+				"package main",
+				"",
+				"/*",
+				"func load() (string, string)",
+				"*/",
+				"func load() (string, error) { return \"\", nil }",
+				"",
+				"func run() {",
+				"\tv, _ := load()",
+				"\t_ = v",
+				"}",
+			].join("\n"),
+		);
+		expect(await flaggedLines()).toEqual(["main.go:9"]);
+	});
+
+	it("ignores nolint text inside a string literal", async () => {
+		write(
+			"main.go",
+			[
+				"package main",
+				"",
+				"func load(s string) (int, error) { return 0, nil }",
+				"",
+				"func run() {",
+				'\tv, _ := load("//nolint:errcheck")',
+				"\t_ = v",
+				"}",
+			].join("\n"),
+		);
+		expect(await flaggedLines()).toEqual(["main.go:6"]);
+	});
+
 	it("honors nolint directives on the line", async () => {
 		write(
 			"main.go",
