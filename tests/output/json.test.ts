@@ -40,6 +40,18 @@ describe("json output", () => {
 		expect(out.cliVersion.length).toBeGreaterThan(0);
 	});
 
+	it("marks crashed engines as failed and leaves other engines unmarked", () => {
+		const results: EngineResult[] = [
+			{ ...result([]), engine: "lint" },
+			{ ...result([]), engine: "format", skipped: true },
+			{ ...result([]), engine: "security", skipped: true, failed: true },
+		];
+		const out = buildJsonOutput(results, { score: 90, label: "Healthy" }, 1, 10, scoreable);
+		expect(out.engines.security).toMatchObject({ skipped: true, failed: true });
+		expect(out.engines.lint).not.toHaveProperty("failed");
+		expect(out.engines.format).not.toHaveProperty("failed");
+	});
+
 	it("preserves existing top-level fields", () => {
 		const results: EngineResult[] = [];
 		const out = buildJsonOutput(results, { score: 89, label: "Healthy" }, 1500, 50, scoreable);

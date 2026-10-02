@@ -12,7 +12,7 @@ This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). By particip
 
 ### Prerequisites
 
-- **Node.js** >= 20
+- **Node.js** >= 22.18 to build and test (`tsdown` and `vitest` require it). The published CLI still runs on Node >= 20.
 - **pnpm** >= 10
 
 ### Setup

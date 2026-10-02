@@ -141,3 +141,5 @@ Both `aislop ci` and `aislop scan --json` emit structured JSON for parsing in CI
   "diagnostics": [ ... ]
 }
 ```
+
+An engine that crashed during the scan also carries `"failed": true`. A `skipped` engine without `failed` was skipped on purpose, for example because no tool for that language is installed.

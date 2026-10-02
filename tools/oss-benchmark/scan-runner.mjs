@@ -117,6 +117,18 @@ const classifyScan = ({ metadata, stdout, paths, repoDirectory }) => {
 		};
 	}
 
+	const failedEngines = Object.entries(parsed.engines ?? {})
+		.filter(([, engine]) => engine?.failed === true)
+		.map(([name]) => name);
+	if (failedEngines.length > 0) {
+		return {
+			...metadata,
+			status: "engine_failed",
+			message: `engine crashed: ${failedEngines.join(", ")}`,
+			scanJsonPath: relativeToRoot(paths.scanJson),
+		};
+	}
+
 	if (parsed.scoreable === false || typeof parsed.score !== "number") {
 		return {
 			...metadata,
