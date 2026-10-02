@@ -112,4 +112,17 @@ describe("unrecognised aislop-ignore directives", () => {
 		);
 		expect(await detectUnknownDirectives(contextFor([file]))).toEqual([]);
 	});
+
+	it("ignores directive-like lines inside multi-line strings", async () => {
+		const ts = write("a.ts", ["const fixture = `", "// aislop-ignore-bogus", "`;"].join("\n"));
+		const py = write("b.py", ['DOC = """', "# aislop-ignore-bogus", '"""'].join("\n"));
+		expect(await detectUnknownDirectives(contextFor([ts, py]))).toEqual([]);
+	});
+
+	it("checks test files", async () => {
+		const testFile = write("tests/a.test.ts", "// aislop-ignore-nextline\nexpect(1).toBe(1);\n");
+		const context = { ...contextFor([]), testFiles: [testFile] };
+		const findings = await detectUnknownDirectives(context);
+		expect(findings.map((d) => [d.filePath, d.line])).toEqual([["tests/a.test.ts", 1]]);
+	});
 });

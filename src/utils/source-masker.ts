@@ -28,6 +28,8 @@ const familyForExt = (ext: string): LangFamily => {
 	return "none";
 };
 
+export const canMaskComments = (ext: string): boolean => familyForExt(ext) !== "none";
+
 export const maskStringsAndComments = (content: string, ext: string): string => {
 	const family = familyForExt(ext);
 	if (family === "none") return content;
