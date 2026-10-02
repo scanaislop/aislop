@@ -1,30 +1,23 @@
 import type { Language } from "../utils/discover.js";
 import type { EngineContext, EngineResult } from "./types.js";
 
-type ToolRequirement = readonly [Language, string];
-
-export const FORMAT_TOOL_REQUIREMENTS: readonly ToolRequirement[] = [
-	["python", "ruff"],
-	["go", "gofmt"],
-	["rust", "rustfmt"],
-	["ruby", "rubocop"],
-	["php", "php-cs-fixer"],
-];
-
-export const LINT_TOOL_REQUIREMENTS: readonly ToolRequirement[] = [
-	["python", "ruff"],
-	["go", "golangci-lint"],
-	["rust", "cargo"],
-	["ruby", "rubocop"],
-];
+export interface ToolRequirement {
+	language: Language;
+	tool: string;
+	label?: string;
+	applies?: (context: EngineContext) => boolean;
+}
 
 export const findMissingTools = (
 	context: EngineContext,
 	requirements: readonly ToolRequirement[],
 ): string[] => {
 	const missing = new Set<string>();
-	for (const [language, tool] of requirements) {
-		if (context.languages.includes(language) && !context.installedTools[tool]) missing.add(tool);
+	for (const requirement of requirements) {
+		if (!context.languages.includes(requirement.language)) continue;
+		if (context.installedTools[requirement.tool]) continue;
+		if (requirement.applies && !requirement.applies(context)) continue;
+		missing.add(requirement.label ?? requirement.tool);
 	}
 	return [...missing];
 };

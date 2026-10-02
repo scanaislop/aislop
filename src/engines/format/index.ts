@@ -1,11 +1,29 @@
-import { FORMAT_TOOL_REQUIREMENTS, findMissingTools, withMissingTools } from "../missing-tools.js";
+import { findMissingTools, type ToolRequirement, withMissingTools } from "../missing-tools.js";
 import type { Diagnostic, Engine, EngineContext, EngineResult } from "../types.js";
 import { runBiomeFormat } from "./biome.js";
-import { runClangFormat } from "./clang-format.js";
+import { hasClangFormatConfig, runClangFormat } from "./clang-format.js";
 import { runDotnetFormat } from "./dotnet-format.js";
 import { runGenericFormatter } from "./generic.js";
 import { runGofmt } from "./gofmt.js";
 import { runRuffFormat } from "./ruff-format.js";
+
+const FORMAT_TOOL_REQUIREMENTS: readonly ToolRequirement[] = [
+	{ language: "python", tool: "ruff" },
+	{ language: "go", tool: "gofmt" },
+	{ language: "rust", tool: "rustfmt" },
+	{ language: "ruby", tool: "rubocop" },
+	{ language: "php", tool: "php-cs-fixer" },
+	{
+		language: "csharp",
+		tool: "dotnet",
+		applies: (context) => context.config.lint.csharp?.projectEvaluation === true,
+	},
+	{
+		language: "cpp",
+		tool: "clang-format",
+		applies: (context) => hasClangFormatConfig(context.rootDirectory),
+	},
+];
 
 export const formatEngine: Engine = {
 	name: "format",

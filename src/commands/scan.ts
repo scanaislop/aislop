@@ -12,6 +12,7 @@ import { isCiEnv } from "../telemetry/env.js";
 import { type EngineCounts, withCommandLifecycle } from "../telemetry/index.js";
 import { renderDisplayRows } from "../ui/display.js";
 import { renderHeader } from "../ui/header.js";
+import { renderMissingTools } from "../ui/summary.js";
 import { detectInvocation } from "../ui/invocation.js";
 import { log } from "../ui/logger.js";
 import { applyChangeContext } from "../utils/change-context.js";
@@ -206,12 +207,13 @@ const runScanBody = async (
 	);
 	const scoreable = scanCoverage.scoreable;
 	const hasErrors = allDiagnostics.some((d) => d.severity === "error");
+	const missingTools = collectMissingTools(results);
 	const exitCode = computeScanExitCode({
 		hasErrors,
 		scoreable,
 		score: scoreResult.score,
 		failBelow: config.ci.failBelow,
-		missingTools: collectMissingTools(results).length > 0,
+		missingTools: missingTools.length > 0,
 		failOnMissingTools: config.ci.failOnMissingTools,
 	});
 
@@ -257,6 +259,9 @@ const runScanBody = async (
 			if (allDiagnostics.length > 0) {
 				process.stdout.write(renderDiagnostics(allDiagnostics, options.verbose ?? false));
 			}
+			process.stdout.write(
+				renderMissingTools({ tools: missingTools, invocation: detectInvocation() }),
+			);
 		}
 		return completion;
 	}

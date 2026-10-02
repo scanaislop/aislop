@@ -1,4 +1,5 @@
-import { findMissingTools, LINT_TOOL_REQUIREMENTS, withMissingTools } from "../missing-tools.js";
+import { findCompileCommandsDir } from "../cpp-targets.js";
+import { findMissingTools, type ToolRequirement, withMissingTools } from "../missing-tools.js";
 import type { Diagnostic, Engine, EngineContext, EngineResult } from "../types.js";
 import { runClangTidy } from "./clang-tidy.js";
 import { resolveCppLintConfig, runCppcheck } from "./cppcheck.js";
@@ -10,6 +11,41 @@ import { resolveCsharpLintConfig, runJbLint } from "./jb.js";
 import { runOxlint } from "./oxlint.js";
 import { runRuffLint } from "./ruff.js";
 import { runTypecheck } from "./typecheck.js";
+
+const csharpProjectLint = (context: EngineContext) => {
+	const csharp = resolveCsharpLintConfig(context);
+	return csharp.projectEvaluation ? csharp : null;
+};
+
+const LINT_TOOL_REQUIREMENTS: readonly ToolRequirement[] = [
+	{ language: "python", tool: "ruff" },
+	{ language: "go", tool: "golangci-lint" },
+	{ language: "rust", tool: "cargo" },
+	{ language: "rust", tool: "clippy-driver", label: "clippy" },
+	{ language: "ruby", tool: "rubocop" },
+	{
+		language: "cpp",
+		tool: "cppcheck",
+		applies: (context) => resolveCppLintConfig(context).cppcheck,
+	},
+	{
+		language: "cpp",
+		tool: "clang-tidy",
+		applies: (context) =>
+			resolveCppLintConfig(context).clangTidy && findCompileCommandsDir(context) !== null,
+	},
+	{ language: "cpp", tool: "jb", applies: (context) => resolveCppLintConfig(context).jb },
+	{
+		language: "csharp",
+		tool: "roslynator",
+		applies: (context) => csharpProjectLint(context)?.roslynator === true,
+	},
+	{
+		language: "csharp",
+		tool: "jb",
+		applies: (context) => csharpProjectLint(context)?.jb === true,
+	},
+];
 
 // jb reports a Roslyn finding as "jb/<id>" and roslynator as "dotnet/<id>"; when
 // a project both references one of aislop's bundled analyzers AND jb runs it, the

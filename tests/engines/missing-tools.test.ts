@@ -43,6 +43,44 @@ describe("format/lint engines report missing tools", () => {
 		expect(format.missingTools).toBeUndefined();
 	});
 
+	it("reports clippy for Rust when cargo is installed without it", async () => {
+		const lint = await lintEngine.run(ctx(["rust"], { cargo: true }));
+		expect(lint.missingTools).toEqual(["clippy"]);
+	});
+
+	it("reports C++ tools only where they would run", async () => {
+		const plain = ctx(["cpp"]);
+		const format = await formatEngine.run(plain);
+		const lint = await lintEngine.run(plain);
+		expect(format.missingTools).toBeUndefined();
+		expect(lint.missingTools).toEqual(["cppcheck"]);
+
+		const configured = ctx(["cpp"]);
+		fs.writeFileSync(path.join(configured.rootDirectory, ".clang-format"), "BasedOnStyle: LLVM\n");
+		fs.writeFileSync(path.join(configured.rootDirectory, "compile_commands.json"), "[]\n");
+		const configuredFormat = await formatEngine.run(configured);
+		const configuredLint = await lintEngine.run(configured);
+		expect(configuredFormat).toMatchObject({ skipped: true, missingTools: ["clang-format"] });
+		expect(configuredLint.missingTools).toEqual(["cppcheck", "clang-tidy"]);
+	});
+
+	it("reports C# project tools only after project evaluation is enabled", async () => {
+		const context = ctx(["csharp"]);
+		expect((await lintEngine.run(context)).missingTools).toBeUndefined();
+		const trusted: EngineContext = {
+			...context,
+			config: {
+				...context.config,
+				lint: {
+					...context.config.lint,
+					csharp: { ...DEFAULT_CONFIG.lint.csharp, projectEvaluation: true },
+				},
+			},
+		};
+		expect((await formatEngine.run(trusted)).missingTools).toEqual(["dotnet"]);
+		expect((await lintEngine.run(trusted)).missingTools).toEqual(["roslynator", "jb"]);
+	});
+
 	it("keeps the generic reason when no language has a tool to run", async () => {
 		const format = await formatEngine.run(ctx(["csharp"]));
 		expect(format.skipped).toBe(true);
