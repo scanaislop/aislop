@@ -150,7 +150,7 @@ const isProvidedImport = (spec: string, provided: string[], separator: string): 
 	provided.some((name) => spec === name || spec.startsWith(`${name}${separator}`));
 
 const withInlineScriptDeps = (content: string, pyDeps: Set<string> | null): Set<string> | null => {
-	const scriptDeps = new Set(pyDeps);
+	const scriptDeps = new Set<string>();
 	return collectFromInlineScriptMetadata(content, scriptDeps) ? scriptDeps : pyDeps;
 };
 

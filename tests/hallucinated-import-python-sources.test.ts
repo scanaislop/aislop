@@ -77,7 +77,7 @@ describe("Python dependency sources", () => {
 	});
 
 	it("reads PEP 723 inline script dependencies for that script only", async () => {
-		writeFile("pyproject.toml", '[project]\nname = "app"\ndependencies = []\n');
+		writeFile("pyproject.toml", '[project]\nname = "app"\ndependencies = ["requests"]\n');
 		writeFile(
 			"tools/shot.py",
 			[
@@ -90,12 +90,15 @@ describe("Python dependency sources", () => {
 				"# ///",
 				"import playwright",
 				"import rich",
+				"import requests",
 			].join("\n"),
 		);
-		writeFile("app/main.py", "import playwright\n");
+		writeFile("app/main.py", ["import requests", "import playwright"].join("\n"));
 
 		const diagnostics = await detectHallucinatedImports(buildContext());
-		expect(diagnostics.map((d) => d.filePath)).toEqual(["app/main.py"]);
+		expect(
+			diagnostics.map((d) => `${d.filePath} ${d.message.match(/"([^"]+)"/)?.[1]}`).sort(),
+		).toEqual(["app/main.py playwright", "tools/shot.py requests"]);
 	});
 
 	it("checks a standalone PEP 723 script when the project has no manifest", async () => {
