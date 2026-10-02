@@ -124,15 +124,22 @@ export const detectInstalledAgents = (opts: { home: string; cwd: string }): Agen
 const AISLOP_MARKERS = ["__aislop", "aislop:begin", "@AISLOP.md"];
 
 const hasAislopHook = (target: string): boolean => {
-	if (!fs.existsSync(target)) return false;
-	if (path.basename(target).toLowerCase().startsWith("aislop")) return true;
-	const content = fs.readFileSync(target, "utf8");
-	return AISLOP_MARKERS.some((marker) => content.includes(marker));
+	try {
+		if (!fs.statSync(target).isFile()) return false;
+		if (path.basename(target).toLowerCase().startsWith("aislop")) return true;
+		const content = fs.readFileSync(target, "utf8");
+		return AISLOP_MARKERS.some((marker) => content.includes(marker));
+	} catch {
+		return false;
+	}
 };
+
+const detectionScopes = (agent: AgentName): Array<"global" | "project"> =>
+	AGENTS_SUPPORTING_BOTH_SCOPES.includes(agent) ? ["global", "project"] : [defaultScopeFor(agent)];
 
 export const detectAislopHooks = (opts: { home: string; cwd: string }): AgentName[] =>
 	ALL_AGENTS.filter((agent) =>
-		REGISTRY[agent]
-			.paths({ home: opts.home, cwd: opts.cwd, scope: defaultScopeFor(agent) })
-			.some(hasAislopHook),
+		detectionScopes(agent).some((scope) =>
+			REGISTRY[agent].paths({ home: opts.home, cwd: opts.cwd, scope }).some(hasAislopHook),
+		),
 	);

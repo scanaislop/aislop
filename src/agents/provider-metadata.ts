@@ -61,7 +61,7 @@ function usageFrom(value: unknown): Partial<ProviderUsage> | null {
 	const cacheReadTokens = cacheReadTokenValue ?? 0;
 	const cacheCreationTokens = cacheCreationTokenValue ?? 0;
 	const cachedInputTokens =
-		tokenValue(value, ["cached_input_tokens", "cachedInputTokens"]) ??
+		tokenValue(value, ["cached_input_tokens", "cachedInputTokens", "cached"]) ??
 		(cacheReadTokenValue !== null || cacheCreationTokenValue !== null
 			? cacheReadTokens + cacheCreationTokens
 			: null);
