@@ -216,7 +216,7 @@ The rules that make aislop unique. These catch the patterns AI assistants leave 
 | `ai-slop/unsafe-type-assertion` | warning | `as any` in TypeScript |
 | `ai-slop/double-type-assertion` | warning | `as unknown as X` pattern |
 | `ai-slop/ts-directive` | info | `@ts-ignore` / `@ts-expect-error` usage |
-| `ai-slop/unknown-directive` | warning | `aislop-ignore-*` comments with an unrecognised scope (for example `aislop-ignore-nextline`), which suppress nothing |
+| `ai-slop/unknown-directive` | warning | `aislop-ignore-*` comments with an unrecognised scope (for example `aislop-ignore-nextline`), which suppress nothing. Checked in JS/TS, Python, Go, C#, and C/C++ files, where string literals can be told apart from comments. |
 | `ai-slop/duplicate-import` | warning | Multiple imports from the same module that should be merged |
 | `ai-slop/hardcoded-url` | warning | Environment-specific URLs hardcoded in production code instead of env/config; Python docstring content is exempt (see notes below the table) |
 | `ai-slop/hardcoded-id` | warning | Provider/project IDs hardcoded in production code instead of env/config |

@@ -28,7 +28,10 @@ const familyForExt = (ext: string): LangFamily => {
 	return "none";
 };
 
-export const canMaskComments = (ext: string): boolean => familyForExt(ext) !== "none";
+const FULLY_MASKED_FAMILIES = new Set<LangFamily>(["js", "py", "csharp", "cstyle"]);
+
+export const masksAllMultilineLiterals = (ext: string): boolean =>
+	FULLY_MASKED_FAMILIES.has(familyForExt(ext));
 
 export const maskStringsAndComments = (content: string, ext: string): string => {
 	const family = familyForExt(ext);

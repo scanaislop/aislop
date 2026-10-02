@@ -119,6 +119,12 @@ describe("unrecognised aislop-ignore directives", () => {
 		expect(await detectUnknownDirectives(contextFor([ts, py]))).toEqual([]);
 	});
 
+	it("does not report in languages whose multi-line literals are not masked", async () => {
+		const java = write("A.java", ['String s = """', "// aislop-ignore-bogus", '""";'].join("\n"));
+		const rb = write("a.rb", ["text = <<~DOC", "# aislop-ignore-bogus", "DOC"].join("\n"));
+		expect(await detectUnknownDirectives(contextFor([java, rb]))).toEqual([]);
+	});
+
 	it("checks test files", async () => {
 		const testFile = write("tests/a.test.ts", "// aislop-ignore-nextline\nexpect(1).toBe(1);\n");
 		const context = { ...contextFor([]), testFiles: [testFile] };

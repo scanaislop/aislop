@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- **`ai-slop/unknown-directive`.** An `aislop-ignore-*` comment with a scope aislop does not recognise (for example `aislop-ignore-nextline`) used to be silently ignored. It is now reported as a warning, with the closest valid directive suggested.
+- **`ai-slop/unknown-directive`.** An `aislop-ignore-*` comment with a scope aislop does not recognise (for example `aislop-ignore-nextline`) used to be silently ignored. It is now reported as a warning, with the closest valid directive suggested, in JS/TS, Python, Go, C#, and C/C++ files.
 
 ### Fixed
 
