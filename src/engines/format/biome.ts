@@ -38,26 +38,14 @@ const runBiome = async (
 
 const BIOME_EXTENSIONS = new Set([".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"]);
 
-const projectHasBiomeConfig = (rootDir: string): boolean => {
-	try {
-		const biomePath = path.join(rootDir, "biome.json");
-		return fs.existsSync(biomePath);
-	} catch {
-		return false;
-	}
-};
+const BIOME_CONFIG_FILES = ["biome.json", "biome.jsonc"];
+const DEFAULT_LINE_WIDTH = 120;
 
-const getBiomeLineWidth = (rootDir: string): number => {
-	try {
-		const biomePath = path.join(rootDir, "biome.json");
-		if (!fs.existsSync(biomePath)) return 120;
-		const content = fs.readFileSync(biomePath, "utf-8");
-		const config = JSON.parse(content);
-		return config.formatter?.lineWidth ?? 120;
-	} catch {
-		return 120;
-	}
-};
+const projectHasBiomeConfig = (rootDir: string): boolean =>
+	BIOME_CONFIG_FILES.some((name) => fs.existsSync(path.join(rootDir, name)));
+
+const lineWidthArgs = (rootDir: string): string[] =>
+	projectHasBiomeConfig(rootDir) ? [] : [`--line-width=${DEFAULT_LINE_WIDTH}`];
 
 const getBiomeTargets = (context: EngineContext): string[] =>
 	getSourceFiles(context)
@@ -80,8 +68,7 @@ export const runBiomeFormat = async (context: EngineContext): Promise<Diagnostic
 	const targets = getBiomeTargets(context);
 	if (targets.length === 0) return [];
 	if (!projectHasBiomeConfig(context.rootDirectory)) return [];
-	const lineWidth = getBiomeLineWidth(context.rootDirectory);
-	const args = ["format", "--reporter=json", `--line-width=${lineWidth}`, ...targets];
+	const args = ["format", "--reporter=json", ...targets];
 
 	try {
 		const result = await runBiome(args, context.rootDirectory, 60000);
@@ -164,10 +151,8 @@ const parseBiomeJsonOutput = (output: string, rootDir: string): Diagnostic[] => 
 export const fixBiomeFormat = async (context: EngineContext): Promise<void> => {
 	const targets = getBiomeTargets(context);
 	if (targets.length === 0) return;
-	const lineWidth = getBiomeLineWidth(context.rootDirectory);
-
 	await runBiome(
-		["format", "--write", `--line-width=${lineWidth}`, ...targets],
+		["format", "--write", ...lineWidthArgs(context.rootDirectory), ...targets],
 		context.rootDirectory,
 		60000,
 	);

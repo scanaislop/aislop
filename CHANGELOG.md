@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Fixed
+
+- **Biome formatting respects the project's Biome config.** When a project has `biome.json` or `biome.jsonc`, `scan` and `fix` now use its settings instead of forcing a 120-column line width. Before, a project that relied on Biome's default width of 80 got formatting findings that its own Biome rejected, and `aislop fix` rewrote files so the project's `biome format` failed. `biome.jsonc` is now detected too.
+
 ## 0.17.0 (2026-10-02)
 
 Per-file overrides, a fourth agent provider, and clearer failure reporting. `overrides` in `.aislop/config.yml` give different paths their own quality limits and rule severities in one scan, `aislop agent` can run on pi, and a scan with no hook installed suggests one.
