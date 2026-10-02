@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Go `v, _ := f()` is only reported when the dropped value is an error.** `ai-slop/swallowed-exception` now looks up `f` in the same package and skips the finding when its last result is not `error` (for example `(string, string)`). Calls it cannot resolve are still reported, and `//nolint`, `//nolint:errcheck`, and `//nolint:all` on the line are honored.
 - **Biome formatting respects the project's Biome config.** When a project has `biome.json` or `biome.jsonc`, `scan` and `fix` now use its settings instead of forcing a 120-column line width. Before, a project that relied on Biome's default width of 80 got formatting findings that its own Biome rejected, and `aislop fix` rewrote files so the project's `biome format` failed. `biome.jsonc` is now detected too.
 
 ## 0.17.0 (2026-10-02)
