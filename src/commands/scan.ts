@@ -3,6 +3,7 @@ import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { type AislopConfig, findConfigDir, RULES_FILE } from "../config/index.js";
 import { recordFullScanActivity } from "../engagement/full-scan-activity.js";
+import { collectMissingTools } from "../engines/missing-tools.js";
 import type { EngineConfig } from "../engines/types.js";
 import { renderDiagnostics } from "../output/terminal.js";
 import { calculateScore } from "../scoring/index.js";
@@ -210,6 +211,8 @@ const runScanBody = async (
 		scoreable,
 		score: scoreResult.score,
 		failBelow: config.ci.failBelow,
+		missingTools: collectMissingTools(results).length > 0,
+		failOnMissingTools: config.ci.failOnMissingTools,
 	});
 
 	const engineIssues: EngineCounts = {};

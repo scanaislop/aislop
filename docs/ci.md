@@ -121,6 +121,13 @@ ci:
 
 The CI command exits 1 when the score drops below `failBelow`, or when any error-severity diagnostic is present.
 
+Format and lint checks for Python, Go, Rust, Ruby, and PHP need their tools (`ruff`, `golangci-lint`, `gofmt`, and so on) on `PATH`. When one is missing, those checks do not run and the score does not include them. The scan output names the missing tools, and `aislop doctor` shows how to install them (`aislop-tools` installs the bundled `ruff` and `golangci-lint`). To fail CI instead of scoring a partial scan, set:
+
+```yaml
+ci:
+  failOnMissingTools: true
+```
+
 ## JSON output
 
 Both `aislop ci` and `aislop scan --json` emit structured JSON for parsing in CI. Example shape (values illustrative):
@@ -142,4 +149,13 @@ Both `aislop ci` and `aislop scan --json` emit structured JSON for parsing in CI
 }
 ```
 
-An engine that crashed during the scan also carries `"failed": true`. A `skipped` engine without `failed` was skipped on purpose, for example because no tool for that language is installed.
+An engine that crashed during the scan also carries `"failed": true`. A `skipped` engine without `failed` was skipped on purpose, and its `skipReason` says why. When a tool needed for a detected language is not installed, the engine lists it in `missingTools`, even if the engine still ran for other languages:
+
+```json
+"engines": {
+  "format": { "issues": 0, "skipped": true, "elapsed": 0, "skipReason": "missing tools: ruff", "missingTools": ["ruff"] },
+  "lint":   { "issues": 3, "skipped": false, "elapsed": 412, "missingTools": ["ruff"] }
+}
+```
+
+An engine skipped only because the scan has no files it applies to has no `missingTools`.

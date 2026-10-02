@@ -1,3 +1,4 @@
+import { findMissingTools, LINT_TOOL_REQUIREMENTS, withMissingTools } from "../missing-tools.js";
 import type { Diagnostic, Engine, EngineContext, EngineResult } from "../types.js";
 import { runClangTidy } from "./clang-tidy.js";
 import { resolveCppLintConfig, runCppcheck } from "./cppcheck.js";
@@ -135,14 +136,18 @@ export const lintEngine: Engine = {
 		// No linter matched the detected languages/installed tools. Report this as
 		// skipped (mirroring `doctor`) rather than returning an empty result, which the
 		// scan summary would otherwise launder into a misleading "done (0 issues)".
+		const missingTools = findMissingTools(context, LINT_TOOL_REQUIREMENTS);
 		if (promises.length === 0) {
-			return {
-				engine: "lint",
-				diagnostics,
-				elapsed: 0,
-				skipped: true,
-				skipReason: "no linter for the detected languages",
-			};
+			return withMissingTools(
+				{
+					engine: "lint",
+					diagnostics,
+					elapsed: 0,
+					skipped: true,
+					skipReason: "no linter for the detected languages",
+				},
+				missingTools,
+			);
 		}
 
 		const results = await Promise.allSettled(promises);
@@ -152,11 +157,14 @@ export const lintEngine: Engine = {
 			}
 		}
 
-		return {
-			engine: "lint",
-			diagnostics,
-			elapsed: 0,
-			skipped: false,
-		};
+		return withMissingTools(
+			{
+				engine: "lint",
+				diagnostics,
+				elapsed: 0,
+				skipped: false,
+			},
+			missingTools,
+		);
 	},
 };

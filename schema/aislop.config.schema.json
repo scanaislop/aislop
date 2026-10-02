@@ -291,7 +291,8 @@
 		"ci": {
 			"default": {
 				"failBelow": 70,
-				"format": "json"
+				"format": "json",
+				"failOnMissingTools": false
 			},
 			"type": "object",
 			"properties": {
@@ -305,6 +306,10 @@
 					"enum": [
 						"json"
 					]
+				},
+				"failOnMissingTools": {
+					"default": false,
+					"type": "boolean"
 				}
 			}
 		},

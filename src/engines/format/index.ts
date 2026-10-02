@@ -1,3 +1,4 @@
+import { FORMAT_TOOL_REQUIREMENTS, findMissingTools, withMissingTools } from "../missing-tools.js";
 import type { Diagnostic, Engine, EngineContext, EngineResult } from "../types.js";
 import { runBiomeFormat } from "./biome.js";
 import { runClangFormat } from "./clang-format.js";
@@ -54,14 +55,18 @@ export const formatEngine: Engine = {
 		// No formatter matched the detected languages/installed tools. Report this as
 		// skipped (mirroring `doctor`) rather than returning an empty result, which the
 		// scan summary would otherwise launder into a misleading "done (0 issues)".
+		const missingTools = findMissingTools(context, FORMAT_TOOL_REQUIREMENTS);
 		if (promises.length === 0) {
-			return {
-				engine: "format",
-				diagnostics,
-				elapsed: 0,
-				skipped: true,
-				skipReason: "no formatter for the detected languages",
-			};
+			return withMissingTools(
+				{
+					engine: "format",
+					diagnostics,
+					elapsed: 0,
+					skipped: true,
+					skipReason: "no formatter for the detected languages",
+				},
+				missingTools,
+			);
 		}
 
 		const results = await Promise.allSettled(promises);
@@ -71,11 +76,14 @@ export const formatEngine: Engine = {
 			}
 		}
 
-		return {
-			engine: "format",
-			diagnostics,
-			elapsed: 0,
-			skipped: false,
-		};
+		return withMissingTools(
+			{
+				engine: "format",
+				diagnostics,
+				elapsed: 0,
+				skipped: false,
+			},
+			missingTools,
+		);
 	},
 };

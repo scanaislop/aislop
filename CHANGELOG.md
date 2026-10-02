@@ -6,8 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Added
+
+- **`ci.failOnMissingTools`.** Opt-in setting that makes `scan` and `ci` exit 1 when a format or lint tool needed for a detected language is not installed, instead of passing on a partial scan. Off by default.
+
 ### Fixed
 
+- **Missing format and lint tools are reported.** When a detected language's tool is not installed (for example `ruff` for Python), the scan output now says so with an `aislop doctor` hint, even on a clean run, and `--json` lists it in the engine's `missingTools`. Skipped engines also carry a `skipReason`, so a skip because of a missing tool can be told apart from one with nothing to scan. Before, the checks silently did not run and the score looked clean ([lfreleng-actions/aislop-scan-action#40](https://github.com/lfreleng-actions/aislop-scan-action/issues/40)).
 - **Biome formatting respects the project's Biome config.** When a project has `biome.json` or `biome.jsonc`, `scan` and `fix` now use its settings instead of forcing a 120-column line width. Before, a project that relied on Biome's default width of 80 got formatting findings that its own Biome rejected, and `aislop fix` rewrote files so the project's `biome format` failed. `biome.jsonc` is now detected too.
 
 ## 0.17.0 (2026-10-02)

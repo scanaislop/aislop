@@ -214,6 +214,18 @@ export const renderTeamCta = (deps: SummaryDeps = {}): string => {
 	return `\n ${style(t, "muted", `→ Using aislop with a team? Get a 14-day team baseline at ${href}`)}\n`;
 };
 
+export const renderMissingTools = (
+	input: { tools: string[]; invocation: string },
+	deps: SummaryDeps = {},
+): string => {
+	if (input.tools.length === 0) return "";
+	const t = deps.theme ?? defaultTheme;
+	const s = deps.symbols ?? defaultSymbols;
+	const warning = `${s.warn} Not fully checked: ${input.tools.join(", ")} not installed`;
+	const hint = `the score excludes those checks; run ${input.invocation} doctor for install steps`;
+	return `\n ${style(t, "warn", warning)}  ${style(t, "muted", hint)}\n`;
+};
+
 export const renderCleanRun = (
 	input: { score?: number; label?: string; elapsedMs: number },
 	deps: SummaryDeps = {},
