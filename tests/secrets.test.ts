@@ -273,10 +273,20 @@ describe("scanSecrets on UI copy", () => {
 				'export const client = { secret: "a8f5f167f44f4964e6c998dee827110c" }',
 				'export const url = "postgres://admin:Sup3rS3cret@db.internal:5432/app"',
 				'export const pw = { password: "hunter2 hunter2" }',
+				'export const p1 = { password: "correct horse battery staple!" }',
+				'export const p2 = { password: "Correct horse battery staple" }',
+				'export const p3 = { password: "Пароль от сервера два" }',
 				"",
 			].join("\n"),
 		);
 
-		expect(await flaggedLines()).toEqual([2, 3, 4, 5, 6]);
+		expect(await flaggedLines()).toEqual([2, 3, 4, 5, 6, 7, 8, 9]);
+	});
+
+	it("does not flag translated labels in locale files", async () => {
+		writeFile("src/locales/ru.json", '{\n  "password": "Введите пароль"\n}\n');
+		writeFile("src/i18n/de.ts", 'export default { password: "Passwort eingeben" }\n');
+
+		expect(await flaggedLines()).toEqual([]);
 	});
 });

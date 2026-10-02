@@ -143,10 +143,59 @@ const PLACEHOLDER_SHAPE_RE = new RegExp(
 );
 const PROSE_WORD_RE = /^[\p{L}\p{N}\p{Pi}\p{Pf}'.,!?:;()-]+$/u;
 
+const UI_KEY_TOKENS = new Set([
+	"awaiting",
+	"caption",
+	"description",
+	"enter",
+	"error",
+	"forgot",
+	"help",
+	"hint",
+	"invalid",
+	"label",
+	"message",
+	"msg",
+	"placeholder",
+	"prompt",
+	"status",
+	"text",
+	"title",
+	"tooltip",
+	"waiting",
+]);
+const LOCALE_PATH_RE =
+	/(?:^|\/)(?:locales?|i18n|l10n|lang|langs|languages|translations?)\/|(?:^|\/)[a-z]{2}(?:[-_][A-Za-z]{2})?\.json$/i;
+const CREDENTIAL_MENTION_RE = /\b(?:password|passphrase|passcode|secret)\b/i;
+
 const isHumanReadableText = (value: string): boolean => {
 	const words = value.trim().split(/\s+/);
 	if (words.length < 2 || !words.every((word) => PROSE_WORD_RE.test(word))) return false;
 	return /[^\p{ASCII}]/u.test(value) || /^\p{Lu}\p{Ll}/u.test(words[0]) || /[.!?:]$/.test(value);
+};
+
+const keyTokens = (key: string): string[] =>
+	key
+		.replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+		.toLowerCase()
+		.split(/[^a-z0-9]+/)
+		.filter(Boolean);
+
+const identifierAt = (content: string, index: number): string => {
+	let start = index;
+	while (start > 0 && /[\w$-]/.test(content[start - 1])) start -= 1;
+	let end = index;
+	while (end < content.length && /[\w$-]/.test(content[end])) end += 1;
+	return content.slice(start, end);
+};
+
+const isUiCopy = (relativePath: string, key: string, value: string): boolean => {
+	if (!isHumanReadableText(value)) return false;
+	return (
+		keyTokens(key).some((token) => UI_KEY_TOKENS.has(token)) ||
+		LOCALE_PATH_RE.test(relativePath) ||
+		CREDENTIAL_MENTION_RE.test(value)
+	);
 };
 
 const isPlaceholderCredentialUrl = (matchedText: string): boolean => {
@@ -245,12 +294,7 @@ const shouldSkipSecretFinding = (
 	if (GENERATED_SECRET_RE.test(lineText) || GENERATED_SECRET_RE.test(matchedText)) return true;
 	if (isHeaderNameConstant(lineText, matchedText)) return true;
 	if (isFixtureSecret(relativePath, lineText, matchedText)) return true;
-	if (
-		name === "Hardcoded password/secret" &&
-		(isHumanReadableText(matchedText) || PLACEHOLDER_SHAPE_RE.test(matchedText))
-	) {
-		return true;
-	}
+	if (name === "Hardcoded password/secret" && PLACEHOLDER_SHAPE_RE.test(matchedText)) return true;
 	if (
 		(name === "Hardcoded password/secret" || name === "Authentication token") &&
 		isSymbolicConstantValue(matchedText)
@@ -285,6 +329,12 @@ export const scanSecrets = async (context: EngineContext): Promise<Diagnostic[]>
 				const lineText = lineForMatch(content, match.index);
 				if (isPlaceholderValue(matchedText)) continue;
 				if (shouldSkipSecretFinding(relativePath, name, lineText, matchedText)) continue;
+				if (
+					name === "Hardcoded password/secret" &&
+					isUiCopy(relativePath, identifierAt(content, match.index), matchedText)
+				) {
+					continue;
+				}
 				if (keywordPrefixed && isInsideStringLiteral(content, match.index)) continue;
 
 				const line = content.slice(0, match.index).split("\n").length;
