@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - **Biome formatting respects the project's Biome config.** When a project has `biome.json` or `biome.jsonc`, `scan` and `fix` now use its settings instead of forcing a 120-column line width. Before, a project that relied on Biome's default width of 80 got formatting findings that its own Biome rejected, and `aislop fix` rewrote files so the project's `biome format` failed. `biome.jsonc` is now detected too.
+- **`security/hardcoded-secret` skips UI copy under password-like keys.** Labels such as `awaiting_password: "Waiting for the password"`, `PASSWORD_PROMPT = "Please enter your password"`, non-English text, and placeholders like `<password>` or `your-password-here` are no longer reported as hardcoded secrets. Credential-shaped values, including lowercase multi-word passphrases, are still flagged.
 
 ## 0.17.0 (2026-10-02)
 

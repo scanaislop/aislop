@@ -136,6 +136,18 @@ const FIXTURE_LINE_RE = /\b(?:fixture|mock|sample|seed|test)\b|(?:^|[^A-Za-z])B?
 const FIXTURE_VALUE_RE =
 	/^(?:password1!?\.?|passwd\+us3r\d+|sys@dmin-sample\d+|usr@mmtest\d+|test(?:ing)?[-_ ]?(?:password|secret)?\d*)$/i;
 const MASKED_SECRET_RE = /^[*xX]{6,}$/;
+const CREDENTIAL_WORD = "(?:client[-_ ]?)?(?:password|passwd|pwd|secret|pass)";
+const PLACEHOLDER_SHAPE_RE = new RegExp(
+	`^<(?:your[-_ ])?${CREDENTIAL_WORD}>$|^your[-_ ]${CREDENTIAL_WORD}(?:[-_ ]here)?$`,
+	"i",
+);
+const PROSE_WORD_RE = /^[\p{L}\p{N}\p{Pi}\p{Pf}'.,!?:;()-]+$/u;
+
+const isHumanReadableText = (value: string): boolean => {
+	const words = value.trim().split(/\s+/);
+	if (words.length < 2 || !words.every((word) => PROSE_WORD_RE.test(word))) return false;
+	return /[^\p{ASCII}]/u.test(value) || /^\p{Lu}\p{Ll}/u.test(words[0]) || /[.!?:]$/.test(value);
+};
 
 const isPlaceholderCredentialUrl = (matchedText: string): boolean => {
 	const credentialMatch = matchedText.match(/^[a-z][a-z+.-]*:\/\/([^:@/\s]+):([^@/\s]+)@/i);
@@ -233,6 +245,12 @@ const shouldSkipSecretFinding = (
 	if (GENERATED_SECRET_RE.test(lineText) || GENERATED_SECRET_RE.test(matchedText)) return true;
 	if (isHeaderNameConstant(lineText, matchedText)) return true;
 	if (isFixtureSecret(relativePath, lineText, matchedText)) return true;
+	if (
+		name === "Hardcoded password/secret" &&
+		(isHumanReadableText(matchedText) || PLACEHOLDER_SHAPE_RE.test(matchedText))
+	) {
+		return true;
+	}
 	if (
 		(name === "Hardcoded password/secret" || name === "Authentication token") &&
 		isSymbolicConstantValue(matchedText)
