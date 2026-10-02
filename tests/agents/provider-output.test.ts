@@ -140,7 +140,7 @@ describe("provider output formatting", () => {
 			}),
 		);
 
-		expect(metadata.usage).toMatchObject({ totalTokens: 620 });
+		expect(metadata.usage).toMatchObject({ inputTokens: 500, outputTokens: 120, totalTokens: 620 });
 		expect(metadata.files).toEqual(["src/pi-edit.ts"]);
 	});
 

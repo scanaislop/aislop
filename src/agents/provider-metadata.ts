@@ -47,6 +47,7 @@ function usageFrom(value: unknown): Partial<ProviderUsage> | null {
 		"promptTokens",
 		// pi --mode json usage shape (packages/ai TokenUsage)
 		"in",
+		"input",
 	]);
 	const cacheReadTokenValue = tokenValue(value, [
 		"cache_read_input_tokens",
@@ -72,6 +73,7 @@ function usageFrom(value: unknown): Partial<ProviderUsage> | null {
 		"completionTokens",
 		// pi --mode json usage shape (packages/ai TokenUsage)
 		"out",
+		"output",
 	]);
 	const directTotalTokens = tokenValue(value, ["total_tokens", "totalTokens", "total"]);
 	// pi --mode json reports cost as a plain `cost` field
