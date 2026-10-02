@@ -164,6 +164,10 @@ const removalFor = (
 	return { type: "match", removal: { ...range, declaration: decl } };
 };
 
+const isOverloaded = (sourceFile: ts.SourceFile, name: string): boolean =>
+	sourceFile.statements.filter((s) => ts.isFunctionDeclaration(s) && s.name?.text === name).length >
+	1;
+
 const kindOfStatement = (node: ts.Statement): UnusedKind | null => {
 	if (ts.isVariableStatement(node)) return "variable";
 	if (ts.isFunctionDeclaration(node)) return "function";
@@ -242,6 +246,9 @@ export const matchStatement = (
 		if (!statement.name) return { type: "none" };
 		if (statement.name.text !== decl.name) return { type: "none" };
 		if (!nodeContainsLine(sourceFile, statement, decl.line)) return { type: "none" };
+		if (ts.isFunctionDeclaration(statement) && isOverloaded(sourceFile, decl.name)) {
+			return { type: "skip", reason: "overloaded function", declaration: decl };
+		}
 		const referenced = removalFor(sourceFile, statement, content, decl);
 		if (referenced) return referenced;
 		const range = computeRemovalRange(sourceFile, statement, content);

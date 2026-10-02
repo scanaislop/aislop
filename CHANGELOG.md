@@ -23,7 +23,7 @@ Per-file overrides, a fourth agent provider, and clearer failure reporting. `ove
 - **Suggested commands work for `npx` users.** Next-step hints from `scan`, `doctor`, and `init` used to say `aislop ...`, which fails without a global install. When run through `npx`, they now say `npx aislop@latest ...`.
 - **`aislop badge` detects repositories with dots in their names.** Remotes such as `vercel/next.js` failed with "Could not detect a GitHub remote".
 - **Dependency advisories.** `adm-zip`, `fast-uri`, `hono`, and `ip-address` are raised to patched releases.
-- **`aislop fix` no longer deletes exports that are still used in their own file.** An export that no other file imports was removed along with its declaration, which broke any code in the same file that still called it. The fix now drops only the `export` keyword in that case, and skips default exports it cannot safely un-export.
+- **`aislop fix` no longer deletes exports that are still used in their own file.** An export that no other file imports was removed along with its declaration, which broke any code in the same file that still called it. The fix now drops only the `export` keyword in that case, and skips default exports and overloaded functions it cannot safely un-export.
 
 ## 0.16.1 (2026-09-09)
 
