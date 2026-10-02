@@ -9,10 +9,14 @@ export const runRuffFormat = async (context: EngineContext): Promise<Diagnostic[
 	if (targets.length === 0) return [];
 
 	try {
-		const result = await runSubprocess(ruffBinary, ["format", "--check", "--diff", ...targets], {
-			cwd: context.rootDirectory,
-			timeout: 60000,
-		});
+		const result = await runSubprocess(
+			ruffBinary,
+			["format", "--check", "--diff", "--force-exclude", ...targets],
+			{
+				cwd: context.rootDirectory,
+				timeout: 60000,
+			},
+		);
 
 		if (result.exitCode === 0) return [];
 
@@ -51,7 +55,7 @@ export const fixRuffFormat = async (context: EngineContext): Promise<void> => {
 	const targets = context.files ? getPythonTargets(context) : [context.rootDirectory];
 	if (context.files && targets.length === 0) return;
 	const ruffBinary = resolveToolBinary("ruff");
-	const result = await runSubprocess(ruffBinary, ["format", ...targets], {
+	const result = await runSubprocess(ruffBinary, ["format", "--force-exclude", ...targets], {
 		cwd: context.rootDirectory,
 		timeout: 60000,
 	});

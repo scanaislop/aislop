@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Ruff respects the project's `exclude` settings.** aislop passes each Python file to ruff by name, and ruff ignores `exclude`/`extend-exclude` for explicitly named files unless told otherwise. Files a project excludes from ruff (vendored or legacy code) were reported by `python-formatting` and the ruff lint rules, and `aislop fix` could reformat them. Scan and fix now pass `--force-exclude`, so aislop checks the same files the project's own `ruff format` and `ruff check` do.
 - **Biome formatting respects the project's Biome config.** When a project has `biome.json` or `biome.jsonc`, `scan` and `fix` now use its settings instead of forcing a 120-column line width. Before, a project that relied on Biome's default width of 80 got formatting findings that its own Biome rejected, and `aislop fix` rewrote files so the project's `biome format` failed. `biome.jsonc` is now detected too.
 
 ## 0.17.0 (2026-10-02)
