@@ -21,9 +21,24 @@ const cloneRepo = async (repo, repoDirectory) => {
 	return repoDirectory;
 };
 
+const checkoutRevision = async (repo, repoDirectory) => {
+	const git = (...args) => runCommand("git", ["-C", repoDirectory, ...args]);
+	const fetched = await git("fetch", "--depth", "1", "origin", repo.revision);
+	const checkedOut = fetched.code === 0 && (await git("checkout", "--detach", repo.revision));
+	if (!checkedOut || checkedOut.code !== 0) {
+		throw new Error(`could not check out pinned revision ${repo.revision}`);
+	}
+	return repoDirectory;
+};
+
 export const syncRepo = async (repo) => {
 	const repoDirectory = repoDirectoryFor(repo.language, repo.owner, repo.name);
 	ensureDir(path.dirname(repoDirectory));
+
+	if (repo.revision) {
+		if (!fs.existsSync(repoDirectory)) await cloneRepo(repo, repoDirectory);
+		return checkoutRevision(repo, repoDirectory);
+	}
 
 	if (!fs.existsSync(repoDirectory)) {
 		info(`Cloning ${repo.owner}/${repo.name}`);
