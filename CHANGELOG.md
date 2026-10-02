@@ -16,6 +16,7 @@ Per-file overrides, a fourth agent provider, and clearer failure reporting. `ove
 - **Per-file overrides.** Ordered `overrides` in `.aislop/config.yml` apply project-relative glob patterns to partial quality limits and per-rule `error`, `warning`, or `off` severities. Later matching entries win, so controllers, services, and legacy files can share one scan with different policies. Existing scoring calibration and projects without overrides retain their behavior.
 - **`pi` provider for `aislop agent`.** Repair sessions can run on [pi](https://github.com/earendil-works/pi-coding-agent) alongside Codex, Claude, and OpenCode, with tool-call tracking, token usage, and changed-file detection. Thanks to @gtheys.
 - **Hook install suggestion after a scan.** An interactive `aislop scan` with no aislop hook installed now suggests installing one. It stays silent in CI, for non-TTY or `--json`/`--sarif` output, and once a hook exists.
+- **`--json` marks crashed engines.** An engine that crashes during a scan now has `"failed": true` in the `engines` map, so it can be told apart from an engine that was skipped on purpose.
 
 ### Fixed
 

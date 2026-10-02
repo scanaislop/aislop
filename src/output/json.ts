@@ -18,7 +18,7 @@ interface JsonOutput {
 	label: string;
 	scoreable: boolean;
 	coverage: Coverage;
-	engines: Record<string, { issues: number; skipped: boolean; elapsed: number }>;
+	engines: Record<string, { issues: number; skipped: boolean; elapsed: number; failed?: true }>;
 	engineDefinitions: Record<string, EngineInfo>;
 	diagnostics: AssessedDiagnostic[];
 	findingAssessment: FindingAssessmentSummary;
@@ -47,6 +47,7 @@ export const buildJsonOutput = (
 			issues: result.diagnostics.length,
 			skipped: result.skipped,
 			elapsed: result.elapsed,
+			...(result.failed ? { failed: true as const } : {}),
 		};
 	}
 
