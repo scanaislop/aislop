@@ -542,6 +542,23 @@ export const call = () => handler();
 		expect(fs.readFileSync(file, "utf-8")).toBe(source);
 	});
 
+	it("skips overloaded functions instead of half-exporting the overload set", () => {
+		const source = `export function parse(input: string): string;
+export function parse(input: number): number;
+export function parse(input: string | number): string | number {
+	return input;
+}
+`;
+		const file = writeFixture("overloads.ts", source);
+		const result = removeUnusedDeclarations(tmpDir, [
+			{ filePath: file, line: 1, column: 17, name: "parse", kind: "function" },
+		]);
+
+		expect(result.removed).toBe(0);
+		expect(result.skipped[0]?.reason).toBe("overloaded function");
+		expect(fs.readFileSync(file, "utf-8")).toBe(source);
+	});
+
 	it("leaves non-matching declarations untouched when file has irrelevant unused names", () => {
 		const source = `export const a = 1;
 export const b = 2;
