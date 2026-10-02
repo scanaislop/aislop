@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { ensureDir, PACKAGE_ROOT, relativeToRoot, repoKey, writeJson } from "./fs-utils.mjs";
@@ -18,11 +19,11 @@ const SCAN_ENV_PREFIX = Object.entries(SCAN_ENV)
 export const SCAN_COMMAND_TEMPLATE = `${SCAN_ENV_PREFIX} node dist/cli.js scan "<repo>" --json`;
 
 export const ensureBuiltCli = () => {
-	const cliPath = path.join(PACKAGE_ROOT, "dist", "cli.js");
-	if (!fs.existsSync(cliPath)) {
-		throw new Error("dist/cli.js is missing. Run `pnpm build` first.");
+	const build = spawnSync("pnpm", ["build"], { cwd: PACKAGE_ROOT, stdio: "inherit" });
+	if (build.status !== 0) {
+		throw new Error("pnpm build failed; the benchmark needs a fresh dist/cli.js.");
 	}
-	return cliPath;
+	return path.join(PACKAGE_ROOT, "dist", "cli.js");
 };
 
 const repoIdentity = (repo) => ({
@@ -108,6 +109,15 @@ const classifyScan = ({ metadata, stdout, paths, repoDirectory }) => {
 			...metadata,
 			status: "scan_failed",
 			message: String(parsed.error),
+			scanJsonPath: relativeToRoot(paths.scanJson),
+		};
+	}
+
+	if (parsed.scoreable === false || typeof parsed.score !== "number") {
+		return {
+			...metadata,
+			status: "unscoreable",
+			message: "no language aislop scores, so the repo has no score",
 			scanJsonPath: relativeToRoot(paths.scanJson),
 		};
 	}
