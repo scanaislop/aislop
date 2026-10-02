@@ -27,18 +27,23 @@ const NON_ERROR_BASIC_TYPES = new Set([
 ]);
 const NON_ERROR_COMPOSITE_RE = /^(?:\[\d*\]|map\[|chan\b|<-\s*chan\b|func\s*\()/;
 
-export type GoPackageSources = Map<string, string[]>;
+interface GoSource {
+	path: string;
+	masked: string;
+}
+
+export type GoPackageSources = Map<string, GoSource[]>;
 
 const maskGo = (source: string): string => maskStringsAndComments(source, ".go");
 
 const packageName = (maskedSource: string): string | null =>
 	PACKAGE_RE.exec(maskedSource)?.[1] ?? null;
 
-const packageSources = (filePath: string, cache: GoPackageSources): string[] => {
+const packageSources = (filePath: string, cache: GoPackageSources): GoSource[] => {
 	const directory = path.dirname(filePath);
 	const cached = cache.get(directory);
 	if (cached) return cached;
-	const sources: string[] = [];
+	const sources: GoSource[] = [];
 	let entries: string[];
 	try {
 		entries = fs.readdirSync(directory);
@@ -46,10 +51,10 @@ const packageSources = (filePath: string, cache: GoPackageSources): string[] => 
 		entries = [];
 	}
 	for (const name of entries) {
+		if (!name.endsWith(".go")) continue;
 		const sourcePath = path.join(directory, name);
-		if (!name.endsWith(".go") || sourcePath === filePath) continue;
 		try {
-			sources.push(maskGo(fs.readFileSync(sourcePath, "utf-8")));
+			sources.push({ path: sourcePath, masked: maskGo(fs.readFileSync(sourcePath, "utf-8")) });
 		} catch {
 			continue;
 		}
@@ -121,9 +126,15 @@ const declaredLastResults = (maskedSource: string, name: string): (string | null
 	return results;
 };
 
-const isShadowed = (maskedSource: string, name: string): boolean => {
-	if (new RegExp(`\\bvar\\s+${name}\\b|[(,]\\s*${name}\\s+func\\b`).test(maskedSource)) return true;
-	for (const line of maskedSource.split("\n")) {
+const enclosingScopeBefore = (maskedSource: string, index: number): string => {
+	const before = maskedSource.slice(0, index);
+	const funcStart = before.lastIndexOf("\nfunc ");
+	return before.slice(funcStart === -1 ? 0 : funcStart);
+};
+
+const isShadowed = (scope: string, name: string): boolean => {
+	if (new RegExp(`\\bvar\\s+${name}\\b|[(,]\\s*${name}\\s+func\\b`).test(scope)) return true;
+	for (const line of scope.split("\n")) {
 		const assign = line.indexOf(":=");
 		if (assign === -1) continue;
 		const lhs = line.slice(0, assign).replace(/^\s*(?:for|if|switch)\s+/, "");
@@ -132,10 +143,21 @@ const isShadowed = (maskedSource: string, name: string): boolean => {
 	return false;
 };
 
+const isCommentText = (line: string, commentMaskedLine: string, index: number): boolean =>
+	line[index] !== commentMaskedLine[index];
+
+const startsLineComment = (line: string, commentMaskedLine: string, index: number): boolean => {
+	if (commentMaskedLine.slice(index, index + 2).trim() !== "") return false;
+	let previous = index - 1;
+	while (previous >= 0 && /\s/.test(line[previous])) previous -= 1;
+	if (previous < 0) return true;
+	if (line.slice(previous - 1, previous + 1) === "*/") return true;
+	return !isCommentText(line, commentMaskedLine, previous);
+};
+
 const hasNolintErrcheck = (line: string, commentMaskedLine: string): boolean => {
 	for (const match of line.matchAll(NOLINT_RE)) {
-		const inComment = commentMaskedLine.slice(match.index, match.index + 2).trim() === "";
-		if (!inComment) continue;
+		if (!startsLineComment(line, commentMaskedLine, match.index)) continue;
 		if (!match[1]) return true;
 		if (match[1].split(",").some((linter) => linter === "errcheck" || linter === "all")) {
 			return true;
@@ -162,10 +184,10 @@ export const createGoDroppedErrorCheck = (
 		if (hasNolintErrcheck(lineAt(content, matchIndex), lineAt(commentMasked, matchIndex))) {
 			return false;
 		}
-		if (isShadowed(masked, functionName)) return true;
-		const samePackage = packageSources(filePath, cache).filter(
-			(source) => packageName(source) === ownPackage,
-		);
+		if (isShadowed(enclosingScopeBefore(masked, matchIndex), functionName)) return true;
+		const samePackage = packageSources(filePath, cache)
+			.filter((source) => source.path !== filePath && packageName(source.masked) === ownPackage)
+			.map((source) => source.masked);
 		const results = [masked, ...samePackage].flatMap((source) =>
 			declaredLastResults(source, functionName),
 		);

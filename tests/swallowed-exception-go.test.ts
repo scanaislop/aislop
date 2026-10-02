@@ -228,6 +228,68 @@ describe("detectSwallowedExceptions (Go blank identifier)", () => {
 		expect(await flaggedLines()).toEqual(["main.go:6"]);
 	});
 
+	it("resolves declarations from every file in the package, whichever is scanned first", async () => {
+		write(
+			"pkg/a.go",
+			[
+				"package pkg",
+				"",
+				"func safe() (int, string) { return 0, \"\" }",
+				"func risky() (int, error) { return 0, nil }",
+				"",
+				"func first() {",
+				"\tv, _ := risky()",
+				"\t_ = v",
+				"}",
+			].join("\n"),
+		);
+		write(
+			"pkg/b.go",
+			["package pkg", "", "func second() {", "\tv, _ := safe()", "\t_ = v", "}"].join("\n"),
+		);
+		expect(await flaggedLines()).toEqual(["pkg/a.go:7"]);
+	});
+
+	it("limits shadow detection to the enclosing function", async () => {
+		write(
+			"main.go",
+			[
+				"package main",
+				"",
+				"func safe() (int, string) { return 0, \"\" }",
+				"",
+				"func other() {",
+				"\tsafe := func() (int, error) { return 0, nil }",
+				"\t_, _ = safe()",
+				"}",
+				"",
+				"func run() {",
+				"\tv, _ := safe()",
+				"\t_ = v",
+				"}",
+			].join("\n"),
+		);
+		expect(await flaggedLines()).toEqual(["main.go:7"]);
+	});
+
+	it("ignores nolint text nested in a block comment", async () => {
+		write(
+			"main.go",
+			[
+				"package main",
+				"",
+				"func risky() (int, error) { return 0, nil }",
+				"",
+				"func run() {",
+				"\tv, _ := risky() /* //nolint:errcheck */",
+				"\tw, _ := risky() /* why */ //nolint:errcheck",
+				"\t_, _ = v, w",
+				"}",
+			].join("\n"),
+		);
+		expect(await flaggedLines()).toEqual(["main.go:6"]);
+	});
+
 	it("honors nolint directives on the line", async () => {
 		write(
 			"main.go",
