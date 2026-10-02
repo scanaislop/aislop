@@ -166,6 +166,22 @@ describe("provider output formatting", () => {
 		).toBeNull();
 	});
 
+	it("extracts pi usage cost from a nested cost total", () => {
+		const metadata = extractProviderOutputMetadata(
+			JSON.stringify({
+				type: "message_end",
+				usage: {
+					input: 500,
+					output: 120,
+					total: 620,
+					cost: { input: 0.01, output: 0.02, total: 0.03 },
+				},
+			}),
+		);
+
+		expect(metadata.usage).toMatchObject({ totalTokens: 620, costUsd: 0.03 });
+	});
+
 	it("extracts pi usage cost from the plain cost field", () => {
 		const metadata = extractProviderOutputMetadata(
 			JSON.stringify({

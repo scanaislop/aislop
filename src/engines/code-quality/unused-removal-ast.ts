@@ -164,9 +164,27 @@ const removalFor = (
 	return { type: "match", removal: { ...range, declaration: decl } };
 };
 
-const isOverloaded = (sourceFile: ts.SourceFile, name: string): boolean =>
-	sourceFile.statements.filter((s) => ts.isFunctionDeclaration(s) && s.name?.text === name).length >
-	1;
+const declaredNames = (statement: ts.Statement): string[] => {
+	if (ts.isVariableStatement(statement)) {
+		return statement.declarationList.declarations
+			.map((d) => (ts.isIdentifier(d.name) ? d.name.text : null))
+			.filter((name): name is string => name !== null);
+	}
+	if (
+		ts.isFunctionDeclaration(statement) ||
+		ts.isClassDeclaration(statement) ||
+		ts.isInterfaceDeclaration(statement) ||
+		ts.isTypeAliasDeclaration(statement) ||
+		ts.isEnumDeclaration(statement) ||
+		ts.isModuleDeclaration(statement)
+	) {
+		return statement.name && ts.isIdentifier(statement.name) ? [statement.name.text] : [];
+	}
+	return [];
+};
+
+const isDeclaredMoreThanOnce = (sourceFile: ts.SourceFile, name: string): boolean =>
+	sourceFile.statements.filter((s) => declaredNames(s).includes(name)).length > 1;
 
 const kindOfStatement = (node: ts.Statement): UnusedKind | null => {
 	if (ts.isVariableStatement(node)) return "variable";
@@ -201,6 +219,12 @@ export const matchStatement = (
 ): MatchResult | SkipResult | NoneResult => {
 	const kind = kindOfStatement(statement);
 	if (!kind) return { type: "none" };
+	if (
+		declaredNames(statement).includes(decl.name) &&
+		isDeclaredMoreThanOnce(sourceFile, decl.name)
+	) {
+		return { type: "skip", reason: "merged declaration", declaration: decl };
+	}
 
 	// Match by name + location. We deliberately do NOT gate on `decl.kind`
 	// matching `kind` — upstream sources conflate kinds (knip reports an
@@ -246,9 +270,6 @@ export const matchStatement = (
 		if (!statement.name) return { type: "none" };
 		if (statement.name.text !== decl.name) return { type: "none" };
 		if (!nodeContainsLine(sourceFile, statement, decl.line)) return { type: "none" };
-		if (ts.isFunctionDeclaration(statement) && isOverloaded(sourceFile, decl.name)) {
-			return { type: "skip", reason: "overloaded function", declaration: decl };
-		}
 		const referenced = removalFor(sourceFile, statement, content, decl);
 		if (referenced) return referenced;
 		const range = computeRemovalRange(sourceFile, statement, content);
