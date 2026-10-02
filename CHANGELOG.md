@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+## 0.17.0 (2026-10-02)
+
+Per-file overrides, a fourth agent provider, and clearer failure reporting. `overrides` in `.aislop/config.yml` give different paths their own quality limits and rule severities in one scan, `aislop agent` can run on pi, and a scan with no hook installed suggests one.
+
+### Added
+
+- **Command failure telemetry (PII-free).** A new `cli_command_failed` event records crashes that escape the command lifecycle (top-level uncaught exceptions and unhandled rejections), so hard failures are no longer silent. Failed commands now also report the error class (`error_name`) and machine code (`error_code`) rather than only a heuristic `error_kind`, and scans report which engines crashed (`engines_failed`). All fields are allowlisted (never the error message, stack, or file paths), and capture honors the existing opt-out (`AISLOP_NO_TELEMETRY`, `DO_NOT_TRACK`, CI, config).
+- **Per-file overrides.** Ordered `overrides` in `.aislop/config.yml` apply project-relative glob patterns to partial quality limits and per-rule `error`, `warning`, or `off` severities. Later matching entries win, so controllers, services, and legacy files can share one scan with different policies. Existing scoring calibration and projects without overrides retain their behavior.
+- **`pi` provider for `aislop agent`.** Repair sessions can run on [pi](https://github.com/earendil-works/pi-coding-agent) alongside Codex, Claude, and OpenCode, with tool-call tracking, token usage, and changed-file detection. Thanks to @gtheys.
+- **Hook install suggestion after a scan.** An interactive `aislop scan` with no aislop hook installed now suggests installing one. It stays silent in CI, for non-TTY or `--json`/`--sarif` output, and once a hook exists.
+- **`--json` marks crashed engines.** An engine that crashes during a scan now has `"failed": true` in the `engines` map, so it can be told apart from an engine that was skipped on purpose.
+
+### Fixed
+
+- **Suggested commands work for `npx` users.** Next-step hints from `scan`, `doctor`, and `init` used to say `aislop ...`, which fails without a global install. When run through `npx`, they now say `npx aislop@latest ...`.
+- **`aislop badge` detects repositories with dots in their names.** Remotes such as `vercel/next.js` failed with "Could not detect a GitHub remote".
+- **Dependency advisories.** `adm-zip`, `fast-uri`, `hono`, and `ip-address` are raised to patched releases.
+- **`aislop fix` no longer deletes exports that are still used in their own file.** An export that no other file imports was removed along with its declaration, which broke any code in the same file that still called it. The fix now drops only the `export` keyword in that case, and skips default exports and overloaded or merged declarations it cannot safely un-export.
+
 ## 0.16.1 (2026-09-09)
 
 Maintenance release. Three rule fixes from contributors, each removing findings that should never have fired, one fix that closes a matching gap in the other direction, plus dependency patches.

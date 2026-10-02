@@ -7,6 +7,7 @@ import { renderDisplayRows, renderDisplaySection } from "../ui/display.js";
 import { renderHeader } from "../ui/header.js";
 import { log } from "../ui/logger.js";
 import { agentConnectCommand } from "./agent-connect.js";
+import { errorKindFromException } from "../telemetry/index.js";
 import { APP_VERSION } from "../version.js";
 import { launchAgentInBackground, renderBackgroundLaunch } from "./agent-background.js";
 import { runAgentSession, type AgentSessionRunTelemetry } from "./agent-session.js";
@@ -28,7 +29,7 @@ const guideNoProvider = (statuses: ProviderStatus[]): void => {
 	log.error(
 		anyInstalled
 			? "No coding agent is ready to run."
-			: "No coding agent is installed. `aislop agent` drives Codex, Claude Code, or OpenCode.",
+			: "No coding agent is installed. `aislop agent` drives Codex, Claude Code, OpenCode, or Pi.",
 	);
 	for (const status of statuses) {
 		const state = !status.installed
@@ -121,7 +122,7 @@ export const agentCommand = async (
 	} catch (error) {
 		log.error(error instanceof Error ? error.message : String(error));
 		process.exitCode = 1;
-		return { agent_result: "no_git_root" };
+		return { agent_result: "no_git_root", errorKind: errorKindFromException(error) };
 	}
 	const providerChoice = resolveAgentProviderSelection({
 		root,
@@ -151,7 +152,7 @@ export const agentCommand = async (
 		log.muted(`Using saved provider preference: ${providerChoice.selection}.`);
 	}
 	const selected = await resolveReadyProvider(resolvedOptions.provider);
-	if (!selected) return { agent_result: "provider_unavailable" };
+	if (!selected) return { agent_result: "provider_unavailable", errorKind: "provider_unavailable" };
 	if (resolvedOptions.dryRun) {
 		renderDryRun(selected, resolvedDir, resolvedOptions);
 		return { agent_result: "dry_run", ...providerTelemetry(selected, resolvedOptions) };
@@ -166,7 +167,11 @@ export const agentCommand = async (
 		} catch (error) {
 			log.error(error instanceof Error ? error.message : String(error));
 			process.exitCode = 1;
-			return { agent_result: "failed", ...providerTelemetry(selected, resolvedOptions) };
+			return {
+				agent_result: "failed",
+				errorKind: errorKindFromException(error),
+				...providerTelemetry(selected, resolvedOptions),
+			};
 		}
 	}
 	const result = await runAgentSession(selected, resolvedDir, resolvedOptions, started);

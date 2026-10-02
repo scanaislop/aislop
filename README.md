@@ -10,11 +10,17 @@ aislop catches them. 50+ rules across 10 language targets (TypeScript, JavaScrip
 
 ## Quick start
 
+**1. Scan.** Get your score in seconds. No install needed, works on any project.
+
 ```bash
 npx aislop@latest scan
 ```
 
-No install needed. Works on any project. Get your score in seconds.
+**2. Install the hook** so your coding agent fixes slop before it lands, on every edit. The hook calls `aislop` directly, so install the CLI first.
+
+```bash
+npm install -g aislop && aislop hook install
+```
 
 Also available on npm, Yarn, Bun, Homebrew, and PyPI:
 
@@ -212,7 +218,7 @@ aislop fix -p              # print an agent handoff prompt
 
 ### Run a local repair agent
 
-`aislop agent` keeps the deterministic scanner in charge while using the coding agent you already have installed. It creates a local git worktree, runs safe fixes, streams a headless Codex / Claude Code / OpenCode repair session, verifies the result with `aislop scan --json`, writes a local session transcript, and leaves the diff for review.
+`aislop agent` keeps the deterministic scanner in charge while using the coding agent you already have installed. It creates a local git worktree, runs safe fixes, streams a headless Codex / Claude Code / OpenCode / Pi repair session, verifies the result with `aislop scan --json`, writes a local session transcript, and leaves the diff for review.
 
 ```bash
 aislop agent providers        # see installed providers and setup hints
@@ -484,7 +490,9 @@ aislop rules are shaped by public scans and benchmark-derived failure modes, not
 
 ## Docs
 
-[Installation](docs/installation.md) · [Commands](docs/commands.md) · [Rules](docs/rules.md) · [Config](docs/configuration.md) · [Scoring](docs/scoring.md) · [CI/CD](docs/ci.md) · [Telemetry](docs/telemetry.md) · [Research program](docs/research-program.md)
+Docs on the website (preferred for search and agents): [start](https://scanaislop.com/docs) · [commands](https://scanaislop.com/docs/commands) · [rules](https://scanaislop.com/docs/rules) · [configure](https://scanaislop.com/docs/configure) · [scoring](https://scanaislop.com/docs/scoring) · [CI](https://scanaislop.com/docs/ci) · [hooks](https://scanaislop.com/docs/hooks)
+
+In this repo: [Installation](docs/installation.md) · [Commands](docs/commands.md) · [Rules](docs/rules.md) · [Config](docs/configuration.md) · [Scoring](docs/scoring.md) · [CI/CD](docs/ci.md) · [Telemetry](docs/telemetry.md) · [Research program](docs/research-program.md)
 
 ## Community
 

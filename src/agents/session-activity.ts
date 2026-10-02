@@ -62,6 +62,28 @@ export const mergeProviderUsage = (
 	};
 };
 
+export const addProviderUsage = (
+	totals: AgentUsageTotals,
+	usage: Partial<ProviderUsage>,
+): AgentUsageTotals => {
+	const inputTokens = totals.inputTokens + (usage.inputTokens ?? 0);
+	const cachedInputTokens = totals.cachedInputTokens + (usage.cachedInputTokens ?? 0);
+	const outputTokens = totals.outputTokens + (usage.outputTokens ?? 0);
+	const totalTokens =
+		totals.totalTokens +
+		(usage.totalTokens ??
+			(usage.inputTokens ?? 0) + (usage.cachedInputTokens ?? 0) + (usage.outputTokens ?? 0));
+	const costUsd =
+		usage.costUsd === undefined ? totals.costUsd : (totals.costUsd ?? 0) + usage.costUsd;
+	return {
+		inputTokens,
+		cachedInputTokens,
+		outputTokens,
+		totalTokens,
+		...(costUsd !== undefined ? { costUsd } : {}),
+	};
+};
+
 const abbreviateTokens = (n: number): string => {
 	if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
 	if (n >= 1_000) return `${Math.round(n / 1_000)}k`;

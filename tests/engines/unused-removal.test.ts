@@ -451,6 +451,133 @@ export const unusedExportedConst = 42;
 		assertParsesClean(file);
 	});
 
+	it("drops only the export keyword when the declaration is still used in its own file", () => {
+		const source = `export const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+
+export function median(xs: number[]): number {
+	return xs[Math.floor(xs.length / 2)];
+}
+
+export const summary = (xs: number[]) => ({ mean: mean(xs), median: median(xs) });
+`;
+		const file = writeFixture("stats.ts", source);
+		const decls: UnusedDeclaration[] = [
+			{
+				filePath: file,
+				line: findLine(source, "const mean"),
+				column: 14,
+				name: "mean",
+				kind: "variable",
+			},
+			{
+				filePath: file,
+				line: findLine(source, "function median"),
+				column: 17,
+				name: "median",
+				kind: "function",
+			},
+		];
+
+		const result = removeUnusedDeclarations(tmpDir, decls);
+		expect(result.removed).toBe(2);
+
+		const after = fs.readFileSync(file, "utf-8");
+		expect(after.startsWith("const mean = (xs: number[])")).toBe(true);
+		expect(after).not.toContain("export const mean");
+		expect(after).toContain("\nfunction median(xs: number[])");
+		expect(after).not.toContain("export function median");
+		expect(after).toContain("export const summary");
+		assertParsesClean(file);
+	});
+
+	it("still removes a function whose only reference is its own recursion", () => {
+		const source = `export const keep = 1;
+export function countdown(n: number): number {
+	return n <= 0 ? 0 : countdown(n - 1);
+}
+`;
+		const file = writeFixture("recursive.ts", source);
+		const result = removeUnusedDeclarations(tmpDir, [
+			{
+				filePath: file,
+				line: findLine(source, "function countdown"),
+				column: 1,
+				name: "countdown",
+				kind: "function",
+			},
+		]);
+
+		expect(result.removed).toBe(1);
+		expect(fs.readFileSync(file, "utf-8")).toBe("export const keep = 1;\n");
+	});
+
+	it("un-exports a used const even when its initializer has side effects", () => {
+		const source = `export const registry = new Map<string, number>();
+export const register = (key: string) => registry.set(key, 1);
+`;
+		const file = writeFixture("registry.ts", source);
+		const result = removeUnusedDeclarations(tmpDir, [
+			{ filePath: file, line: 1, column: 14, name: "registry", kind: "variable" },
+		]);
+
+		expect(result.removed).toBe(1);
+		const after = fs.readFileSync(file, "utf-8");
+		expect(after.startsWith("const registry = new Map")).toBe(true);
+		expect(after).toContain("export const register");
+	});
+
+	it("skips a default export that is still referenced in its own file", () => {
+		const source = `export default function handler(): number {
+	return 1;
+}
+export const call = () => handler();
+`;
+		const file = writeFixture("default.ts", source);
+		const result = removeUnusedDeclarations(tmpDir, [
+			{ filePath: file, line: 1, column: 1, name: "handler", kind: "function" },
+		]);
+
+		expect(result.removed).toBe(0);
+		expect(result.skipped[0]?.reason).toBe("still referenced in its own file");
+		expect(fs.readFileSync(file, "utf-8")).toBe(source);
+	});
+
+	it("skips overloaded functions instead of half-exporting the overload set", () => {
+		const source = `export function parse(input: string): string;
+export function parse(input: number): number;
+export function parse(input: string | number): string | number {
+	return input;
+}
+`;
+		const file = writeFixture("overloads.ts", source);
+		const result = removeUnusedDeclarations(tmpDir, [
+			{ filePath: file, line: 1, column: 17, name: "parse", kind: "function" },
+		]);
+
+		expect(result.removed).toBe(0);
+		expect(result.skipped[0]?.reason).toBe("merged declaration");
+		expect(fs.readFileSync(file, "utf-8")).toBe(source);
+	});
+
+	it("skips merged interface declarations instead of half-exporting them", () => {
+		const source = `export interface Options {
+	verbose: boolean;
+}
+export interface Options {
+	quiet: boolean;
+}
+export const read = (options: Options) => options.verbose;
+`;
+		const file = writeFixture("merged.ts", source);
+		const result = removeUnusedDeclarations(tmpDir, [
+			{ filePath: file, line: 1, column: 18, name: "Options", kind: "interface" },
+		]);
+
+		expect(result.removed).toBe(0);
+		expect(result.skipped[0]?.reason).toBe("merged declaration");
+		expect(fs.readFileSync(file, "utf-8")).toBe(source);
+	});
+
 	it("leaves non-matching declarations untouched when file has irrelevant unused names", () => {
 		const source = `export const a = 1;
 export const b = 2;

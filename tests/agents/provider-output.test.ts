@@ -99,4 +99,117 @@ describe("provider output formatting", () => {
 			costUsd: 0.0123,
 		});
 	});
+
+	it("counts a pi tool call once, from its execution event, not the streamed toolcall", () => {
+		const lines = [
+			JSON.stringify({
+				type: "message_update",
+				usage: { totalTokens: 900 },
+				assistantMessageEvent: { type: "toolcall_start", id: "t1", toolName: "edit" },
+			}),
+			JSON.stringify({ type: "tool_execution_start", toolCallId: "t1", toolName: "edit" }),
+		].map(formatProviderOutputLine);
+		expect(lines.filter((line) => line?.startsWith("tool:"))).toEqual(["tool: edit"]);
+	});
+
+	it("renders pi tool execution events and completion state", () => {
+		expect(
+			formatProviderOutputLine(
+				JSON.stringify({ type: "tool_execution_start", toolCallId: "t1", toolName: "bash" }),
+			),
+		).toBe("tool: bash");
+		expect(formatProviderOutputLine(JSON.stringify({ type: "tool_execution_end", isError: false }))).toBe(
+			"tool done",
+		);
+		expect(formatProviderOutputLine(JSON.stringify({ type: "tool_execution_end", isError: true }))).toBe(
+			"tool done (error)",
+		);
+	});
+
+	it("extracts token usage from pi message_end events, not partial message_update ones", () => {
+		const metadata = extractProviderOutputMetadata(
+			JSON.stringify({
+				type: "message_end",
+				usage: { input: 500, output: 120, cached: 0, total: 620 },
+				assistantMessageEvent: {
+					type: "toolcall_start",
+					id: "t1",
+					toolName: "write",
+					args: { path: "src/pi-edit.ts" },
+				},
+			}),
+		);
+
+		expect(metadata.usage).toMatchObject({ inputTokens: 500, outputTokens: 120, totalTokens: 620 });
+		expect(metadata.files).toEqual(["src/pi-edit.ts"]);
+	});
+
+	it("records pi's cached token count", () => {
+		const metadata = extractProviderOutputMetadata(
+			JSON.stringify({
+				type: "message_end",
+				usage: { in: 900, out: 100, cached: 400, total: 1400 },
+			}),
+		);
+		expect(metadata.usage).toMatchObject({ cachedInputTokens: 400 });
+	});
+
+	it("ignores partial pi usage and marks final usage as per response", () => {
+		const usage = { input: 500, output: 120, total: 620 };
+		const partial = extractProviderOutputMetadata(
+			JSON.stringify({ type: "message_update", usage }),
+		);
+		const final = extractProviderOutputMetadata(JSON.stringify({ type: "message_end", usage }));
+		expect(partial.usage).toBeUndefined();
+		expect(final.usageScope).toBe("response");
+	});
+
+	it("labels only assistant pi message_end events as assistant output", () => {
+		const end = (role: string) =>
+			formatProviderOutputLine(
+				JSON.stringify({ type: "message_end", message: { role, content: "fix the slop" } }),
+			);
+		expect(end("user")).toBeNull();
+		expect(end("toolResult")).toBeNull();
+		expect(end("assistant")).toBe("assistant: fix the slop");
+	});
+
+	it("suppresses pi text delta message_update events", () => {
+		expect(
+			formatProviderOutputLine(
+				JSON.stringify({
+					type: "message_update",
+					usage: { in: 10, out: 2, total: 12 },
+					assistantMessageEvent: { type: "text", text: "partial delta" },
+				}),
+			),
+		).toBeNull();
+	});
+
+	it("extracts pi usage cost from a nested cost total", () => {
+		const metadata = extractProviderOutputMetadata(
+			JSON.stringify({
+				type: "message_end",
+				usage: {
+					input: 500,
+					output: 120,
+					total: 620,
+					cost: { input: 0.01, output: 0.02, total: 0.03 },
+				},
+			}),
+		);
+
+		expect(metadata.usage).toMatchObject({ totalTokens: 620, costUsd: 0.03 });
+	});
+
+	it("extracts pi usage cost from the plain cost field", () => {
+		const metadata = extractProviderOutputMetadata(
+			JSON.stringify({
+				type: "message_end",
+				usage: { in: 500, out: 120, cached: 0, total: 620, cost: 0.0123 },
+				}),
+			);
+
+		expect(metadata.usage).toMatchObject({ totalTokens: 620, costUsd: 0.0123 });
+	});
 });

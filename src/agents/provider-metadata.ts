@@ -10,6 +10,7 @@ export interface ProviderUsage {
 
 interface ProviderOutputMetadata {
 	usage?: Partial<ProviderUsage>;
+	usageScope?: "response";
 	files: string[];
 }
 
@@ -45,19 +46,24 @@ function usageFrom(value: unknown): Partial<ProviderUsage> | null {
 		"inputTokens",
 		"prompt_tokens",
 		"promptTokens",
+		// pi --mode json usage shape (packages/ai TokenUsage)
+		"in",
+		"input",
 	]);
 	const cacheReadTokenValue = tokenValue(value, [
 		"cache_read_input_tokens",
 		"cacheReadInputTokens",
+		"cacheRead",
 	]);
 	const cacheCreationTokenValue = tokenValue(value, [
 		"cache_creation_input_tokens",
 		"cacheCreationInputTokens",
+		"cacheWrite",
 	]);
 	const cacheReadTokens = cacheReadTokenValue ?? 0;
 	const cacheCreationTokens = cacheCreationTokenValue ?? 0;
 	const cachedInputTokens =
-		tokenValue(value, ["cached_input_tokens", "cachedInputTokens"]) ??
+		tokenValue(value, ["cached_input_tokens", "cachedInputTokens", "cached"]) ??
 		(cacheReadTokenValue !== null || cacheCreationTokenValue !== null
 			? cacheReadTokens + cacheCreationTokens
 			: null);
@@ -66,9 +72,15 @@ function usageFrom(value: unknown): Partial<ProviderUsage> | null {
 		"outputTokens",
 		"completion_tokens",
 		"completionTokens",
+		// pi --mode json usage shape (packages/ai TokenUsage)
+		"out",
+		"output",
 	]);
-	const directTotalTokens = tokenValue(value, ["total_tokens", "totalTokens"]);
-	const costUsd = tokenValue(value, ["cost_usd", "total_cost_usd", "costUsd", "totalCostUsd"]);
+	const directTotalTokens = tokenValue(value, ["total_tokens", "totalTokens", "total"]);
+	// pi --mode json reports cost as `cost` or as `cost.total`
+	const costUsd =
+		tokenValue(value, ["cost_usd", "total_cost_usd", "costUsd", "totalCostUsd", "cost"]) ??
+		(isObject(value.cost) ? tokenValue(value.cost, ["total"]) : null);
 	const hasTokenUsage =
 		inputTokens !== null ||
 		cachedInputTokens !== null ||
@@ -135,6 +147,8 @@ function collectFilePaths(value: unknown, files: Set<string>): void {
 	}
 	if (isObject(value.item)) collectFilePaths(value.item, files);
 	if (isObject(value.message)) collectFilePaths(value.message, files);
+	if (isObject(value.assistantMessageEvent)) collectFilePaths(value.assistantMessageEvent, files);
+	if (isObject(value.args)) collectFilePaths(value.args, files);
 }
 
 export function extractProviderOutputMetadata(line: string): ProviderOutputMetadata {
@@ -142,9 +156,13 @@ export function extractProviderOutputMetadata(line: string): ProviderOutputMetad
 	if (!event) return { files: [] };
 	const files = new Set<string>();
 	collectFilePaths(event, files);
-	const usage = collectUsage(event);
+	const type = typeof event.type === "string" ? event.type : null;
+	const nonAssistantEnd =
+		type === "message_end" && isObject(event.message) && event.message.role !== "assistant";
+	const usage = type === "message_update" || nonAssistantEnd ? null : collectUsage(event);
 	return {
 		...(usage ? { usage } : {}),
+		...(usage && type === "message_end" ? { usageScope: "response" as const } : {}),
 		files: [...files],
 	};
 }

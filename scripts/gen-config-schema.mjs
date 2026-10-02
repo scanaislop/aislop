@@ -23,6 +23,7 @@ const relax = (node) => {
 
 const jsonSchema = z.toJSONSchema(AislopConfigSchema, { target: "draft-2020-12" });
 relax(jsonSchema);
+jsonSchema.properties.overrides.items.required = ["files"];
 jsonSchema.$id = "https://scanaislop.com/schema/aislop.config.schema.json";
 jsonSchema.title = "aislop configuration (.aislop/config.yml)";
 jsonSchema.description = "Configuration schema for the aislop code-quality CLI.";

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { type AislopConfig, findConfigDir, RULES_FILE } from "../config/index.js";
+import { applyFileOverrides } from "../config/overrides.js";
 import { runEngines } from "../engines/orchestrator.js";
 import type { Diagnostic, EngineConfig, EngineResult } from "../engines/types.js";
 import { calculateScore } from "../scoring/index.js";
@@ -278,6 +279,8 @@ const runFixBody = async (
 	const configDir = findConfigDir(resolvedDir);
 	const rulesPath = configDir ? path.join(configDir, RULES_FILE) : undefined;
 	const engineConfig: EngineConfig = {
+		overrides: config.overrides,
+		rules: config.rules,
 		quality: config.quality,
 		security: config.security,
 		lint: config.lint,
@@ -310,7 +313,7 @@ const runFixBody = async (
 	rail.complete({ status: "done", label: "Verification complete" });
 	const scanResults = appendPostFixLintResult(
 		verificationResults,
-		collectPostFixLintDiagnostics(steps),
+		applyFileOverrides(collectPostFixLintDiagnostics(steps), context),
 	);
 
 	const allDiagnostics = scanResults.flatMap((r) => r.diagnostics);

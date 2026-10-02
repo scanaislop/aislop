@@ -60,7 +60,7 @@ scripts portable:
 - **Version injection**: `tsdown.config.ts` reads `package.json` version and injects it via `env.VERSION`. Access it in source via `process.env.VERSION`.
 - **vitest** for testing with a 30-second timeout
 - **pnpm** as the package manager (pnpm-workspace.yaml, pnpm-lock.yaml)
-- **Node >= 20 required**. `tsdown`/`rolldown` uses `node:util.styleText` which requires Node 20.12+
+- **Node >= 20 at runtime, >= 22.18 for development.** The published CLI targets Node 18+ and the `engines` field advertises >= 20. Building and testing need Node 22.18+, which `tsdown` and `vitest` require. CI runs Node 22 and 24.
 
 ## Project structure
 

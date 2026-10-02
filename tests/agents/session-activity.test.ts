@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+	addProviderUsage,
 	createSessionStats,
 	createUsageTotals,
 	formatDiffStat,
@@ -58,5 +59,25 @@ describe("agent session activity", () => {
 		expect(formatDiffStat({ additions: 12, deletions: 3 })).toBe("+12 -3");
 		expect(formatDiffStat({ additions: null, deletions: null, binary: true })).toBe("binary");
 		expect(formatDiffStat({})).toBe("changed");
+	});
+});
+
+describe("addProviderUsage", () => {
+	it("sums per-response usage and cost across responses", () => {
+		const empty = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, totalTokens: 0 };
+		const first = addProviderUsage(empty, {
+			inputTokens: 500,
+			outputTokens: 100,
+			totalTokens: 600,
+			costUsd: 0.03,
+		});
+		const second = addProviderUsage(first, {
+			inputTokens: 300,
+			outputTokens: 50,
+			totalTokens: 350,
+			costUsd: 0.02,
+		});
+		expect(second).toMatchObject({ inputTokens: 800, outputTokens: 150, totalTokens: 950 });
+		expect(second.costUsd).toBeCloseTo(0.05);
 	});
 });

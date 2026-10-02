@@ -3,7 +3,7 @@ import type { AgentProviderSelection } from "../agents/providers.js";
 import { loadConfig } from "../config/index.js";
 import type { AgentMonitorOptions } from "../commands/agent-monitor-types.js";
 import type { AgentOptions } from "../commands/agent-types.js";
-import { type CommandName, withCommandLifecycle } from "../telemetry/index.js";
+import { type CommandName, type ErrorKind, withCommandLifecycle } from "../telemetry/index.js";
 
 export const parseInteger = (value: string): number => Number.parseInt(value, 10);
 
@@ -18,7 +18,7 @@ type AgentOption = {
 const AGENT_OPTIONS: AgentOption[] = [
 	{
 		flag: "--provider <provider>",
-		description: "provider to use: auto, codex, claude, opencode",
+		description: "provider to use: auto, codex, claude, opencode, pi",
 		defaultValue: "auto",
 	},
 	{
@@ -174,7 +174,7 @@ export const addMonitorOptions = (command: Command): void => {
 const providerSourceFrom = (command: Command): "cli" | "auto" =>
 	command.getOptionValueSourceWithGlobals("provider") === "default" ? "auto" : "cli";
 
-const TELEMETRY_PROVIDERS = new Set(["auto", "codex", "claude", "opencode"]);
+const TELEMETRY_PROVIDERS = new Set(["auto", "codex", "claude", "opencode", "pi"]);
 
 export const telemetryProvider = (provider: string | undefined): string => {
 	if (!provider) return "none";
@@ -204,10 +204,11 @@ export const withAgentLifecycle = async (
 			properties,
 		},
 		async () => {
-			const completionProperties = await run();
+			const { errorKind, ...completionProperties } = (await run()) ?? {};
 			return {
 				exitCode: exitCodeFromProcess(),
-				properties: completionProperties ?? undefined,
+				errorKind: errorKind as ErrorKind | undefined,
+				properties: Object.keys(completionProperties).length > 0 ? completionProperties : undefined,
 			};
 		},
 	);

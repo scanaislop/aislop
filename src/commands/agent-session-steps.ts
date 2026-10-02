@@ -13,6 +13,7 @@ import {
 	formatToolCalls,
 	formatUsageTotals,
 	isProviderToolLine,
+	addProviderUsage,
 	mergeProviderUsage,
 } from "../agents/session-activity.js";
 import { diffNameOnly, readBinaryDiff } from "../agents/worktree.js";
@@ -89,7 +90,9 @@ export const runProviderStep = async (input: {
 				}
 				const metadata = extractProviderOutputMetadata(event.line);
 				if (metadata.usage) {
-					Object.assign(input.usage, mergeProviderUsage(input.usage, metadata.usage));
+					const combine =
+						metadata.usageScope === "response" ? addProviderUsage : mergeProviderUsage;
+					Object.assign(input.usage, combine(input.usage, metadata.usage));
 					input.tui.setMetric("Tokens", formatUsageTotals(input.usage));
 					input.tui.setUsage({
 						inputTokens: input.usage.inputTokens,
