@@ -98,6 +98,29 @@ describe("Python dependency sources", () => {
 		expect(diagnostics.map((d) => d.filePath)).toEqual(["app/main.py"]);
 	});
 
+	it("checks a standalone PEP 723 script when the project has no manifest", async () => {
+		writeFile(
+			"shot.py",
+			["# /// script", '# dependencies = ["playwright"]', "# ///", "import playwright", "import ghostlib"].join(
+				"\n",
+			),
+		);
+		writeFile("plain.py", "import ghostlib\n");
+
+		const diagnostics = await detectHallucinatedImports(buildContext());
+		expect(diagnostics.map((d) => [d.filePath, d.message.match(/"([^"]+)"/)?.[1]])).toEqual([
+			["shot.py", "ghostlib"],
+		]);
+	});
+
+	it("does not treat constraint file entries as declared dependencies", async () => {
+		writeFile("requirements.txt", "-c constraints.txt\nrequests\n");
+		writeFile("constraints.txt", "ghostlib==1.0\n");
+		writeFile("app/main.py", ["import requests", "import ghostlib"].join("\n"));
+
+		expect(await flaggedImports()).toEqual(["ghostlib"]);
+	});
+
 	it("skips modules listed in imports.provided, including submodules", async () => {
 		writeFile("pyproject.toml", '[project]\nname = "integration"\ndependencies = []\n');
 		writeFile(

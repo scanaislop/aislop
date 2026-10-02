@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- **Python import checks read more dependency sources.** `ai-slop/hallucinated-import` now reads every `requirements*.txt` variant (`requirements_dev.txt`, `requirements-test.txt`, `dev-requirements.txt`, ...), files in a `requirements/` directory, `-r`/`-c` includes, and PEP 723 inline script metadata. Projects that kept dependencies outside `requirements.txt` and `pyproject.toml` got an error for every third-party import.
+- **Python import checks read more dependency sources.** `ai-slop/hallucinated-import` now reads every `requirements*.txt` variant (`requirements_dev.txt`, `requirements-test.txt`, `dev-requirements.txt`, ...), files in a `requirements/` directory, `-r` includes, and PEP 723 inline script metadata. Projects that kept dependencies outside `requirements.txt` and `pyproject.toml` got an error for every third-party import.
 - **Biome formatting respects the project's Biome config.** When a project has `biome.json` or `biome.jsonc`, `scan` and `fix` now use its settings instead of forcing a 120-column line width. Before, a project that relied on Biome's default width of 80 got formatting findings that its own Biome rejected, and `aislop fix` rewrote files so the project's `biome format` failed. `biome.jsonc` is now detected too.
 
 ## 0.17.0 (2026-10-02)

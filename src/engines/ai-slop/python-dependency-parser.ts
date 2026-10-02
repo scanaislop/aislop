@@ -7,7 +7,7 @@ const UTF8_DECODER = new TextDecoder("utf-8", { fatal: true });
 const PYTHON_MANIFEST_FILES = new Set(["pyproject.toml", "Pipfile"]);
 const REQUIREMENTS_FILE_RE = /^(?:[\w.-]*[-_.])?requirements(?:[-_.][\w.-]*)?\.(?:txt|in)$/i;
 const REQUIREMENTS_DIR = "requirements";
-const REQUIREMENTS_INCLUDE_RE = /^(?:-r|--requirement|-c|--constraint)(?:\s+|=)(\S+)/;
+const REQUIREMENTS_INCLUDE_RE = /^(?:-r|--requirement)(?:\s+|=)(\S+)/;
 const MAX_REQUIREMENTS_FILES = 64;
 
 const isRequirementsFileName = (name: string): boolean => REQUIREMENTS_FILE_RE.test(name);
