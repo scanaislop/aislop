@@ -34,6 +34,7 @@ export interface EngineResult {
 	elapsed: number;
 	skipped: boolean;
 	skipReason?: string;
+	missingTools?: string[];
 	failed?: boolean;
 }
 

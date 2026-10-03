@@ -63,6 +63,7 @@ export const DEFAULT_CONFIG: AislopConfig = {
 	ci: {
 		failBelow: 70,
 		format: "json",
+		failOnMissingTools: false,
 	},
 	telemetry: {
 		enabled: true,
