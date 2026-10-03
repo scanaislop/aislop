@@ -92,19 +92,20 @@ const isSymbolicLink = (candidate: string): boolean => {
 	}
 };
 
-const isTrackedByGit = (projectRoot: string, relativePath: string): boolean => {
-	const result = spawnSync("git", ["ls-files", "--error-unmatch", "--", relativePath], {
-		cwd: projectRoot,
-		stdio: "ignore",
-	});
+const gitSucceeds = (projectRoot: string, args: string[]): boolean => {
+	const result = spawnSync("git", args, { cwd: projectRoot, stdio: "ignore" });
 	return !result.error && result.status === 0;
 };
+
+const isUntrackedInGitWorkTree = (projectRoot: string, relativePath: string): boolean =>
+	gitSucceeds(projectRoot, ["rev-parse", "--is-inside-work-tree"]) &&
+	!gitSucceeds(projectRoot, ["ls-files", "--error-unmatch", "--", relativePath]);
 
 const isTrustedVenvTool = (projectRoot: string, segments: string[]): boolean => {
 	for (let depth = 1; depth <= segments.length; depth += 1) {
 		if (isSymbolicLink(path.join(projectRoot, ...segments.slice(0, depth)))) return false;
 	}
-	return !isTrackedByGit(projectRoot, segments.join("/"));
+	return isUntrackedInGitWorkTree(projectRoot, segments.join("/"));
 };
 
 const findProjectVenvTool = (toolName: string, projectRoot: string): string | null => {

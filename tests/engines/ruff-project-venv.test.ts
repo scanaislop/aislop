@@ -11,6 +11,10 @@ import { isToolAvailable, resolveToolBinary } from "../../src/utils/tooling.js";
 
 const isWindows = process.platform === "win32";
 
+const initGitRepo = (directory: string): void => {
+	spawnSync("git", ["init", "-q"], { cwd: directory, stdio: "ignore" });
+};
+
 const venvRuffPath = (rootDirectory: string, venvDir: string): string =>
 	isWindows
 		? path.join(rootDirectory, venvDir, "Scripts", "ruff.exe")
@@ -36,6 +40,7 @@ describe("resolveToolBinary with a project root", () => {
 
 	beforeEach(() => {
 		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "aislop-ruff-venv-resolve-"));
+		initGitRepo(tmpDir);
 		originalPath = process.env.PATH;
 	});
 
@@ -48,7 +53,7 @@ describe("resolveToolBinary with a project root", () => {
 		const projectRuff = writeExecutable(venvRuffPath(tmpDir, ".venv"), "");
 		const pathDir = path.join(tmpDir, "path-bin");
 		writeExecutable(path.join(pathDir, isWindows ? "ruff.exe" : "ruff"), "");
-		process.env.PATH = pathDir;
+		process.env.PATH = [pathDir, originalPath ?? ""].join(path.delimiter);
 
 		expect(resolveToolBinary("ruff", { projectRoot: tmpDir })).toBe(projectRuff);
 	});
@@ -99,6 +104,7 @@ describe.skipIf(isWindows)("ruff engines use the project's venv ruff", () => {
 
 	beforeEach(() => {
 		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "aislop-ruff-venv-engine-"));
+		initGitRepo(tmpDir);
 		logFile = path.join(tmpDir, "invocations.log");
 		fs.mkdirSync(path.join(tmpDir, "pkg"));
 		fs.writeFileSync(path.join(tmpDir, "pkg", "main.py"), "x = 1\n");
@@ -143,6 +149,7 @@ describe("project venv lookup is limited to ruff", () => {
 
 	beforeEach(() => {
 		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "aislop-venv-other-tool-"));
+		initGitRepo(tmpDir);
 	});
 
 	afterEach(() => {
@@ -175,6 +182,12 @@ describe.skipIf(isWindows)("untrusted project venv ruff", () => {
 
 	afterEach(() => {
 		fs.rmSync(tmpDir, { recursive: true, force: true });
+	});
+
+	it("does not run a venv ruff outside a git work tree", () => {
+		const projectRuff = writeExecutable(venvRuffPath(tmpDir, ".venv"), "");
+
+		expect(resolveToolBinary("ruff", { projectRoot: tmpDir })).not.toBe(projectRuff);
 	});
 
 	it("does not run a venv ruff that is committed to the repository", () => {
