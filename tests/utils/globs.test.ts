@@ -37,6 +37,9 @@ describe("expandBraceLists", () => {
 
 	it("leaves a range that is too large unexpanded", () => {
 		expect(expandBraceLists("{1..100000}")).toEqual(["{1..100000}"]);
+		expect(expandBraceLists("{9007199254740992..9007199254740993}")).toEqual([
+			"{9007199254740992..9007199254740993}",
+		]);
 	});
 
 	it("returns the pattern unexpanded when the expansion is too large", () => {

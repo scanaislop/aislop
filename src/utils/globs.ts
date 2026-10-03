@@ -13,6 +13,7 @@ const ALPHA_RANGE_RE = /^([a-zA-Z])\.\.([a-zA-Z])(?:\.\.(-?\d+))?$/;
 
 const rangeValues = (from: number, to: number, rawStep: string | undefined): number[] | null => {
 	const step = Math.abs(Number(rawStep ?? 1)) || 1;
+	if (![from, to, step].every(Number.isSafeInteger)) return null;
 	const count = Math.floor(Math.abs(to - from) / step) + 1;
 	if (count > MAX_BRACE_EXPANSIONS) return null;
 	const direction = to >= from ? 1 : -1;
