@@ -96,6 +96,7 @@ const CiSchema = z.object({
 	failBelow: z.number().default(70),
 	format: z.enum(["json"]).default("json"),
 	failOnMissingTools: z.boolean().default(false),
+	baseline: z.string().min(1).optional(),
 });
 
 const TelemetrySchema = z.object({

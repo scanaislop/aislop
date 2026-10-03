@@ -1,3 +1,4 @@
+import type { ScanBaselineSummary } from "../commands/scan-baseline.js";
 import type { EngineResult } from "../engines/types.js";
 import type { ScoreResult } from "../scoring/index.js";
 import type { Coverage } from "../utils/discover.js";
@@ -39,6 +40,7 @@ interface JsonOutput {
 		files: number;
 		elapsed: string;
 	};
+	baseline?: ScanBaselineSummary;
 }
 
 export const buildJsonOutput = (
@@ -47,6 +49,7 @@ export const buildJsonOutput = (
 	fileCount: number,
 	elapsedMs: number,
 	coverage: Coverage,
+	baseline?: ScanBaselineSummary,
 ): JsonOutput => {
 	const allDiagnostics = results.flatMap((r) => r.diagnostics);
 	const assessedDiagnostics = withFindingAssessments(allDiagnostics);
@@ -83,5 +86,6 @@ export const buildJsonOutput = (
 			elapsed:
 				elapsedMs < 1000 ? `${Math.round(elapsedMs)}ms` : `${(elapsedMs / 1000).toFixed(1)}s`,
 		},
+		...(baseline ? { baseline } : {}),
 	};
 };

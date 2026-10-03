@@ -27,7 +27,9 @@ export type CommandName =
 	| "hook_install"
 	| "hook_uninstall"
 	| "hook_status"
-	| "hook_baseline";
+	| "hook_baseline"
+	| "baseline_write"
+	| "baseline_prune";
 
 export type ErrorKind =
 	| "config_invalid"

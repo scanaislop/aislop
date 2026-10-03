@@ -318,7 +318,11 @@ aislop ci                  # JSON output, exits 1 if score < threshold
 aislop ci --changes --base origin/main  # gate only the files a PR changes
 aislop ci --human          # human-friendly CI output
 aislop ci --sarif          # SARIF output for code scanning
+aislop baseline write      # accept current findings; ci then fails only on new ones
+aislop baseline prune      # drop baseline entries for findings you fixed
 ```
+
+Set `ci.baseline: .aislop/ci-baseline.json` after `aislop baseline write` so `scan` and `ci` use it. See [docs/ci.md](docs/ci.md#baseline-fail-only-on-new-findings).
 
 `ci` accepts the same `--changes` / `--staged` / `--base <ref>` scoping as `scan`. Use `--changes --base origin/<target>` to gate a pull request on only the files it touches; the score gate and exit code still apply.
 
