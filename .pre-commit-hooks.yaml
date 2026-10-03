@@ -5,3 +5,5 @@
   language: node
   pass_filenames: false
   require_serial: true
+  stages: [pre-commit]
+  minimum_pre_commit_version: "3.2.0"
