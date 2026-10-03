@@ -118,6 +118,16 @@ describe("baseline matching", () => {
 		expect(match(baseline, []).staleCount).toBe(1);
 	});
 
+	it("keeps knip file-level entries until their file is gone", () => {
+		writeSource("src/unused.ts", "export const x = 1;\n");
+		const unusedFile = diag("src/unused.ts", 0, "knip/files", "code-quality");
+		const baseline = buildBaseline([unusedFile], root);
+
+		expect(match(baseline, []).staleCount).toBe(0);
+		fs.rmSync(path.join(root, "src/unused.ts"));
+		expect(match(baseline, []).staleCount).toBe(1);
+	});
+
 	it("reports in-process file-level entries as stale once they stop occurring", () => {
 		writeSource("src/big.ts", "a\n");
 		const big = diag("src/big.ts", 0, "complexity/file-too-large", "code-quality");

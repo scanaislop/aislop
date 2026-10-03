@@ -37,6 +37,11 @@ const fingerprintOf = (text: string): string =>
 	createHash("sha256").update(text.trim().replace(/\s+/g, " ")).digest("hex").slice(0, 16);
 
 const IN_PROCESS_ENGINES = new Set<EngineName>(["ai-slop", "code-quality", "architecture"]);
+const TOOL_BACKED_RULE_PREFIXES = ["knip/"];
+
+const isInProcessRule = (entry: BaselineEntry): boolean =>
+	IN_PROCESS_ENGINES.has(entry.engine) &&
+	!TOOL_BACKED_RULE_PREFIXES.some((prefix) => entry.rule.startsWith(prefix));
 
 const isFileLevel = (fingerprint: string): boolean =>
 	fingerprint === "" || fingerprint.startsWith(MESSAGE_FINGERPRINT_PREFIX);
@@ -75,7 +80,7 @@ const createSourceCache = (rootDirectory: string) => {
 type SourceCache = ReturnType<typeof createSourceCache>;
 
 const fileLevelStale = (entry: BaselineEntry, left: number, sources: SourceCache): number =>
-	IN_PROCESS_ENGINES.has(entry.engine) || !sources.exists(entry.file) ? left : 0;
+	isInProcessRule(entry) || !sources.exists(entry.file) ? left : 0;
 
 interface Keyed {
 	diagnostic: Diagnostic;
