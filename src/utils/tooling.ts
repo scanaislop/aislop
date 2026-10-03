@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -83,14 +84,38 @@ const findToolOnPath = (toolName: string): string | null => {
 const PROJECT_VENV_DIRS = [".venv", "venv"];
 const PROJECT_VENV_TOOL_NAMES = new Set(["ruff"]);
 
+const isSymbolicLink = (candidate: string): boolean => {
+	try {
+		return fs.lstatSync(candidate).isSymbolicLink();
+	} catch {
+		return true;
+	}
+};
+
+const isTrackedByGit = (projectRoot: string, relativePath: string): boolean => {
+	const result = spawnSync("git", ["ls-files", "--error-unmatch", "--", relativePath], {
+		cwd: projectRoot,
+		stdio: "ignore",
+	});
+	return !result.error && result.status === 0;
+};
+
+const isTrustedVenvTool = (projectRoot: string, segments: string[]): boolean => {
+	for (let depth = 1; depth <= segments.length; depth += 1) {
+		if (isSymbolicLink(path.join(projectRoot, ...segments.slice(0, depth)))) return false;
+	}
+	return !isTrackedByGit(projectRoot, segments.join("/"));
+};
+
 const findProjectVenvTool = (toolName: string, projectRoot: string): string | null => {
 	if (!PROJECT_VENV_TOOL_NAMES.has(toolName)) return null;
 	for (const venvDir of PROJECT_VENV_DIRS) {
-		const candidate =
+		const segments =
 			process.platform === "win32"
-				? path.join(projectRoot, venvDir, "Scripts", withExecutableExtension(toolName))
-				: path.join(projectRoot, venvDir, "bin", toolName);
-		if (isExecutableFile(candidate)) return candidate;
+				? [venvDir, "Scripts", withExecutableExtension(toolName)]
+				: [venvDir, "bin", toolName];
+		const candidate = path.join(projectRoot, ...segments);
+		if (isExecutableFile(candidate) && isTrustedVenvTool(projectRoot, segments)) return candidate;
 	}
 	return null;
 };

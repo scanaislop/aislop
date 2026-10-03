@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -157,6 +158,47 @@ describe("project venv lookup is limited to ruff", () => {
 		expect(resolveToolBinary("golangci-lint", { projectRoot: tmpDir })).not.toBe(venvBinary);
 		expect(await isToolAvailable("golangci-lint", tmpDir)).toBe(
 			await isToolAvailable("golangci-lint"),
+		);
+	});
+});
+
+describe.skipIf(isWindows)("untrusted project venv ruff", () => {
+	let tmpDir: string;
+
+	const runGit = (...args: string[]): void => {
+		spawnSync("git", args, { cwd: tmpDir, stdio: "ignore" });
+	};
+
+	beforeEach(() => {
+		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "aislop-venv-untrusted-"));
+	});
+
+	afterEach(() => {
+		fs.rmSync(tmpDir, { recursive: true, force: true });
+	});
+
+	it("does not run a venv ruff that is committed to the repository", () => {
+		const projectRuff = writeExecutable(venvRuffPath(tmpDir, ".venv"), "");
+		runGit("init", "-q");
+		runGit("add", "-f", ".venv/bin/ruff");
+
+		expect(resolveToolBinary("ruff", { projectRoot: tmpDir })).not.toBe(projectRuff);
+	});
+
+	it("runs an untracked venv ruff inside a repository", () => {
+		const projectRuff = writeExecutable(venvRuffPath(tmpDir, ".venv"), "");
+		runGit("init", "-q");
+
+		expect(resolveToolBinary("ruff", { projectRoot: tmpDir })).toBe(projectRuff);
+	});
+
+	it("does not follow a symlinked venv directory", () => {
+		const elsewhere = path.join(tmpDir, "elsewhere");
+		writeExecutable(path.join(elsewhere, "bin", "ruff"), "");
+		fs.symlinkSync(elsewhere, path.join(tmpDir, ".venv"));
+
+		expect(resolveToolBinary("ruff", { projectRoot: tmpDir })).not.toBe(
+			venvRuffPath(tmpDir, ".venv"),
 		);
 	});
 });
