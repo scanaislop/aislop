@@ -105,7 +105,21 @@ describe("baseline matching", () => {
 
 		const result = match(baseline, [diag("src/big.ts", 0, "complexity/file-too-large", "code-quality")]);
 		expect(result.accepted).toBe(1);
-		expect(baseline.entries[0].fingerprint).toBe("");
+		expect(baseline.entries[0].fingerprint).toMatch(/^message:/);
+	});
+
+	it("treats a file-level finding with a different message as new", () => {
+		writeSource("package.json", "{}\n");
+		const advisory = (message: string): Diagnostic => ({
+			...diag("package.json", 0, "security/vulnerable-dependency", "security"),
+			message,
+		});
+		const baseline = buildBaseline([advisory("braces (high)")], root);
+
+		const result = match(baseline, [advisory("minimist (high)")]);
+		expect(result.accepted).toBe(0);
+		expect(result.newFindings).toBe(1);
+		expect(result.staleCount).toBe(1);
 	});
 
 	it("reports entries that no longer occur as stale, with remaining counts", () => {

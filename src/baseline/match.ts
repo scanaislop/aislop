@@ -31,8 +31,13 @@ const toProjectPath = (rootDirectory: string, filePath: string): string => {
 	return path.relative(rootDirectory, filePath).replaceAll("\\", "/");
 };
 
+const MESSAGE_FINGERPRINT_PREFIX = "message:";
+
 const fingerprintOf = (text: string): string =>
 	createHash("sha256").update(text.trim().replace(/\s+/g, " ")).digest("hex").slice(0, 16);
+
+const isFileLevel = (fingerprint: string): boolean =>
+	fingerprint === "" || fingerprint.startsWith(MESSAGE_FINGERPRINT_PREFIX);
 
 const createSourceCache = (rootDirectory: string) => {
 	const lines = new Map<string, string[] | null>();
@@ -83,7 +88,9 @@ const keyDiagnostics = (
 	diagnostics.map((diagnostic) => {
 		const file = toProjectPath(rootDirectory, diagnostic.filePath);
 		const fingerprint =
-			diagnostic.line > 0 ? fingerprintOf(sources.line(file, diagnostic.line)) : "";
+			diagnostic.line > 0
+				? fingerprintOf(sources.line(file, diagnostic.line))
+				: `${MESSAGE_FINGERPRINT_PREFIX}${fingerprintOf(diagnostic.message)}`;
 		const entry = { rule: diagnostic.rule, engine: diagnostic.engine, file, fingerprint };
 		return { diagnostic, key: keyOf(entry), entry };
 	});
@@ -129,7 +136,7 @@ export const matchBaseline = (input: MatchInput): BaselineMatch => {
 			0,
 			sources.occurrences(entry.file, entry.fingerprint) - (reported.get(key) ?? 0),
 		);
-		const unconfirmed = entry.fingerprint === "" ? left : Math.max(0, left - unreportedLines);
+		const unconfirmed = isFileLevel(entry.fingerprint) ? left : Math.max(0, left - unreportedLines);
 		if (unconfirmed > 0) stale.push({ ...entry, count: unconfirmed });
 	}
 	return {

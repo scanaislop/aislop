@@ -145,7 +145,7 @@ ci:
 
 With a baseline configured, `scan` and `ci` match each finding against it:
 
-- A finding is matched on its rule, its file, and the text of the reported line (whitespace-insensitive), not its line number, so edits elsewhere in the file do not re-raise it. File-level findings such as `complexity/file-too-large` match on rule and file. Repeated identical findings are counted, so a second copy of an accepted finding is new.
+- A finding is matched on its rule, its file, and the text of the reported line (whitespace-insensitive), not its line number, so edits elsewhere in the file do not re-raise it. File-level findings such as `complexity/file-too-large` or `security/vulnerable-dependency` match on rule, file, and message, so a different vulnerable package is a new finding. Repeated identical findings are counted, so a second copy of an accepted finding is new. `baseline write` refuses to record a scan where an engine failed or a required tool is missing.
 - CI exits 1 when any finding is not in the baseline, whatever its severity, or when the score drops below `failBelow`. Accepted findings alone do not fail CI.
 - The score still counts every finding, accepted or not.
 - Entries that no longer occur are reported as stale. Run `aislop baseline prune` to remove them; prune never adds entries, so the baseline only shrinks as findings are fixed. Entries for an engine that was skipped or missing a tool are never treated as stale, and a line-level entry only becomes stale once its line is gone from the file (or the file is deleted), so a tool that fails quietly cannot make `prune` drop entries.

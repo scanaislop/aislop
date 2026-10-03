@@ -7,7 +7,7 @@ import {
 } from "../baseline/baseline-file.js";
 import { buildBaseline, matchBaseline, pruneBaseline } from "../baseline/match.js";
 import type { AislopConfig } from "../config/index.js";
-import type { Diagnostic } from "../engines/types.js";
+import type { Diagnostic, EngineResult } from "../engines/types.js";
 import { detectInvocation } from "../ui/invocation.js";
 import { log } from "../ui/logger.js";
 import { relativePosix } from "../utils/paths.js";
@@ -17,15 +17,29 @@ import { scanTargetError } from "./scan-validation.js";
 
 const FULL_SCAN = { kind: "full" } as const;
 
+const incompleteEngines = (results: EngineResult[]): string[] =>
+	results.flatMap((result) => {
+		if (result.failed) return [`${result.engine} (failed)`];
+		if (result.missingTools?.length) {
+			return [`${result.engine} (missing ${result.missingTools.join(", ")})`];
+		}
+		return [];
+	});
+
 const scanForBaseline = async (
 	resolvedDir: string,
 	config: AislopConfig,
-): Promise<{ diagnostics: Diagnostic[]; staleEngines: ReturnType<typeof fullyRanEngines> }> => {
+): Promise<{
+	diagnostics: Diagnostic[];
+	staleEngines: ReturnType<typeof fullyRanEngines>;
+	incomplete: string[];
+}> => {
 	const prepared = await prepareScan(resolvedDir, config, FULL_SCAN);
 	const { results } = await runScanEngines(prepared, config, true);
 	return {
 		diagnostics: results.flatMap((result) => result.diagnostics),
 		staleEngines: fullyRanEngines(results),
+		incomplete: incompleteEngines(results),
 	};
 };
 
@@ -61,7 +75,13 @@ export const baselineWriteCommand = async (
 	if (!resolvedDir) return { exitCode: 1 };
 	const filePath = resolveBaselineFile(resolvedDir, config);
 	if (!filePath) return { exitCode: 1 };
-	const { diagnostics } = await scanForBaseline(resolvedDir, config);
+	const { diagnostics, incomplete } = await scanForBaseline(resolvedDir, config);
+	if (incomplete.length > 0) {
+		log.error(
+			`Not writing a baseline from an incomplete scan: ${incomplete.join("; ")}. Install the missing tools or fix the failing engines, then run it again.`,
+		);
+		return { exitCode: 1 };
+	}
 	const baseline = buildBaseline(diagnostics, resolvedDir);
 	writeBaseline(filePath, baseline);
 	const relative = relativePosix(resolvedDir, filePath);
