@@ -1,5 +1,10 @@
 import path from "node:path";
-import { readBaseline, resolveBaselinePath, writeBaseline } from "../baseline/baseline-file.js";
+import {
+	isHookBaselinePath,
+	readBaseline,
+	resolveBaselinePath,
+	writeBaseline,
+} from "../baseline/baseline-file.js";
 import { buildBaseline, matchBaseline, pruneBaseline } from "../baseline/match.js";
 import type { AislopConfig } from "../config/index.js";
 import type { Diagnostic } from "../engines/types.js";
@@ -24,6 +29,15 @@ const scanForBaseline = async (
 	};
 };
 
+const resolveBaselineFile = (resolvedDir: string, config: AislopConfig): string | null => {
+	const filePath = resolveBaselinePath(resolvedDir, config.ci.baseline);
+	if (!isHookBaselinePath(resolvedDir, filePath)) return filePath;
+	log.error(
+		`${relativePosix(resolvedDir, filePath)} holds the hook score baseline. Point ci.baseline at a separate file such as .aislop/ci-baseline.json.`,
+	);
+	return null;
+};
+
 const resolveTarget = (directory: string): string | null => {
 	const resolvedDir = path.resolve(directory);
 	const error = scanTargetError(resolvedDir, {
@@ -45,7 +59,8 @@ export const baselineWriteCommand = async (
 ): Promise<{ exitCode: number }> => {
 	const resolvedDir = resolveTarget(directory);
 	if (!resolvedDir) return { exitCode: 1 };
-	const filePath = resolveBaselinePath(resolvedDir, config.ci.baseline);
+	const filePath = resolveBaselineFile(resolvedDir, config);
+	if (!filePath) return { exitCode: 1 };
 	const { diagnostics } = await scanForBaseline(resolvedDir, config);
 	const baseline = buildBaseline(diagnostics, resolvedDir);
 	writeBaseline(filePath, baseline);
@@ -65,7 +80,8 @@ export const baselinePruneCommand = async (
 ): Promise<{ exitCode: number }> => {
 	const resolvedDir = resolveTarget(directory);
 	if (!resolvedDir) return { exitCode: 1 };
-	const filePath = resolveBaselinePath(resolvedDir, config.ci.baseline);
+	const filePath = resolveBaselineFile(resolvedDir, config);
+	if (!filePath) return { exitCode: 1 };
 	const relative = relativePosix(resolvedDir, filePath);
 	const loaded = readBaseline(filePath);
 	if (loaded.kind !== "ok") {

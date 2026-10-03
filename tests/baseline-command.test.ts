@@ -10,7 +10,7 @@ let root: string;
 
 const SWALLOWED = "export function run(a: () => void) {\n\ttry {\n\t\ta();\n\t} catch (e) {}\n}\n";
 
-const config = (baseline: string | null = ".aislop/baseline.json") =>
+const config = (baseline: string | null = ".aislop/ci-baseline.json") =>
 	parseConfig({
 		engines: {
 			format: false,
@@ -54,7 +54,7 @@ const quietly = async <T>(run: () => Promise<T>): Promise<T> => {
 	}
 };
 
-const baselineFile = () => path.join(root, ".aislop", "baseline.json");
+const baselineFile = () => path.join(root, ".aislop", "ci-baseline.json");
 
 beforeEach(() => {
 	root = fs.mkdtempSync(path.join(os.tmpdir(), "aislop-baseline-cmd-"));
@@ -112,6 +112,23 @@ describe("baseline commands and ci", () => {
 	it("prune fails clearly when there is no baseline yet", async () => {
 		const result = await quietly(() => baselinePruneCommand(root, config()));
 		expect(result.exitCode).toBe(1);
+	});
+
+	it("refuses to write over the hook score baseline", async () => {
+		const hookBaseline = path.join(root, ".aislop", "baseline.json");
+		writeSource(".aislop/baseline.json", '{"schema":"aislop.baseline.v2"}\n');
+
+		const result = await quietly(() => baselineWriteCommand(root, config(".aislop/baseline.json")));
+		expect(result.exitCode).toBe(1);
+		expect(fs.readFileSync(hookBaseline, "utf-8")).toBe('{"schema":"aislop.baseline.v2"}\n');
+	});
+
+	it("explains when ci.baseline points at the hook score baseline", async () => {
+		writeSource(".aislop/baseline.json", '{"schema":"aislop.baseline.v2"}\n');
+		const { exitCode, json } = await runCi(config(".aislop/baseline.json"));
+		expect(exitCode).toBe(1);
+		expect(json.baseline).toMatchObject({ status: "invalid" });
+		expect(json.baseline.reason).toContain("hook score baseline");
 	});
 
 	it("leaves ci unchanged when no baseline is configured", async () => {

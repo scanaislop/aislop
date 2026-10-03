@@ -185,7 +185,7 @@ describe("baseline file", () => {
 
 	it("round-trips through disk and reports missing or invalid files", () => {
 		writeSource("src/a.ts", "x\n");
-		const file = path.join(root, ".aislop", "baseline.json");
+		const file = path.join(root, ".aislop", "ci-baseline.json");
 		expect(readBaseline(file).kind).toBe("missing");
 
 		writeBaseline(file, buildBaseline([diag("src/a.ts", 1)], root));

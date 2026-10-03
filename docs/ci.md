@@ -133,14 +133,14 @@ ci:
 Adopting aislop on an existing codebase does not have to block CI until every finding is fixed. A baseline records the findings you accept today, and `aislop ci` then fails only on findings that are not in it.
 
 ```bash
-aislop baseline write   # record every current finding in .aislop/baseline.json
+aislop baseline write   # record every current finding in .aislop/ci-baseline.json
 ```
 
 Commit the file and point the config at it:
 
 ```yaml
 ci:
-  baseline: .aislop/baseline.json
+  baseline: .aislop/ci-baseline.json
 ```
 
 With a baseline configured, `scan` and `ci` match each finding against it:
@@ -150,6 +150,8 @@ With a baseline configured, `scan` and `ci` match each finding against it:
 - The score still counts every finding, accepted or not.
 - Entries that no longer occur are reported as stale. Run `aislop baseline prune` to remove them; prune never adds entries, so the baseline only shrinks as findings are fixed. Entries for an engine that was skipped or missing a tool are never treated as stale.
 - With `--changes` or `--staged`, stale entries are only reported for files in the scanned scope.
+
+This file is separate from `.aislop/baseline.json`, the score snapshot that `aislop hook baseline` writes for agent hooks; `aislop baseline write` refuses to write to that path.
 
 If the configured file is missing or invalid, the run prints a warning and treats every finding as new. In JSON output, matched diagnostics carry `"baselined": true` and a `baseline` object reports `path`, `status`, `accepted`, `new`, and `stale`.
 

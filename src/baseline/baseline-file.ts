@@ -3,7 +3,8 @@ import path from "node:path";
 import type { EngineName } from "../engines/types.js";
 
 export const BASELINE_VERSION = 1;
-const DEFAULT_BASELINE_PATH = ".aislop/baseline.json";
+const DEFAULT_BASELINE_PATH = ".aislop/ci-baseline.json";
+const HOOK_BASELINE_PATH = ".aislop/baseline.json";
 
 export interface BaselineEntry {
 	rule: string;
@@ -68,7 +69,14 @@ const parseBaseline = (raw: string): BaselineLoad => {
 		return { kind: "invalid", reason: "not valid JSON" };
 	}
 	if (!parsed || typeof parsed !== "object") return { kind: "invalid", reason: "not an object" };
-	const { version, entries } = parsed as { version?: unknown; entries?: unknown };
+	const { version, entries, schema } = parsed as {
+		version?: unknown;
+		entries?: unknown;
+		schema?: unknown;
+	};
+	if (typeof schema === "string" && schema.startsWith("aislop.baseline")) {
+		return { kind: "invalid", reason: "it is the hook score baseline, not a CI baseline" };
+	}
 	if (version !== BASELINE_VERSION) {
 		return { kind: "invalid", reason: `unsupported version ${String(version)}` };
 	}
@@ -98,3 +106,6 @@ export const writeBaseline = (filePath: string, baseline: Baseline): void => {
 
 export const resolveBaselinePath = (rootDirectory: string, configured?: string): string =>
 	path.resolve(rootDirectory, configured ?? DEFAULT_BASELINE_PATH);
+
+export const isHookBaselinePath = (rootDirectory: string, filePath: string): boolean =>
+	path.resolve(filePath) === path.resolve(rootDirectory, HOOK_BASELINE_PATH);
