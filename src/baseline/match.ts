@@ -31,24 +31,40 @@ const toProjectPath = (rootDirectory: string, filePath: string): string => {
 	return path.relative(rootDirectory, filePath).replaceAll("\\", "/");
 };
 
-const createLineReader = (rootDirectory: string) => {
-	const cache = new Map<string, string[]>();
-	return (file: string, line: number): string => {
-		let lines = cache.get(file);
-		if (!lines) {
+const fingerprintOf = (text: string): string =>
+	createHash("sha256").update(text.trim().replace(/\s+/g, " ")).digest("hex").slice(0, 16);
+
+const createSourceCache = (rootDirectory: string) => {
+	const lines = new Map<string, string[] | null>();
+	const fingerprints = new Map<string, Map<string, number>>();
+	const linesOf = (file: string): string[] | null => {
+		if (!lines.has(file)) {
 			try {
-				lines = fs.readFileSync(path.join(rootDirectory, file), "utf-8").split(/\r?\n/);
+				lines.set(file, fs.readFileSync(path.join(rootDirectory, file), "utf-8").split(/\r?\n/));
 			} catch {
-				lines = [];
+				lines.set(file, null);
 			}
-			cache.set(file, lines);
 		}
-		return lines[line - 1] ?? "";
+		return lines.get(file) ?? null;
+	};
+	return {
+		line: (file: string, line: number): string => linesOf(file)?.[line - 1] ?? "",
+		occurrences: (file: string, fingerprint: string): number => {
+			let counts = fingerprints.get(file);
+			if (!counts) {
+				counts = new Map();
+				for (const text of linesOf(file) ?? []) {
+					const key = fingerprintOf(text);
+					counts.set(key, (counts.get(key) ?? 0) + 1);
+				}
+				fingerprints.set(file, counts);
+			}
+			return counts.get(fingerprint) ?? 0;
+		},
 	};
 };
 
-const fingerprintOf = (text: string): string =>
-	createHash("sha256").update(text.trim().replace(/\s+/g, " ")).digest("hex").slice(0, 16);
+type SourceCache = ReturnType<typeof createSourceCache>;
 
 interface Keyed {
 	diagnostic: Diagnostic;
@@ -59,19 +75,23 @@ interface Keyed {
 const keyOf = (entry: Pick<BaselineEntry, "rule" | "file" | "fingerprint">): string =>
 	`${entry.rule}\u0000${entry.file}\u0000${entry.fingerprint}`;
 
-const keyDiagnostics = (diagnostics: Diagnostic[], rootDirectory: string): Keyed[] => {
-	const readLine = createLineReader(rootDirectory);
-	return diagnostics.map((diagnostic) => {
+const keyDiagnostics = (
+	diagnostics: Diagnostic[],
+	rootDirectory: string,
+	sources: SourceCache,
+): Keyed[] =>
+	diagnostics.map((diagnostic) => {
 		const file = toProjectPath(rootDirectory, diagnostic.filePath);
-		const fingerprint = diagnostic.line > 0 ? fingerprintOf(readLine(file, diagnostic.line)) : "";
+		const fingerprint =
+			diagnostic.line > 0 ? fingerprintOf(sources.line(file, diagnostic.line)) : "";
 		const entry = { rule: diagnostic.rule, engine: diagnostic.engine, file, fingerprint };
 		return { diagnostic, key: keyOf(entry), entry };
 	});
-};
 
 export const buildBaseline = (diagnostics: Diagnostic[], rootDirectory: string): Baseline => {
 	const entries = new Map<string, BaselineEntry>();
-	for (const { key, entry } of keyDiagnostics(diagnostics, rootDirectory)) {
+	const sources = createSourceCache(rootDirectory);
+	for (const { key, entry } of keyDiagnostics(diagnostics, rootDirectory, sources)) {
 		const existing = entries.get(key);
 		if (existing) existing.count += 1;
 		else entries.set(key, { ...entry, count: 1 });
@@ -85,8 +105,11 @@ export const matchBaseline = (input: MatchInput): BaselineMatch => {
 		remaining.set(keyOf(entry), (remaining.get(keyOf(entry)) ?? 0) + entry.count);
 	}
 	let accepted = 0;
-	const diagnostics = keyDiagnostics(input.diagnostics, input.rootDirectory).map(
+	const sources = createSourceCache(input.rootDirectory);
+	const reported = new Map<string, number>();
+	const diagnostics = keyDiagnostics(input.diagnostics, input.rootDirectory, sources).map(
 		({ diagnostic, key }) => {
+			reported.set(key, (reported.get(key) ?? 0) + 1);
 			const left = remaining.get(key) ?? 0;
 			if (left === 0) return diagnostic;
 			remaining.set(key, left - 1);
@@ -102,7 +125,12 @@ export const matchBaseline = (input: MatchInput): BaselineMatch => {
 		remaining.set(key, (remaining.get(key) ?? 0) - left);
 		if (input.scopeFiles && !input.scopeFiles.has(entry.file)) continue;
 		if (!input.staleEngines.has(entry.engine)) continue;
-		stale.push({ ...entry, count: left });
+		const unreportedLines = Math.max(
+			0,
+			sources.occurrences(entry.file, entry.fingerprint) - (reported.get(key) ?? 0),
+		);
+		const unconfirmed = entry.fingerprint === "" ? left : Math.max(0, left - unreportedLines);
+		if (unconfirmed > 0) stale.push({ ...entry, count: unconfirmed });
 	}
 	return {
 		diagnostics,

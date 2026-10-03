@@ -123,6 +123,11 @@ describe("baseline commands and ci", () => {
 		expect(fs.readFileSync(hookBaseline, "utf-8")).toBe('{"schema":"aislop.baseline.v2"}\n');
 	});
 
+	it("refuses a hook baseline path that differs only in case", async () => {
+		const result = await quietly(() => baselineWriteCommand(root, config(".AISLOP/Baseline.json")));
+		expect(result.exitCode).toBe(1);
+	});
+
 	it("explains when ci.baseline points at the hook score baseline", async () => {
 		writeSource(".aislop/baseline.json", '{"schema":"aislop.baseline.v2"}\n');
 		const { exitCode, json } = await runCi(config(".aislop/baseline.json"));

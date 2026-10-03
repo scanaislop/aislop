@@ -108,4 +108,5 @@ export const resolveBaselinePath = (rootDirectory: string, configured?: string):
 	path.resolve(rootDirectory, configured ?? DEFAULT_BASELINE_PATH);
 
 export const isHookBaselinePath = (rootDirectory: string, filePath: string): boolean =>
-	path.resolve(filePath) === path.resolve(rootDirectory, HOOK_BASELINE_PATH);
+	path.resolve(filePath).toLowerCase() ===
+	path.resolve(rootDirectory, HOOK_BASELINE_PATH).toLowerCase();

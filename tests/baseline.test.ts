@@ -116,6 +116,8 @@ describe("baseline matching", () => {
 			root,
 		);
 
+		writeSource("src/a.ts", "} catch {}\nhandled();\n");
+		fs.rmSync(path.join(root, "src", "b.ts"));
 		const result = match(baseline, [diag("src/a.ts", 1)]);
 		expect(result.staleCount).toBe(2);
 		expect(result.stale.map((entry) => [entry.file, entry.count])).toEqual([
@@ -128,6 +130,8 @@ describe("baseline matching", () => {
 		writeSource("src/a.ts", "} catch {}\n");
 		writeSource("src/b.ts", "} catch {}\n");
 		const baseline = buildBaseline([diag("src/a.ts", 1), diag("src/b.ts", 1)], root);
+		writeSource("src/a.ts", "handled();\n");
+		writeSource("src/b.ts", "handled();\n");
 
 		const result = match(baseline, [], new Set(["src/a.ts"]));
 		expect(result.stale.map((entry) => entry.file)).toEqual(["src/a.ts"]);
@@ -139,6 +143,7 @@ describe("baseline matching", () => {
 			[diag("src/a.ts", 1), diag("src/a.ts", 1, "python-formatting", "format")],
 			root,
 		);
+		writeSource("src/a.ts", "handled();\n");
 
 		const result = match(baseline, [], null, new Set<EngineName>(["ai-slop"]));
 		expect(result.stale.map((entry) => entry.rule)).toEqual(["ai-slop/swallowed-exception"]);
@@ -152,9 +157,26 @@ describe("baseline matching", () => {
 			root,
 		);
 
+		writeSource("src/a.ts", "} catch {}\nhandled();\nconst y = 2;\n");
+		writeSource("src/b.ts", "handled();\n");
 		const result = match(baseline, [diag("src/a.ts", 1), diag("src/a.ts", 3)]);
 		const pruned = pruneBaseline(baseline, result);
 		expect(pruned.entries.map((entry) => [entry.file, entry.count])).toEqual([["src/a.ts", 1]]);
+	});
+
+	it("keeps entries whose flagged line is still present when nothing reports them", () => {
+		writeSource("src/a.ts", "} catch {}\n");
+		writeSource("src/big.ts", "a\n");
+		const baseline = buildBaseline(
+			[diag("src/a.ts", 1, "ruff/E722", "lint"), diag("src/gone.ts", 0, "complexity/file-too-large", "code-quality")],
+			root,
+		);
+
+		const result = match(baseline, []);
+		expect(result.stale.map((entry) => entry.file)).toEqual(["src/gone.ts"]);
+		expect(pruneBaseline(baseline, result).entries.map((entry) => entry.file)).toEqual([
+			"src/a.ts",
+		]);
 	});
 
 	it("normalizes absolute and backslash paths to project-relative posix", () => {
