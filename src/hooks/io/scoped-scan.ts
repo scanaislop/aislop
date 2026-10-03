@@ -120,6 +120,7 @@ export const runScopedScan = async (
 		config: {
 			overrides: config.overrides,
 			rules: config.rules,
+			imports: config.imports,
 			quality: config.quality,
 			// Agent hooks run automatically when an editor changes a file. Keep this
 			// path hook-safe: no network audits, no typecheck subprocesses, and no

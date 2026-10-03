@@ -52,6 +52,29 @@ describe("json output", () => {
 		expect(out.engines.format).not.toHaveProperty("failed");
 	});
 
+	it("reports skip reasons and missing tools per engine", () => {
+		const results: EngineResult[] = [
+			{
+				...result([]),
+				engine: "format",
+				skipped: true,
+				skipReason: "missing tools: ruff",
+				missingTools: ["ruff"],
+			},
+			{ ...result([]), engine: "lint", missingTools: ["golangci-lint"] },
+			{ ...result([]), engine: "security" },
+		];
+		const out = buildJsonOutput(results, { score: 90, label: "Healthy" }, 1, 10, scoreable);
+		expect(out.engines.format).toMatchObject({
+			skipped: true,
+			skipReason: "missing tools: ruff",
+			missingTools: ["ruff"],
+		});
+		expect(out.engines.lint).toMatchObject({ skipped: false, missingTools: ["golangci-lint"] });
+		expect(out.engines.security).not.toHaveProperty("missingTools");
+		expect(out.engines.security).not.toHaveProperty("skipReason");
+	});
+
 	it("preserves existing top-level fields", () => {
 		const results: EngineResult[] = [];
 		const out = buildJsonOutput(results, { score: 89, label: "Healthy" }, 1500, 50, scoreable);

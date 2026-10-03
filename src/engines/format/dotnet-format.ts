@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import micromatch from "micromatch";
 import { normalizeExcludePatterns } from "../../utils/exclude.js";
+import { expandBraceLists } from "../../utils/globs.js";
 import { toPosix } from "../../utils/paths.js";
 import { runSubprocess } from "../../utils/subprocess.js";
 import { findDotnetTargets } from "../dotnet-targets.js";
@@ -80,7 +80,7 @@ const withReportPath = async <T>(run: (reportPath: string) => Promise<T>): Promi
 	}
 };
 
-// Syntax micromatch accepts that Microsoft.Extensions.FileSystemGlobbing does
+// Glob syntax aislop accepts that Microsoft.Extensions.FileSystemGlobbing does
 // not: character classes, extglobs, negation, and escapes have no equivalent,
 // and a leading "-" would be parsed as another option rather than a path.
 // Brace lists are expanded before this test rather than rejected by it.
@@ -109,7 +109,7 @@ export const buildDotnetFormatExcludeScope = (
 ): DotnetFormatExcludeScope => {
 	const scope: DotnetFormatExcludeScope = { excludeArguments: [], unsupportedPatterns: [] };
 	for (const pattern of normalizeExcludePatterns(excludePatterns ?? [])) {
-		const expanded = micromatch.braces(pattern, { expand: true });
+		const expanded = expandBraceLists(pattern);
 		if (expanded.every(isDotnetFormatPath)) {
 			scope.excludeArguments.push(...expanded);
 		} else {

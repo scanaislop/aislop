@@ -34,6 +34,7 @@ export interface EngineResult {
 	elapsed: number;
 	skipped: boolean;
 	skipReason?: string;
+	missingTools?: string[];
 	failed?: boolean;
 }
 
@@ -59,6 +60,7 @@ export interface EngineContext {
 export interface EngineConfig {
 	readonly overrides?: AislopConfig["overrides"];
 	readonly rules?: AislopConfig["rules"];
+	readonly imports?: AislopConfig["imports"];
 	quality: {
 		maxFunctionLoc: number;
 		maxFileLoc: number;
