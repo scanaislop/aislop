@@ -198,6 +198,27 @@ describe.skipIf(isWindows)("untrusted project venv ruff", () => {
 		expect(resolveToolBinary("ruff", { projectRoot: tmpDir })).not.toBe(projectRuff);
 	});
 
+	it("does not run a venv ruff when .venv is recorded as a submodule", () => {
+		const projectRuff = writeExecutable(venvRuffPath(tmpDir, ".venv"), "");
+		runGit("init", "-q");
+		runGit(
+			"update-index",
+			"--add",
+			"--cacheinfo",
+			"160000,1111111111111111111111111111111111111111,.venv",
+		);
+
+		expect(resolveToolBinary("ruff", { projectRoot: tmpDir })).not.toBe(projectRuff);
+	});
+
+	it("does not run a venv ruff from a nested repository", () => {
+		const projectRuff = writeExecutable(venvRuffPath(tmpDir, ".venv"), "");
+		runGit("init", "-q");
+		fs.writeFileSync(path.join(tmpDir, ".venv", ".git"), "gitdir: ../.git/modules/venv\n");
+
+		expect(resolveToolBinary("ruff", { projectRoot: tmpDir })).not.toBe(projectRuff);
+	});
+
 	it("runs an untracked venv ruff inside a repository", () => {
 		const projectRuff = writeExecutable(venvRuffPath(tmpDir, ".venv"), "");
 		runGit("init", "-q");

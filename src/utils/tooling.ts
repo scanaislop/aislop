@@ -92,20 +92,23 @@ const isSymbolicLink = (candidate: string): boolean => {
 	}
 };
 
-const gitSucceeds = (projectRoot: string, args: string[]): boolean => {
-	const result = spawnSync("git", args, { cwd: projectRoot, stdio: "ignore" });
-	return !result.error && result.status === 0;
+const runGit = (projectRoot: string, args: string[]): string | null => {
+	const result = spawnSync("git", args, { cwd: projectRoot, encoding: "utf-8" });
+	return !result.error && result.status === 0 ? result.stdout : null;
 };
 
-const isUntrackedInGitWorkTree = (projectRoot: string, relativePath: string): boolean =>
-	gitSucceeds(projectRoot, ["rev-parse", "--is-inside-work-tree"]) &&
-	!gitSucceeds(projectRoot, ["ls-files", "--error-unmatch", "--", relativePath]);
+const isUntrackedVenv = (projectRoot: string, venvDir: string): boolean => {
+	if (fs.existsSync(path.join(projectRoot, venvDir, ".git"))) return false;
+	if (runGit(projectRoot, ["rev-parse", "--is-inside-work-tree"]) === null) return false;
+	const tracked = runGit(projectRoot, ["ls-files", "--stage", "--", venvDir]);
+	return tracked !== null && tracked.trim() === "";
+};
 
 const isTrustedVenvTool = (projectRoot: string, segments: string[]): boolean => {
 	for (let depth = 1; depth <= segments.length; depth += 1) {
 		if (isSymbolicLink(path.join(projectRoot, ...segments.slice(0, depth)))) return false;
 	}
-	return isUntrackedInGitWorkTree(projectRoot, segments.join("/"));
+	return isUntrackedVenv(projectRoot, segments[0]);
 };
 
 const findProjectVenvTool = (toolName: string, projectRoot: string): string | null => {
