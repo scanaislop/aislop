@@ -4,7 +4,58 @@ import path from "node:path";
 const MAX_PYTHON_MANIFEST_BYTES = 1_048_576;
 const UTF8_DECODER = new TextDecoder("utf-8", { fatal: true });
 
-export const PYTHON_MANIFEST_FILES = ["pyproject.toml", "requirements.txt", "Pipfile"] as const;
+const PYTHON_MANIFEST_FILES = new Set(["pyproject.toml", "Pipfile"]);
+const REQUIREMENTS_FILE_RE = /^(?:[\w.-]*[-_.])?requirements(?:[-_.][\w.-]*)?\.(?:txt|in)$/i;
+const REQUIREMENTS_DIR = "requirements";
+const REQUIREMENTS_INCLUDE_RE = /^(?:-r|--requirement)(?:\s+|=)(\S+)/;
+const CONSTRAINT_INCLUDE_RE = /^(?:-c|--constraint)(?:\s+|=)(\S+)/;
+const MAX_REQUIREMENTS_FILES = 64;
+
+const isRequirementsFileName = (name: string): boolean => REQUIREMENTS_FILE_RE.test(name);
+
+const isPythonManifestFileName = (name: string): boolean =>
+	PYTHON_MANIFEST_FILES.has(name) || isRequirementsFileName(name);
+
+const listDirectory = (directory: string): fs.Dirent[] => {
+	try {
+		return fs.readdirSync(directory, { withFileTypes: true });
+	} catch {
+		return [];
+	}
+};
+
+const CONSTRAINTS_FILE_RE = /constraints?/i;
+
+const isFileEntry = (entry: fs.Dirent): boolean => entry.isFile() || entry.isSymbolicLink();
+
+const isSeedFileName = (name: string): boolean => !CONSTRAINTS_FILE_RE.test(name);
+
+const requirementsDirFiles = (directory: string): string[] =>
+	listDirectory(path.join(directory, REQUIREMENTS_DIR))
+		.filter(
+			(entry) =>
+				isFileEntry(entry) && /\.(?:txt|in)$/i.test(entry.name) && isSeedFileName(entry.name),
+		)
+		.map((entry) => path.join(directory, REQUIREMENTS_DIR, entry.name));
+
+const requirementsFilesIn = (directory: string, entries: fs.Dirent[]): string[] => [
+	...entries
+		.filter(
+			(entry) =>
+				isFileEntry(entry) && isRequirementsFileName(entry.name) && isSeedFileName(entry.name),
+		)
+		.map((entry) => path.join(directory, entry.name)),
+	...(entries.some((entry) => entry.isDirectory() && entry.name === REQUIREMENTS_DIR)
+		? requirementsDirFiles(directory)
+		: []),
+];
+
+export const hasPythonManifest = (
+	directory: string,
+	entries: fs.Dirent[] = listDirectory(directory),
+): boolean =>
+	entries.some((entry) => isFileEntry(entry) && isPythonManifestFileName(entry.name)) ||
+	requirementsFilesIn(directory, entries).length > 0;
 
 const isWithinDirectory = (directory: string, filePath: string): boolean => {
 	const relative = path.relative(directory, filePath);
@@ -50,21 +101,57 @@ export const addPyDep = (pyDeps: Set<string>, name: string): void => {
 	pyDeps.add(normalized);
 };
 
-export const collectFromRequirementsTxt = (rootDir: string, pyDeps: Set<string>): boolean => {
-	const reqPath = path.join(rootDir, "requirements.txt");
-	try {
-		const content = readPythonManifest(reqPath, rootDir);
-		if (content === null) return false;
-		for (const line of content.split("\n")) {
-			const trimmed = line.trim();
-			if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("-")) continue;
-			const match = trimmed.match(/^([a-zA-Z0-9_\-.]+)/);
-			if (match) addPyDep(pyDeps, match[1]);
-		}
-		return true;
-	} catch {
-		return false;
+interface RequirementsFile {
+	content: string;
+	requirements: string[];
+	constraints: string[];
+}
+
+const includedPaths = (content: string, filePath: string, pattern: RegExp): string[] =>
+	content
+		.split("\n")
+		.map((line) => line.trim().match(pattern)?.[1])
+		.filter((target): target is string => target !== undefined)
+		.map((target) => path.resolve(path.dirname(filePath), target));
+
+const readRequirementsFile = (filePath: string, rootDir: string): RequirementsFile | null => {
+	const content = readPythonManifest(filePath, rootDir);
+	if (content === null) return null;
+	return {
+		content,
+		requirements: includedPaths(content, filePath, REQUIREMENTS_INCLUDE_RE),
+		constraints: includedPaths(content, filePath, CONSTRAINT_INCLUDE_RE),
+	};
+};
+
+const addRequirementsLines = (content: string, pyDeps: Set<string>): void => {
+	for (const line of content.split("\n")) {
+		const trimmed = line.trim();
+		if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("-")) continue;
+		const match = trimmed.match(/^([a-zA-Z0-9_\-.]+)/);
+		if (match) addPyDep(pyDeps, match[1]);
 	}
+};
+
+export const collectFromRequirementsFiles = (rootDir: string, pyDeps: Set<string>): boolean => {
+	const pending = requirementsFilesIn(rootDir, listDirectory(rootDir));
+	const visited = new Set<string>();
+	const constraints = new Set<string>();
+	const files = new Map<string, string>();
+	for (let i = 0; i < pending.length && visited.size < MAX_REQUIREMENTS_FILES; i += 1) {
+		const filePath = pending[i];
+		if (visited.has(filePath)) continue;
+		visited.add(filePath);
+		const file = readRequirementsFile(filePath, rootDir);
+		if (!file) continue;
+		files.set(filePath, file.content);
+		pending.push(...file.requirements);
+		for (const constraint of file.constraints) constraints.add(constraint);
+	}
+	for (const [filePath, content] of files) {
+		if (!constraints.has(filePath)) addRequirementsLines(content, pyDeps);
+	}
+	return files.size > 0;
 };
 
 const TOML_HEADER_RE = /^\s*\[([^\]]+)\]\s*$/;
@@ -242,4 +329,21 @@ export const collectFromPipfile = (rootDir: string, pyDeps: Set<string>): boolea
 	} catch {
 		return false;
 	}
+};
+
+const TOML_TABLE_LINE_RE = /^\s*\[{1,2}[^[\]\n]+\]{1,2}\s*(?:#.*)?$/m;
+const INLINE_SCRIPT_BLOCK_RE = /^# \/\/\/ script\r?\n((?:^#(?: .*)?\r?\n)+)^# \/\/\/\s*$/m;
+
+export const collectFromInlineScriptMetadata = (source: string, pyDeps: Set<string>): boolean => {
+	const block = INLINE_SCRIPT_BLOCK_RE.exec(source);
+	if (!block) return false;
+	const toml = block[1]
+		.split(/\r?\n/)
+		.map((line) => line.replace(/^# ?/, ""))
+		.join("\n");
+	const firstTable = toml.search(TOML_TABLE_LINE_RE);
+	const topLevel = firstTable === -1 ? toml : toml.slice(0, firstTable);
+	const body = extractTomlArrayBody(topLevel, "dependencies");
+	for (const value of body === null ? [] : extractTomlStrings(body)) addPyDep(pyDeps, value);
+	return true;
 };

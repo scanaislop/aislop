@@ -121,6 +121,40 @@ ci:
 
 The CI command exits 1 when the score drops below `failBelow`, or when any error-severity diagnostic is present.
 
+Format and lint checks for Python, Go, Rust, Ruby, PHP, C/C++, and C# (with `projectEvaluation`) need their tools (`ruff`, `golangci-lint`, `gofmt`, `clippy`, `cppcheck`, and so on) on `PATH`. When one is missing, those checks do not run and the score does not include them. Tools that only run under certain conditions, such as `clang-format` with a `.clang-format` file or `clang-tidy` with a `compile_commands.json`, are reported only when those conditions hold. The scan output names the missing tools, and `aislop doctor` shows how to install them (`aislop-tools` installs the bundled `ruff` and `golangci-lint`). To fail CI instead of scoring a partial scan, set:
+
+```yaml
+ci:
+  failOnMissingTools: true
+```
+
+## Baseline: fail only on new findings
+
+Adopting aislop on an existing codebase does not have to block CI until every finding is fixed. A baseline records the findings you accept today, and `aislop ci` then fails only on findings that are not in it.
+
+```bash
+aislop baseline write   # record every current finding in .aislop/ci-baseline.json
+```
+
+Commit the file and point the config at it:
+
+```yaml
+ci:
+  baseline: .aislop/ci-baseline.json
+```
+
+With a baseline configured, `scan` and `ci` match each finding against it:
+
+- A finding is matched on its rule, its file, and the text of the reported line (whitespace-insensitive), not its line number, so edits elsewhere in the file do not re-raise it. File-level findings such as `complexity/file-too-large` or `security/vulnerable-dependency` match on rule, file, and message, so a different vulnerable package is a new finding. Repeated identical findings are counted, so a second copy of an accepted finding is new. `baseline write` refuses to record a scan where an engine failed or a required tool is missing.
+- CI exits 1 when any finding is not in the baseline, whatever its severity, or when the score drops below `failBelow`. Accepted findings alone do not fail CI.
+- The score still counts every finding, accepted or not.
+- Entries that no longer occur are reported as stale. Run `aislop baseline prune` to remove them; prune never adds entries, so the baseline only shrinks as findings are fixed. Entries for an engine that was skipped or missing a tool are never treated as stale, a line-level entry only becomes stale once its line is gone from the file (or the file is deleted), and a file-level entry from an external tool (formatter, linter, dependency audit, or knip) only becomes stale once its file is deleted. A tool that fails quietly therefore cannot make `prune` drop entries.
+- With `--changes` or `--staged`, stale entries are only reported for files in the scanned scope.
+
+This file is separate from `.aislop/baseline.json`, the score snapshot that `aislop hook baseline` writes for agent hooks; `aislop baseline write` refuses to write to that path.
+
+If the configured file is missing or invalid, the run prints a warning and treats every finding as new. In JSON output, matched diagnostics carry `"baselined": true` and a `baseline` object reports `path`, `status`, `accepted`, `new`, and `stale`.
+
 ## JSON output
 
 Both `aislop ci` and `aislop scan --json` emit structured JSON for parsing in CI. Example shape (values illustrative):
@@ -142,4 +176,13 @@ Both `aislop ci` and `aislop scan --json` emit structured JSON for parsing in CI
 }
 ```
 
-An engine that crashed during the scan also carries `"failed": true`. A `skipped` engine without `failed` was skipped on purpose, for example because no tool for that language is installed.
+An engine that crashed during the scan also carries `"failed": true`. A `skipped` engine without `failed` was skipped on purpose, and its `skipReason` says why. When a tool needed for a detected language is not installed, the engine lists it in `missingTools`, even if the engine still ran for other languages:
+
+```json
+"engines": {
+  "format": { "issues": 0, "skipped": true, "elapsed": 0, "skipReason": "missing tools: ruff", "missingTools": ["ruff"] },
+  "lint":   { "issues": 3, "skipped": false, "elapsed": 412, "missingTools": ["ruff"] }
+}
+```
+
+An engine skipped only because the scan has no files it applies to has no `missingTools`.

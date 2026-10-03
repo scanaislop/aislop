@@ -21,4 +21,29 @@ describe("computeScanExitCode", () => {
 	it("passes a scoreable run at or above the threshold", () => {
 		expect(computeScanExitCode({ hasErrors: false, scoreable: true, score: 80, failBelow: 70 })).toBe(0);
 	});
+
+	it("ignores missing tools by default", () => {
+		expect(
+			computeScanExitCode({
+				hasErrors: false,
+				scoreable: true,
+				score: 100,
+				failBelow: 70,
+				missingTools: true,
+			}),
+		).toBe(0);
+	});
+
+	it("fails on missing tools when failOnMissingTools is set", () => {
+		expect(
+			computeScanExitCode({
+				hasErrors: false,
+				scoreable: true,
+				score: 100,
+				failBelow: 70,
+				missingTools: true,
+				failOnMissingTools: true,
+			}),
+		).toBe(1);
+	});
 });

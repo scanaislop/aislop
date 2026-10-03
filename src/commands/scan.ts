@@ -1,38 +1,22 @@
-import os from "node:os";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
-import { type AislopConfig, findConfigDir, RULES_FILE } from "../config/index.js";
-import { recordFullScanActivity } from "../engagement/full-scan-activity.js";
-import type { EngineConfig } from "../engines/types.js";
-import { renderDiagnostics } from "../output/terminal.js";
+import type { AislopConfig } from "../config/index.js";
+import { collectMissingTools } from "../engines/missing-tools.js";
+import type { EngineResult } from "../engines/types.js";
 import { calculateScore } from "../scoring/index.js";
-import { applyRuleSeverities } from "../scoring/rule-severity.js";
-import { isCiEnv } from "../telemetry/env.js";
 import { type EngineCounts, withCommandLifecycle } from "../telemetry/index.js";
 import { renderDisplayRows } from "../ui/display.js";
 import { renderHeader } from "../ui/header.js";
-import { detectInvocation } from "../ui/invocation.js";
 import { log } from "../ui/logger.js";
 import { applyChangeContext } from "../utils/change-context.js";
-import { detectSourceLanguages, discoverProject, type Language } from "../utils/discover.js";
 import { getChangedLineMap } from "../utils/git.js";
-import { readAislopIgnorePatterns } from "../utils/source-files.js";
-import { applySuppressions } from "../utils/suppress.js";
 import { APP_VERSION } from "../version.js";
-import { detectAislopHooks } from "../hooks/install/registry.js";
-import { renderCoverageNotice } from "./scan-coverage.js";
-import { runEnginesWithProgress } from "./scan-engine-runner.js";
 import { computeScanExitCode } from "./scan-exit-code.js";
-import { collectScanFileScope, deriveScanCoverage } from "./scan-file-scope.js";
-import {
-	isFullProjectScan,
-	isHistoryComparableScan,
-	isMachineOutput,
-	resolveScanScopeMode,
-	type ScanOptions,
-} from "./scan-options.js";
-import { buildHookNudge } from "./scan-hook-nudge.js";
-import { buildScanRender } from "./scan-render.js";
+import { applyScanBaseline, baselineWarning, type ScanBaselineSummary } from "./scan-baseline.js";
+import { deriveScanCoverage } from "./scan-file-scope.js";
+import { isMachineOutput, resolveScanScopeMode, type ScanOptions } from "./scan-options.js";
+import { type PreparedScan, prepareScan, runScanEngines } from "./scan-pipeline.js";
+import { writeHumanOutput, writeMachineOutput } from "./scan-output.js";
 import { scanTargetError } from "./scan-validation.js";
 
 export { buildScanRender } from "./scan-render.js";
@@ -56,20 +40,8 @@ export const scanCommand = async (
 		return { exitCode: 1 };
 	}
 
-	const excludePatterns = [...config.exclude, ...readAislopIgnorePatterns(resolvedDir)];
-	const scanScope = collectScanFileScope({
-		excludePatterns,
-		includePatterns: config.include,
-		mode: resolveScanScopeMode(options),
-		rootDirectory: resolvedDir,
-	});
-	const discoveredProject = await discoverProject(resolvedDir, excludePatterns, {
-		includePatterns: config.include,
-	});
-	const projectInfo = {
-		...discoveredProject,
-		languages: detectSourceLanguages([...scanScope.files, ...scanScope.testFiles]),
-	};
+	const prepared = await prepareScan(resolvedDir, config, resolveScanScopeMode(options));
+	const { projectInfo, scanScope } = prepared;
 
 	return withCommandLifecycle(
 		{
@@ -78,50 +50,73 @@ export const scanCommand = async (
 			languages: projectInfo.languages,
 			fileCount: scanScope.scoreFileCount,
 		},
-		() =>
-			runScanBody(
-				resolvedDir,
-				config,
-				options,
-				projectInfo,
-				scanScope,
-				discoveredProject.languages,
-			),
+		() => runScanBody(prepared, config, options),
 	);
 };
 
-const runScanBody = async (
-	resolvedDir: string,
+const buildCompletion = (results: EngineResult[], exitCode: number, score: number | null) => {
+	const allDiagnostics = results.flatMap((r) => r.diagnostics);
+	const engineIssues: EngineCounts = {};
+	const engineTimings: EngineCounts = {};
+	for (const r of results) {
+		engineIssues[r.engine] = r.diagnostics.length;
+		engineTimings[r.engine] = Math.round(r.elapsed);
+	}
+	const enginesFailed = results.filter((r) => r.failed).map((r) => r.engine);
+	return {
+		exitCode,
+		score,
+		scoreable: score !== null,
+		findingCount: allDiagnostics.length,
+		errorCount: allDiagnostics.filter((d) => d.severity === "error").length,
+		warningCount: allDiagnostics.filter((d) => d.severity === "warning").length,
+		fixableCount: allDiagnostics.filter((d) => d.fixable).length,
+		engineIssues,
+		engineTimings,
+		...(enginesFailed.length > 0 ? { properties: { engines_failed: enginesFailed } } : {}),
+	};
+};
+
+const annotateResults = (
+	prepared: PreparedScan,
 	config: AislopConfig,
 	options: ScanOptions,
-	projectInfo: Awaited<ReturnType<typeof discoverProject>>,
-	scanScope: ReturnType<typeof collectScanFileScope>,
-	dependencyAuditLanguages: Language[],
-) => {
+	unannotated: EngineResult[],
+	machineOutput: boolean,
+): { results: EngineResult[]; baselineSummary?: ScanBaselineSummary } => {
+	const { resolvedDir, scanScope } = prepared;
+	const classifyChanges = options.changes && !options.staged;
+	const changeMap = classifyChanges ? getChangedLineMap(resolvedDir, options.base) : null;
+	const contextResults = changeMap
+		? unannotated.map((result) => ({
+				...result,
+				diagnostics: applyChangeContext(result.diagnostics, changeMap, resolvedDir),
+			}))
+		: unannotated;
+	const baselined = applyScanBaseline({
+		baselinePath: config.ci.baseline,
+		rootDirectory: resolvedDir,
+		results: contextResults,
+		scopeFiles:
+			options.changes || options.staged ? [...scanScope.files, ...scanScope.testFiles] : null,
+	});
+	if (baselined && machineOutput) {
+		const warning = baselineWarning(baselined.summary);
+		if (warning) process.stderr.write(`${warning}\n`);
+	}
+	return { results: baselined?.results ?? contextResults, baselineSummary: baselined?.summary };
+};
+
+const runScanBody = async (prepared: PreparedScan, config: AislopConfig, options: ScanOptions) => {
+	const { resolvedDir: _resolvedDir, projectInfo, scanScope } = prepared;
 	const startTime = performance.now();
 	const showHeader = options.showHeader !== false;
 	const machineOutput = isMachineOutput(options);
 	const projectName = projectInfo.projectName ?? "project";
 	const language = projectInfo.languages[0] ?? "unknown";
 	const printedHumanHeader = !machineOutput && showHeader;
-	const {
-		dependencyAuditFiles,
-		dependencyAuditScope,
-		files,
-		projectFiles,
-		scoreFileCount,
-		scopeLabel,
-		testFiles,
-	} = scanScope;
-	// Raw user excludes for the build-backed C# engines' diagnostic post-filter
-	// (same derivation as the caller's scan-scope request).
-	const excludePatterns = [...config.exclude, ...readAislopIgnorePatterns(resolvedDir)];
+	const { files, scoreFileCount, scopeLabel, testFiles } = scanScope;
 	const scanCoverage = deriveScanCoverage(projectInfo.coverage, scoreFileCount);
-	const reportProjectInfo = {
-		...projectInfo,
-		coverage: scanCoverage,
-		sourceFileCount: scoreFileCount,
-	};
 
 	if (printedHumanHeader) {
 		process.stdout.write(
@@ -138,59 +133,22 @@ const runScanBody = async (
 		process.stdout.write(renderScopeRow(`${files.length + testFiles.length} ${scopeLabel}`));
 	}
 
-	const configDir = findConfigDir(resolvedDir);
-	const rulesPath = configDir ? path.join(configDir, RULES_FILE) : undefined;
-
-	const engineConfig: EngineConfig = {
-		overrides: config.overrides,
-		rules: config.rules,
-		quality: config.quality,
-		security: config.security,
-		lint: config.lint,
-		architectureRulesPath: config.engines.architecture ? rulesPath : undefined,
-	};
-
-	const rawResults = await runEnginesWithProgress(
-		{
-			rootDirectory: resolvedDir,
-			languages: projectInfo.languages,
-			frameworks: projectInfo.frameworks,
-			dependencyAuditFiles,
-			dependencyAuditLanguages,
-			dependencyAuditScope,
-			files,
-			excludePatterns,
-			testFiles,
-			projectFiles,
-			installedTools: projectInfo.installedTools,
-			config: engineConfig,
-		},
-		config.engines,
+	const { results: unannotated, suppressedCount } = await runScanEngines(
+		prepared,
+		config,
 		machineOutput,
-	);
-
-	const severityAdjusted = rawResults.map((result) => ({
-		...result,
-		diagnostics: config.overrides.length
-			? result.diagnostics
-			: applyRuleSeverities(result.diagnostics, config.rules),
-	}));
-	const { results: unannotated, suppressedCount } = applySuppressions(
-		severityAdjusted,
-		resolvedDir,
 	);
 	if (suppressedCount > 0 && !machineOutput) {
 		log.muted(`Suppressed ${suppressedCount} finding(s) via aislop-ignore directives`);
 	}
 
-	const classifyChanges = options.changes && !options.staged;
-	const changeMap = classifyChanges ? getChangedLineMap(resolvedDir, options.base) : null;
-	const results = changeMap
-		? unannotated.map((result) => ({
-				...result,
-				diagnostics: applyChangeContext(result.diagnostics, changeMap, resolvedDir),
-			}))
-		: unannotated;
+	const { results, baselineSummary } = annotateResults(
+		prepared,
+		config,
+		options,
+		unannotated,
+		machineOutput,
+	);
 
 	const allDiagnostics = results.flatMap((r) => r.diagnostics);
 	const elapsedMs = performance.now() - startTime;
@@ -205,100 +163,33 @@ const runScanBody = async (
 	);
 	const scoreable = scanCoverage.scoreable;
 	const hasErrors = allDiagnostics.some((d) => d.severity === "error");
+	const missingTools = collectMissingTools(results);
 	const exitCode = computeScanExitCode({
 		hasErrors,
 		scoreable,
 		score: scoreResult.score,
 		failBelow: config.ci.failBelow,
+		missingTools: missingTools.length > 0,
+		failOnMissingTools: config.ci.failOnMissingTools,
+		newFindings: baselineSummary?.new,
 	});
 
-	const engineIssues: EngineCounts = {};
-	const engineTimings: EngineCounts = {};
-	for (const r of results) {
-		engineIssues[r.engine] = r.diagnostics.length;
-		engineTimings[r.engine] = Math.round(r.elapsed);
-	}
-	const enginesFailed = results.filter((r) => r.failed).map((r) => r.engine);
-	const completion = {
-		exitCode,
-		score: scoreable ? scoreResult.score : null,
-		scoreable,
-		findingCount: allDiagnostics.length,
-		errorCount: allDiagnostics.filter((d) => d.severity === "error").length,
-		warningCount: allDiagnostics.filter((d) => d.severity === "warning").length,
-		fixableCount: allDiagnostics.filter((d) => d.fixable).length,
-		engineIssues,
-		engineTimings,
-		...(enginesFailed.length > 0 ? { properties: { engines_failed: enginesFailed } } : {}),
+	const completion = buildCompletion(results, exitCode, scoreable ? scoreResult.score : null);
+
+	const output = {
+		prepared,
+		config,
+		options,
+		results,
+		scoreResult,
+		scanCoverage,
+		elapsedMs,
+		missingTools,
+		baselineSummary,
+		includeHeader: !printedHumanHeader && showHeader,
+		counts: completion,
 	};
-
-	if (options.sarif) {
-		const { buildSarifLog } = await import("../output/sarif.js");
-		console.log(JSON.stringify(buildSarifLog(results), null, 2));
-		return completion;
-	}
-
-	if (options.json) {
-		const { buildJsonOutput } = await import("../output/json.js");
-		const jsonOut = buildJsonOutput(results, scoreResult, scoreFileCount, elapsedMs, scanCoverage);
-		console.log(JSON.stringify(jsonOut, null, 2));
-		return completion;
-	}
-
-	if (!scoreable) {
-		if (!machineOutput) {
-			process.stdout.write(
-				renderCoverageNotice(reportProjectInfo, !printedHumanHeader && showHeader),
-			);
-			// Score is withheld, but findings still ran on the supported files; show them so a CI failure on an error diagnostic is explained.
-			if (allDiagnostics.length > 0) {
-				process.stdout.write(renderDiagnostics(allDiagnostics, options.verbose ?? false));
-			}
-		}
-		return completion;
-	}
-
-	const isLocalHistoryScan = isHistoryComparableScan(options) && !isCiEnv();
-	const showPilotInvitation = isLocalHistoryScan
-		? recordFullScanActivity(
-				{
-					directory: resolvedDir,
-					score: scoreResult.score,
-					errors: completion.errorCount,
-					warnings: completion.warningCount,
-					files: scoreFileCount,
-				},
-				isFullProjectScan(options) && options.printBrand !== false,
-				config.telemetry,
-			)
-		: false;
-
-	process.stdout.write(
-		buildScanRender({
-			projectName,
-			language,
-			fileCount: scoreFileCount,
-			results,
-			diagnostics: allDiagnostics,
-			score: scoreResult,
-			elapsedMs,
-			thresholds: config.scoring.thresholds,
-			verbose: options.verbose,
-			includeHeader: !printedHumanHeader && showHeader,
-			printBrand: options.printBrand,
-			showPilotInvitation,
-		}),
-	);
-
-	if (options.command !== "ci" && options.printBrand !== false) {
-		const nudge = buildHookNudge({
-			installedAgentCount: detectAislopHooks({ home: os.homedir(), cwd: resolvedDir }).length,
-			isTty: Boolean(process.stdout.isTTY),
-			isCi: isCiEnv(),
-			invocation: detectInvocation(),
-		});
-		if (nudge) process.stdout.write(nudge);
-	}
+	if (!(await writeMachineOutput(output))) writeHumanOutput(output);
 
 	return completion;
 };

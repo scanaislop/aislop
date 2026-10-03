@@ -1,5 +1,6 @@
 import type { Command } from "commander";
 import { badgeCommand } from "./commands/badge.js";
+import { registerBaselineCommand } from "./cli/baseline-command.js";
 import { rulesCommand } from "./commands/rules.js";
 import { trendCommand } from "./commands/trend.js";
 import { updateCommand } from "./commands/update.js";
@@ -55,6 +56,8 @@ export const registerExtraCommands = (program: Command): void => {
 				process.exit(1);
 			}
 		});
+
+	registerBaselineCommand(program);
 
 	program
 		.command("trend [directory]")

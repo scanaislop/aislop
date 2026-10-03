@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -80,7 +81,54 @@ const findToolOnPath = (toolName: string): string | null => {
 	return null;
 };
 
-export const resolveToolBinary = (toolName: string): string => {
+const PROJECT_VENV_DIRS = [".venv", "venv"];
+const PROJECT_VENV_TOOL_NAMES = new Set(["ruff"]);
+
+const isSymbolicLink = (candidate: string): boolean => {
+	try {
+		return fs.lstatSync(candidate).isSymbolicLink();
+	} catch {
+		return true;
+	}
+};
+
+const runGit = (projectRoot: string, args: string[]): string | null => {
+	const result = spawnSync("git", args, { cwd: projectRoot, encoding: "utf-8" });
+	return !result.error && result.status === 0 ? result.stdout : null;
+};
+
+const isUntrackedVenv = (projectRoot: string, venvDir: string): boolean => {
+	if (fs.existsSync(path.join(projectRoot, venvDir, ".git"))) return false;
+	if (runGit(projectRoot, ["rev-parse", "--is-inside-work-tree"]) === null) return false;
+	const tracked = runGit(projectRoot, ["ls-files", "--stage", "--", venvDir]);
+	return tracked !== null && tracked.trim() === "";
+};
+
+const isTrustedVenvTool = (projectRoot: string, segments: string[]): boolean => {
+	for (let depth = 1; depth <= segments.length; depth += 1) {
+		if (isSymbolicLink(path.join(projectRoot, ...segments.slice(0, depth)))) return false;
+	}
+	return isUntrackedVenv(projectRoot, segments[0]);
+};
+
+const findProjectVenvTool = (toolName: string, projectRoot: string): string | null => {
+	if (!PROJECT_VENV_TOOL_NAMES.has(toolName)) return null;
+	for (const venvDir of PROJECT_VENV_DIRS) {
+		const segments =
+			process.platform === "win32"
+				? [venvDir, "Scripts", withExecutableExtension(toolName)]
+				: [venvDir, "bin", toolName];
+		const candidate = path.join(projectRoot, ...segments);
+		if (isExecutableFile(candidate) && isTrustedVenvTool(projectRoot, segments)) return candidate;
+	}
+	return null;
+};
+
+interface ResolveToolOptions {
+	projectRoot?: string;
+}
+
+export const resolveToolBinary = (toolName: string, options: ResolveToolOptions = {}): string => {
 	// Non-bundled tools (roslynator, jb) have no vendored-vs-system conflict:
 	// return the bare name so the OS PATH+PATHEXT lookup resolves them at spawn.
 	if (!BUNDLED_TOOL_NAMES.has(toolName)) return toolName;
@@ -89,13 +137,17 @@ export const resolveToolBinary = (toolName: string): string => {
 	// copy that drifts across the tool's style/release editions. Fall back to the
 	// bundled binary (then bare name) when the tool is not on PATH, preserving the
 	// zero-dependency guarantee for users who never installed it.
-	return findToolOnPath(toolName) ?? getBundledToolPath(toolName) ?? toolName;
+	const projectTool = options.projectRoot
+		? findProjectVenvTool(toolName, options.projectRoot)
+		: null;
+	return projectTool ?? findToolOnPath(toolName) ?? getBundledToolPath(toolName) ?? toolName;
 };
 
 const isBundledTool = (toolName: string): boolean => getBundledToolPath(toolName) !== null;
 
-export const isToolAvailable = async (toolName: string): Promise<boolean> => {
+export const isToolAvailable = async (toolName: string, projectRoot?: string): Promise<boolean> => {
 	if (isBundledTool(toolName)) return true;
+	if (projectRoot && findProjectVenvTool(toolName, projectRoot)) return true;
 	return isToolInstalled(toolName);
 };
 

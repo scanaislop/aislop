@@ -174,7 +174,7 @@ Measures structural complexity, finds dead code, and detects unused dependencies
 | Rule | What it checks |
 |---|---|
 | `complexity/function-too-long` | Functions exceeding configurable line limit (default: 80). For Python, measured by logical body code: the signature, docstrings, comments, and blank lines do not count. `async def` and multi-line wrapped signatures are detected. |
-| `complexity/file-too-large` | Files exceeding configurable line limit (default: 400) |
+| `complexity/file-too-large` | Files exceeding configurable line limit (default: 400, counting every physical line). Both size rules report only past 10% over the limit; see [Quality thresholds](configuration.md#quality-thresholds) for how lines are counted. |
 | `complexity/deep-nesting` | Control-flow nesting beyond threshold (default: 5) |
 | `complexity/too-many-params` | Functions with too many parameters (default: 6). For Python, counts required parameters only: `self`/`cls`, `*args`/`**kwargs`, the `*` / `/` separators, and parameters with a default are not counted. |
 | `code-quality/duplicate-block` | Repeated blocks of implementation code that should usually be extracted or shared |
@@ -216,6 +216,7 @@ The rules that make aislop unique. These catch the patterns AI assistants leave 
 | `ai-slop/unsafe-type-assertion` | warning | `as any` in TypeScript |
 | `ai-slop/double-type-assertion` | warning | `as unknown as X` pattern |
 | `ai-slop/ts-directive` | info | `@ts-ignore` / `@ts-expect-error` usage |
+| `ai-slop/unknown-directive` | warning | `aislop-ignore-*` comments with an unrecognised scope (for example `aislop-ignore-nextline`), which suppress nothing. Checked in JS/TS, Python, Go, C#, and C/C++ files, where string literals can be told apart from comments. |
 | `ai-slop/duplicate-import` | warning | Multiple imports from the same module that should be merged |
 | `ai-slop/hardcoded-url` | warning | Environment-specific URLs hardcoded in production code instead of env/config; Python docstring content is exempt (see notes below the table) |
 | `ai-slop/hardcoded-id` | warning | Provider/project IDs hardcoded in production code instead of env/config |

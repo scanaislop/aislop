@@ -106,7 +106,8 @@ const planFormatters = (
 	);
 	add(
 		"Formatting (rust)",
-		projectInfo.languages.includes("rust") && Boolean(projectInfo.installedTools.rustfmt),
+		projectInfo.languages.includes("rust") &&
+			Boolean(projectInfo.installedTools.cargo && projectInfo.installedTools.rustfmt),
 	);
 	add(
 		"Formatting (ruby)",

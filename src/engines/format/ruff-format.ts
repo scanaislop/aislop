@@ -1,18 +1,21 @@
 import { runSubprocess } from "../../utils/subprocess.js";
-import { resolveToolBinary } from "../../utils/tooling.js";
-import { getPythonTargets, getRuffDiagnosticPath } from "../python-targets.js";
+import { getPythonTargets, getRuffDiagnosticPath, resolveRuffBinary } from "../python-targets.js";
 import type { Diagnostic, EngineContext } from "../types.js";
 
 export const runRuffFormat = async (context: EngineContext): Promise<Diagnostic[]> => {
-	const ruffBinary = resolveToolBinary("ruff");
+	const ruffBinary = resolveRuffBinary(context);
 	const targets = getPythonTargets(context);
 	if (targets.length === 0) return [];
 
 	try {
-		const result = await runSubprocess(ruffBinary, ["format", "--check", "--diff", ...targets], {
-			cwd: context.rootDirectory,
-			timeout: 60000,
-		});
+		const result = await runSubprocess(
+			ruffBinary,
+			["format", "--check", "--diff", "--force-exclude", ...targets],
+			{
+				cwd: context.rootDirectory,
+				timeout: 60000,
+			},
+		);
 
 		if (result.exitCode === 0) return [];
 
@@ -50,8 +53,8 @@ const parseRuffFormatOutput = (output: string, rootDir: string): Diagnostic[] =>
 export const fixRuffFormat = async (context: EngineContext): Promise<void> => {
 	const targets = context.files ? getPythonTargets(context) : [context.rootDirectory];
 	if (context.files && targets.length === 0) return;
-	const ruffBinary = resolveToolBinary("ruff");
-	const result = await runSubprocess(ruffBinary, ["format", ...targets], {
+	const ruffBinary = resolveRuffBinary(context);
+	const result = await runSubprocess(ruffBinary, ["format", "--force-exclude", ...targets], {
 		cwd: context.rootDirectory,
 		timeout: 60000,
 	});
