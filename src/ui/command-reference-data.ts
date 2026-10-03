@@ -272,6 +272,14 @@ export const COMMAND_REFERENCE: CommandReference[] = [
 		flags: HOOK_UNINSTALL_FLAGS,
 	},
 	{
+		command: "aislop baseline write [directory]",
+		summary: "Record current findings so ci fails only on new ones",
+	},
+	{
+		command: "aislop baseline prune [directory]",
+		summary: "Drop baseline entries for findings that were fixed",
+	},
+	{
 		command: "aislop badge [directory]",
 		summary: "Print score badge URL and README markdown",
 		flags: ["--owner <owner>", "--repo <repo>", "--json"],

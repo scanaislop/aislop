@@ -42,6 +42,7 @@ scoring:
 ci:
   failBelow: 70          # fail CI below this score
   format: json
+  # baseline: .aislop/baseline.json   # fail only on findings not in this file (see docs/ci.md)
 
 telemetry:
   enabled: true          # set to false to opt out
