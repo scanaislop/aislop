@@ -31,6 +31,10 @@ Baseline mode, plus fixes for false positives reported by users. `aislop baselin
 - **Size findings state their real trigger.** `complexity/file-too-large` and `complexity/function-too-long` allow 10% over the limit before reporting, but the message only showed the limit. The message now shows both, for example `File too large (limit: 400, flagged above 440 lines)`, and the docs describe how lines are counted. When findings fire is unchanged.
 - **ruff from the project's virtualenv is preferred.** When `.venv` or `venv` in the scan root holds a ruff executable, `scan` and `fix` use it before ruff on `PATH` or the bundled copy, so `python-formatting` and ruff lint findings come from the version the project pins. The venv ruff is only used inside a git work tree where the virtualenv is untracked, not a submodule or nested repository, and not reached through a symlink, so a pull request or archive cannot supply its own binary. Agent hooks, which never run project-local tools, keep using `PATH` or the bundled ruff.
 
+### Changed
+
+- `@modelcontextprotocol/sdk`, used by `aislop-mcp`, moves from 1.30 to 1.32.
+
 ## 0.17.0 (2026-10-02)
 
 Per-file overrides, a fourth agent provider, and clearer failure reporting. `overrides` in `.aislop/config.yml` give different paths their own quality limits and rule severities in one scan, `aislop agent` can run on pi, and a scan with no hook installed suggests one.
