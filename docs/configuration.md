@@ -119,6 +119,21 @@ Control what triggers code quality warnings:
 | `maxNesting` | 5 | Max control-flow nesting depth |
 | `maxParams` | 6 | Max function parameters |
 
+## Runtime-provided imports
+
+`ai-slop/hallucinated-import` reports imports that no manifest declares. Python dependencies come from `pyproject.toml`, `Pipfile`, `requirements*.txt` files (including `-r` includes and a `requirements/` directory), and PEP 723 inline script metadata.
+
+Some modules come from the runtime instead of a manifest, for example `homeassistant` in a Home Assistant integration, Sage's bundled packages, or `vscode` in a VS Code extension. List them under `imports.provided` so they are not reported:
+
+```yaml
+imports:
+  provided:
+    - homeassistant
+    - fpylll
+```
+
+Each entry covers the module and its submodules (`homeassistant.core`, `vscode/...`).
+
 ## Engine weights
 
 Control how much each engine contributes to the final score:

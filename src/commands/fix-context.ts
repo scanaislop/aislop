@@ -30,6 +30,7 @@ export const createEngineContext = (
 		lint: config.lint,
 		overrides: config.overrides,
 		rules: config.rules,
+		imports: config.imports,
 	},
 	...(options.scope
 		? {
