@@ -48,6 +48,11 @@ describe("format/lint engines report missing tools", () => {
 		expect(lint.missingTools).toEqual(["clippy"]);
 	});
 
+	it("reports cargo for Rust formatting when only rustfmt is installed", async () => {
+		const format = await formatEngine.run(ctx(["rust"], { rustfmt: true }));
+		expect(format).toMatchObject({ skipped: true, missingTools: ["cargo"] });
+	});
+
 	it("reports C++ tools only where they would run", async () => {
 		const plain = ctx(["cpp"]);
 		const format = await formatEngine.run(plain);

@@ -10,6 +10,7 @@ import { runRuffFormat } from "./ruff-format.js";
 const FORMAT_TOOL_REQUIREMENTS: readonly ToolRequirement[] = [
 	{ language: "python", tool: "ruff" },
 	{ language: "go", tool: "gofmt" },
+	{ language: "rust", tool: "cargo" },
 	{ language: "rust", tool: "rustfmt" },
 	{ language: "ruby", tool: "rubocop" },
 	{ language: "php", tool: "php-cs-fixer" },
@@ -46,7 +47,7 @@ export const formatEngine: Engine = {
 			promises.push(runGofmt(context));
 		}
 
-		if (languages.includes("rust") && installedTools.rustfmt) {
+		if (languages.includes("rust") && installedTools.cargo && installedTools.rustfmt) {
 			promises.push(runGenericFormatter(context, "rust"));
 		}
 

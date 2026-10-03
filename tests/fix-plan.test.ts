@@ -71,13 +71,22 @@ describe("buildFixStepNames", () => {
 		expect(steps).toContain("Formatting (ruby)");
 	});
 
-	it("includes Rust formatting when rustfmt is installed", () => {
+	it("includes Rust formatting when cargo and rustfmt are installed", () => {
+		const steps = buildFixStepNames(
+			makeProjectInfo({ languages: ["rust"], installedTools: { cargo: true, rustfmt: true } }),
+			DEFAULT_CONFIG,
+			{},
+		);
+		expect(steps).toContain("Formatting (rust)");
+	});
+
+	it("skips Rust formatting when cargo is missing", () => {
 		const steps = buildFixStepNames(
 			makeProjectInfo({ languages: ["rust"], installedTools: { rustfmt: true } }),
 			DEFAULT_CONFIG,
 			{},
 		);
-		expect(steps).toContain("Formatting (rust)");
+		expect(steps).not.toContain("Formatting (rust)");
 	});
 
 	it("includes PHP formatting when php-cs-fixer is installed", () => {
