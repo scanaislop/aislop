@@ -108,6 +108,34 @@ describe("baseline matching", () => {
 		expect(baseline.entries[0].fingerprint).toMatch(/^message:/);
 	});
 
+	it("keeps tool-backed file-level entries until their file is gone", () => {
+		writeSource("src/a.py", "x=1\n");
+		const formatting = diag("src/a.py", 0, "python-formatting", "format");
+		const baseline = buildBaseline([formatting], root);
+
+		expect(match(baseline, []).staleCount).toBe(0);
+		fs.rmSync(path.join(root, "src/a.py"));
+		expect(match(baseline, []).staleCount).toBe(1);
+	});
+
+	it("keeps knip file-level entries until their file is gone", () => {
+		writeSource("src/unused.ts", "export const x = 1;\n");
+		const unusedFile = diag("src/unused.ts", 0, "knip/files", "code-quality");
+		const baseline = buildBaseline([unusedFile], root);
+
+		expect(match(baseline, []).staleCount).toBe(0);
+		fs.rmSync(path.join(root, "src/unused.ts"));
+		expect(match(baseline, []).staleCount).toBe(1);
+	});
+
+	it("reports in-process file-level entries as stale once they stop occurring", () => {
+		writeSource("src/big.ts", "a\n");
+		const big = diag("src/big.ts", 0, "complexity/file-too-large", "code-quality");
+		const baseline = buildBaseline([big], root);
+
+		expect(match(baseline, []).staleCount).toBe(1);
+	});
+
 	it("treats a file-level finding with a different message as new", () => {
 		writeSource("package.json", "{}\n");
 		const advisory = (message: string): Diagnostic => ({
@@ -119,7 +147,7 @@ describe("baseline matching", () => {
 		const result = match(baseline, [advisory("minimist (high)")]);
 		expect(result.accepted).toBe(0);
 		expect(result.newFindings).toBe(1);
-		expect(result.staleCount).toBe(1);
+		expect(result.staleCount).toBe(0);
 	});
 
 	it("reports entries that no longer occur as stale, with remaining counts", () => {

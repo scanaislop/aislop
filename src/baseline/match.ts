@@ -36,6 +36,13 @@ const MESSAGE_FINGERPRINT_PREFIX = "message:";
 const fingerprintOf = (text: string): string =>
 	createHash("sha256").update(text.trim().replace(/\s+/g, " ")).digest("hex").slice(0, 16);
 
+const IN_PROCESS_ENGINES = new Set<EngineName>(["ai-slop", "code-quality", "architecture"]);
+const TOOL_BACKED_RULE_PREFIXES = ["knip/"];
+
+const isInProcessRule = (entry: BaselineEntry): boolean =>
+	IN_PROCESS_ENGINES.has(entry.engine) &&
+	!TOOL_BACKED_RULE_PREFIXES.some((prefix) => entry.rule.startsWith(prefix));
+
 const isFileLevel = (fingerprint: string): boolean =>
 	fingerprint === "" || fingerprint.startsWith(MESSAGE_FINGERPRINT_PREFIX);
 
@@ -53,6 +60,7 @@ const createSourceCache = (rootDirectory: string) => {
 		return lines.get(file) ?? null;
 	};
 	return {
+		exists: (file: string): boolean => linesOf(file) !== null,
 		line: (file: string, line: number): string => linesOf(file)?.[line - 1] ?? "",
 		occurrences: (file: string, fingerprint: string): number => {
 			let counts = fingerprints.get(file);
@@ -70,6 +78,9 @@ const createSourceCache = (rootDirectory: string) => {
 };
 
 type SourceCache = ReturnType<typeof createSourceCache>;
+
+const fileLevelStale = (entry: BaselineEntry, left: number, sources: SourceCache): number =>
+	isInProcessRule(entry) || !sources.exists(entry.file) ? left : 0;
 
 interface Keyed {
 	diagnostic: Diagnostic;
@@ -136,7 +147,9 @@ export const matchBaseline = (input: MatchInput): BaselineMatch => {
 			0,
 			sources.occurrences(entry.file, entry.fingerprint) - (reported.get(key) ?? 0),
 		);
-		const unconfirmed = isFileLevel(entry.fingerprint) ? left : Math.max(0, left - unreportedLines);
+		const unconfirmed = isFileLevel(entry.fingerprint)
+			? fileLevelStale(entry, left, sources)
+			: Math.max(0, left - unreportedLines);
 		if (unconfirmed > 0) stale.push({ ...entry, count: unconfirmed });
 	}
 	return {

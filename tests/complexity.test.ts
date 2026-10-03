@@ -1307,7 +1307,7 @@ describe("analyzeFunctions: C++ member-initializer lists", () => {
 	});
 });
 
-describe("checkComplexity — size messages", () => {
+describe("checkComplexity: size messages", () => {
 	it("states the line count that triggers a file-too-large finding", async () => {
 		const filePath = writeFile("big.ts", makeLines(15, "const x = 1;"));
 		const diagnostics = await checkComplexity(makeContext([filePath], { maxFileLoc: 10 }));

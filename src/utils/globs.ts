@@ -5,8 +5,45 @@ const MAX_BRACE_EXPANSIONS = 256;
 interface BraceList {
 	start: number;
 	end: number;
-	commas: number[];
+	options: string[];
 }
+
+const NUMERIC_RANGE_RE = /^(-?\d+)\.\.(-?\d+)(?:\.\.(-?\d+))?$/;
+const ALPHA_RANGE_RE = /^([a-zA-Z])\.\.([a-zA-Z])(?:\.\.(-?\d+))?$/;
+
+const rangeValues = (from: number, to: number, rawStep: string | undefined): number[] | null => {
+	const step = Math.abs(Number(rawStep ?? 1)) || 1;
+	if (![from, to, step].every(Number.isSafeInteger)) return null;
+	const count = Math.floor(Math.abs(to - from) / step) + 1;
+	if (count > MAX_BRACE_EXPANSIONS) return null;
+	const direction = to >= from ? 1 : -1;
+	return Array.from({ length: count }, (_, i) => from + i * step * direction);
+};
+
+const padWidth = (values: string[]): number =>
+	values.some((value) => /^-?0\d/.test(value))
+		? Math.max(...values.map((value) => value.length))
+		: 0;
+
+const expandRange = (body: string): string[] | null => {
+	const numeric = NUMERIC_RANGE_RE.exec(body);
+	if (numeric) {
+		const width = padWidth([numeric[1], numeric[2]].concat(numeric[3] ?? []));
+		const values = rangeValues(Number(numeric[1]), Number(numeric[2]), numeric[3]);
+		return (
+			values?.map((value) => {
+				const digits = String(Math.abs(value)).padStart(width - (value < 0 ? 1 : 0), "0");
+				return value < 0 ? `-${digits}` : digits;
+			}) ?? null
+		);
+	}
+	const alpha = ALPHA_RANGE_RE.exec(body);
+	if (alpha) {
+		const values = rangeValues(alpha[1].charCodeAt(0), alpha[2].charCodeAt(0), alpha[3]);
+		return values?.map((code) => String.fromCharCode(code)) ?? null;
+	}
+	return null;
+};
 
 const braceListAt = (pattern: string, start: number): BraceList | null => {
 	let depth = 0;
@@ -21,7 +58,16 @@ const braceListAt = (pattern: string, start: number): BraceList | null => {
 			if (depth === 1) commas.push(i);
 		} else if (char === "}") {
 			depth -= 1;
-			if (depth === 0) return commas.length > 0 ? { start, end: i, commas } : null;
+			if (depth !== 0) continue;
+			if (commas.length === 0) {
+				const options = expandRange(pattern.slice(start + 1, i));
+				return options ? { start, end: i, options } : null;
+			}
+			const bounds = [start, ...commas, i];
+			const options = bounds
+				.slice(0, -1)
+				.map((bound, k) => pattern.slice(bound + 1, bounds[k + 1]));
+			return { start, end: i, options };
 		}
 	}
 	return null;
@@ -42,11 +88,9 @@ const expandInto = (pattern: string, results: string[]): boolean => {
 		results.push(pattern);
 		return results.length <= MAX_BRACE_EXPANSIONS;
 	}
-	const bounds = [list.start, ...list.commas, list.end];
 	const prefix = pattern.slice(0, list.start);
 	const suffix = pattern.slice(list.end + 1);
-	for (let i = 0; i < bounds.length - 1; i += 1) {
-		const option = pattern.slice(bounds[i] + 1, bounds[i + 1]);
+	for (const option of list.options) {
 		if (!expandInto(`${prefix}${option}${suffix}`, results)) return false;
 	}
 	return true;
