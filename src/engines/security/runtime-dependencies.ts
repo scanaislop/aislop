@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import micromatch from "micromatch";
 import { parse as parseYaml } from "yaml";
+import { matchesGlobList } from "../../utils/globs.js";
 import type { JsAuditManifest } from "./audit-js-parser.js";
 
 const RUNTIME_DEPENDENCY_FIELDS = ["dependencies", "optionalDependencies", "peerDependencies"];
@@ -94,7 +94,9 @@ export const readRuntimeDependencies = (rootDir: string): JsAuditManifest | unde
 	const globs = [...npmWorkspaceGlobs(rootManifest), ...pnpmWorkspaceGlobs(rootDir)];
 	if (globs.length === 0) return { runtimeDependencies: names };
 
-	for (const relativeDir of micromatch(listPackageDirectories(rootDir), globs)) {
+	for (const relativeDir of listPackageDirectories(rootDir).filter((dir) =>
+		matchesGlobList(dir, globs),
+	)) {
 		const memberManifest = readJsonFile(path.join(rootDir, relativeDir, "package.json"));
 		if (memberManifest) collectRuntimeNames(memberManifest, names);
 	}
