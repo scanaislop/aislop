@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **The pre-commit hook runs only at the commit stage.** `.pre-commit-hooks.yaml` now sets `stages: [pre-commit]`. Projects that also install `pre-push` hooks ran `aislop scan --staged` on push, which checks the index rather than the pushed commits. Requires pre-commit 3.2.0 or later.
 - **`braces` advisory (GHSA-vfj7-8cjw-p6xm).** `micromatch`, which pulled in `braces`, is replaced with `picomatch`, which has no dependencies. No patched `braces` release exists yet. Glob matching behaves the same.
 - **Python import checks read more dependency sources.** `ai-slop/hallucinated-import` now reads every `requirements*.txt` variant (`requirements_dev.txt`, `requirements-test.txt`, `dev-requirements.txt`, ...), files in a `requirements/` directory, `-r` includes, and PEP 723 inline script metadata. Projects that kept dependencies outside `requirements.txt` and `pyproject.toml` got an error for every third-party import.
 - **Ruff respects the project's `exclude` settings.** aislop passes each Python file to ruff by name, and ruff ignores `exclude`/`extend-exclude` for explicitly named files unless told otherwise. Files a project excludes from ruff (vendored or legacy code) were reported by `python-formatting` and the ruff lint rules, and `aislop fix` could reformat them. Scan and fix now pass `--force-exclude`, so aislop checks the same files the project's own `ruff format` and `ruff check` do.
