@@ -284,6 +284,19 @@ describe("scanSecrets on UI copy", () => {
 		expect(await flaggedLines()).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10]);
 	});
 
+	it("does not flag password requirement text", async () => {
+		writeFile(
+			"src/validation.ts",
+			[
+				'export const rules = { password: "Password must contain at least 8 characters." }',
+				'export const hint = { password: "Passwords should match." }',
+				"",
+			].join("\n"),
+		);
+
+		expect(await flaggedLines()).toEqual([]);
+	});
+
 	it("does not flag translated labels in locale files", async () => {
 		writeFile("src/locales/ru.json", '{\n  "password": "Введите пароль"\n}\n');
 		writeFile("src/i18n/de.ts", 'export default { password: "Passwort eingeben" }\n');
