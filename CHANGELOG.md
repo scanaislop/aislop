@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **`imports.provided` config.** Modules that the runtime provides instead of a manifest (Home Assistant's `homeassistant`, Sage's `fpylll`, `vscode` in a VS Code extension) can be listed under `imports.provided` in `.aislop/config.yml` so `ai-slop/hallucinated-import` does not report them. Each entry covers its submodules.
 - **`ci.failOnMissingTools`.** Opt-in setting that makes `scan` and `ci` exit 1 when a format or lint tool needed for a detected language is not installed, instead of passing on a partial scan. Off by default.
+- **`ai-slop/unknown-directive`.** An `aislop-ignore-*` comment with a scope aislop does not recognise (for example `aislop-ignore-nextline`) used to be silently ignored. It is now reported as a warning, with the closest valid directive suggested, in JS/TS, Python, Go, C#, and C/C++ files.
 
 ### Fixed
 
@@ -20,6 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Missing format and lint tools are reported.** When a detected language's tool is not installed (for example `ruff` for Python), the scan output now says so with an `aislop doctor` hint, even on a clean run, and `--json` lists it in the engine's `missingTools`. Skipped engines also carry a `skipReason`, so a skip because of a missing tool can be told apart from one with nothing to scan. Before, the checks silently did not run and the score looked clean ([lfreleng-actions/aislop-scan-action#40](https://github.com/lfreleng-actions/aislop-scan-action/issues/40)).
 - **`security/hardcoded-secret` skips UI copy under password-like keys.** Human-readable text is no longer reported when the key names a UI element (`awaiting_password`, `password_hint`, `secret_label`, ...), the file is a locale or i18n file, or the text itself mentions the credential ("Enter your password"). Placeholders like `<password>` or `your-password-here` are skipped too. A sentence-like value under a plain `password` key, such as a passphrase, is still flagged.
 - **Go `v, _ := f()` is only reported when the dropped value can be an error.** `ai-slop/swallowed-exception` now looks up `f` in the caller's package and skips the finding when every declaration's last result is a basic type such as `string`, `int` or `bool`, or a slice, array, map, channel or function type. Named types, aliases, pointers, interfaces, and calls it cannot resolve or that are shadowed locally are still reported. `//nolint`, `//nolint:errcheck`, and `//nolint:all` comments on the line are honored.
+- **A bare `aislop-ignore` comment suppresses its own line.** `# aislop-ignore` and `// aislop-ignore rule-id` now work like `aislop-ignore-line`. Before, they suppressed nothing.
+- **Size findings state their real trigger.** `complexity/file-too-large` and `complexity/function-too-long` allow 10% over the limit before reporting, but the message only showed the limit. The message now shows both, for example `File too large (limit: 400, flagged above 440 lines)`, and the docs describe how lines are counted. When findings fire is unchanged.
 
 ## 0.17.0 (2026-10-02)
 

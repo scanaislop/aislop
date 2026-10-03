@@ -16,6 +16,7 @@ import { detectNarrativeComments } from "./narrative-comments.js";
 import { detectPythonPatterns } from "./python-patterns.js";
 import { detectRustPatterns } from "./rust-patterns.js";
 import { detectSilentRecovery } from "./silent-recovery.js";
+import { detectUnknownDirectives } from "./suppression-directives.js";
 import { detectTautologicalTests } from "./test-quality.js";
 import { detectUnusedCss } from "./unused-css.js";
 import { detectUnusedImports } from "./unused-imports.js";
@@ -47,6 +48,7 @@ export const aiSlopEngine: Engine = {
 			detectCppPatterns(context),
 			detectUnusedCss(context),
 			detectTautologicalTests(context),
+			detectUnknownDirectives(context),
 		]);
 
 		for (const result of results) {

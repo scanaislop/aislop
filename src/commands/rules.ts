@@ -89,6 +89,7 @@ const BUILTIN_RULES: { engine: string; rules: string[] }[] = [
 			"ai-slop/unsafe-type-assertion",
 			"ai-slop/double-type-assertion",
 			"ai-slop/ts-directive",
+			"ai-slop/unknown-directive",
 			"ai-slop/narrative-comment",
 			"ai-slop/duplicate-import",
 			"ai-slop/hardcoded-url",
