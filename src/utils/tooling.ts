@@ -80,7 +80,24 @@ const findToolOnPath = (toolName: string): string | null => {
 	return null;
 };
 
-export const resolveToolBinary = (toolName: string): string => {
+const PROJECT_VENV_DIRS = [".venv", "venv"];
+
+const findProjectVenvTool = (toolName: string, projectRoot: string): string | null => {
+	for (const venvDir of PROJECT_VENV_DIRS) {
+		const candidate =
+			process.platform === "win32"
+				? path.join(projectRoot, venvDir, "Scripts", withExecutableExtension(toolName))
+				: path.join(projectRoot, venvDir, "bin", toolName);
+		if (isExecutableFile(candidate)) return candidate;
+	}
+	return null;
+};
+
+interface ResolveToolOptions {
+	projectRoot?: string;
+}
+
+export const resolveToolBinary = (toolName: string, options: ResolveToolOptions = {}): string => {
 	// Non-bundled tools (roslynator, jb) have no vendored-vs-system conflict:
 	// return the bare name so the OS PATH+PATHEXT lookup resolves them at spawn.
 	if (!BUNDLED_TOOL_NAMES.has(toolName)) return toolName;
@@ -89,13 +106,23 @@ export const resolveToolBinary = (toolName: string): string => {
 	// copy that drifts across the tool's style/release editions. Fall back to the
 	// bundled binary (then bare name) when the tool is not on PATH, preserving the
 	// zero-dependency guarantee for users who never installed it.
-	return findToolOnPath(toolName) ?? getBundledToolPath(toolName) ?? toolName;
+	const projectTool = options.projectRoot
+		? findProjectVenvTool(toolName, options.projectRoot)
+		: null;
+	return projectTool ?? findToolOnPath(toolName) ?? getBundledToolPath(toolName) ?? toolName;
 };
 
 const isBundledTool = (toolName: string): boolean => getBundledToolPath(toolName) !== null;
 
-export const isToolAvailable = async (toolName: string): Promise<boolean> => {
+export const isToolAvailable = async (toolName: string, projectRoot?: string): Promise<boolean> => {
 	if (isBundledTool(toolName)) return true;
+	if (
+		projectRoot &&
+		BUNDLED_TOOL_NAMES.has(toolName) &&
+		findProjectVenvTool(toolName, projectRoot)
+	) {
+		return true;
+	}
 	return isToolInstalled(toolName);
 };
 
