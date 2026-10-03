@@ -6,9 +6,12 @@ export const computeScanExitCode = (opts: {
 	failBelow: number;
 	missingTools?: boolean;
 	failOnMissingTools?: boolean;
-}): number =>
-	opts.hasErrors ||
-	(opts.scoreable && opts.score < opts.failBelow) ||
-	(opts.failOnMissingTools === true && opts.missingTools === true)
+	newFindings?: number;
+}): number => {
+	const findingsFail = opts.newFindings === undefined ? opts.hasErrors : opts.newFindings > 0;
+	return findingsFail ||
+		(opts.scoreable && opts.score < opts.failBelow) ||
+		(opts.failOnMissingTools === true && opts.missingTools === true)
 		? 1
 		: 0;
+};

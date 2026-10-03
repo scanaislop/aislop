@@ -326,6 +326,10 @@
 				"failOnMissingTools": {
 					"default": false,
 					"type": "boolean"
+				},
+				"baseline": {
+					"type": "string",
+					"minLength": 1
 				}
 			}
 		},

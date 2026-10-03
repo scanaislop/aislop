@@ -49,7 +49,7 @@ export const discoverProject = async (
 		includePatterns: inputs.includePatterns ?? [],
 		...(inputs.projectFiles ? { projectFiles: inputs.projectFiles } : {}),
 	});
-	const installedTools = inputs.installedTools ?? (await checkInstalledTools());
+	const installedTools = inputs.installedTools ?? (await checkInstalledTools(resolvedDir));
 	const packageJson = readPackageJson(path.join(resolvedDir, "package.json"));
 	return {
 		rootDirectory: resolvedDir,

@@ -30,6 +30,11 @@ const HOME_COMMANDS: HomeCommand[] = [
 	{ command: "aislop doctor", summary: "Check which engines can run here", group: "Run" },
 	{ command: "aislop init", summary: "Create config and optional CI workflow", group: "Setup" },
 	{
+		command: "aislop baseline write",
+		summary: "Accept current findings so ci fails only on new ones",
+		group: "Setup",
+	},
+	{
 		command: "aislop hook install",
 		summary: "Run aislop after coding-agent edits",
 		group: "Setup",
@@ -78,6 +83,7 @@ const renderHelpDetails = (): string =>
 		"   aislop fix [options] [directory]",
 		"   aislop ci [options] [directory]",
 		"   aislop init [options] [directory]",
+		"   aislop baseline write|prune [directory]",
 		"   aislop doctor [directory]",
 		"   aislop rules [directory]",
 		"   aislop badge [options] [directory]",
