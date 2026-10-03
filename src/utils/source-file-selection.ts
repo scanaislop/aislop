@@ -1,5 +1,5 @@
 import path from "node:path";
-import micromatch from "micromatch";
+import picomatch from "picomatch";
 import {
 	MAX_GLOB_PATTERN_LENGTH,
 	normalizeExcludePatterns,
@@ -41,12 +41,12 @@ const normalizeIncludePatterns = (patterns: string[]): string[] =>
 		const normalized = pattern.trim().replace(/^\.\//, "").replace(/\/$/, "");
 		if (normalized === "" || normalized === ".") return ["**"];
 		if (normalized.length > MAX_GLOB_PATTERN_LENGTH) return [];
-		if (micromatch.scan(normalized).isGlob) return [normalized];
+		if (picomatch.scan(normalized).isGlob) return [normalized];
 		return supportedGlobPatterns([normalized, `${normalized}/**`]);
 	});
 
 const createPathMatcher = (patterns: string[]): ((filePath: string) => boolean) => {
-	const matchers = patterns.map((pattern) => micromatch.matcher(pattern, { dot: true }));
+	const matchers = patterns.map((pattern) => picomatch(pattern, { dot: true }));
 	return (filePath) => matchers.some((matches) => matches(filePath));
 };
 

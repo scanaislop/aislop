@@ -103,9 +103,9 @@
 		"ink": "^7.1.1",
 		"ink-select-input": "^6.2.0",
 		"knip": "^6.38.0",
-		"micromatch": "^4.0.8",
 		"oxlint": "^1.81.0",
 		"picocolors": "^1.1.1",
+		"picomatch": "^4.0.7",
 		"react": "^19.2.8",
 		"smol-toml": "^1.8.0",
 		"tar": "^7.5.22",
@@ -115,8 +115,8 @@
 		"zod": "^4.5.4"
 	},
 	"devDependencies": {
-		"@types/micromatch": "^4.0.10",
 		"@types/node": "^26.4.0",
+		"@types/picomatch": "^4.0.3",
 		"@types/react": "^19.2.18",
 		"ink-testing-library": "^4.0.0",
 		"tsdown": "^0.23.0",

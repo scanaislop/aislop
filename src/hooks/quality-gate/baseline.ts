@@ -111,6 +111,7 @@ export const captureBaseline = async (
 		config: {
 			overrides: config.overrides,
 			rules: config.rules,
+			imports: config.imports,
 			quality: config.quality,
 			security: { audit: false, auditTimeout: 0 },
 			lint: { typecheck: false, expoDoctor: false },

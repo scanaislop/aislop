@@ -6,10 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Added
+
+- **`imports.provided` config.** Modules that the runtime provides instead of a manifest (Home Assistant's `homeassistant`, Sage's `fpylll`, `vscode` in a VS Code extension) can be listed under `imports.provided` in `.aislop/config.yml` so `ai-slop/hallucinated-import` does not report them. Each entry covers its submodules.
+- **`ci.failOnMissingTools`.** Opt-in setting that makes `scan` and `ci` exit 1 when a format or lint tool needed for a detected language is not installed, instead of passing on a partial scan. Off by default.
+
 ### Fixed
 
+- **`braces` advisory (GHSA-vfj7-8cjw-p6xm).** `micromatch`, which pulled in `braces`, is replaced with `picomatch`, which has no dependencies. No patched `braces` release exists yet. Glob matching behaves the same.
+- **Python import checks read more dependency sources.** `ai-slop/hallucinated-import` now reads every `requirements*.txt` variant (`requirements_dev.txt`, `requirements-test.txt`, `dev-requirements.txt`, ...), files in a `requirements/` directory, `-r` includes, and PEP 723 inline script metadata. Projects that kept dependencies outside `requirements.txt` and `pyproject.toml` got an error for every third-party import.
 - **Ruff respects the project's `exclude` settings.** aislop passes each Python file to ruff by name, and ruff ignores `exclude`/`extend-exclude` for explicitly named files unless told otherwise. Files a project excludes from ruff (vendored or legacy code) were reported by `python-formatting` and the ruff lint rules, and `aislop fix` could reformat them. Scan and fix now pass `--force-exclude`, so aislop checks the same files the project's own `ruff format` and `ruff check` do.
 - **Biome formatting respects the project's Biome config.** When a project has `biome.json` or `biome.jsonc`, `scan` and `fix` now use its settings instead of forcing a 120-column line width. Before, a project that relied on Biome's default width of 80 got formatting findings that its own Biome rejected, and `aislop fix` rewrote files so the project's `biome format` failed. `biome.jsonc` is now detected too.
+- **Missing format and lint tools are reported.** When a detected language's tool is not installed (for example `ruff` for Python), the scan output now says so with an `aislop doctor` hint, even on a clean run, and `--json` lists it in the engine's `missingTools`. Skipped engines also carry a `skipReason`, so a skip because of a missing tool can be told apart from one with nothing to scan. Before, the checks silently did not run and the score looked clean ([lfreleng-actions/aislop-scan-action#40](https://github.com/lfreleng-actions/aislop-scan-action/issues/40)).
 - **`security/hardcoded-secret` skips UI copy under password-like keys.** Human-readable text is no longer reported when the key names a UI element (`awaiting_password`, `password_hint`, `secret_label`, ...), the file is a locale or i18n file, or the text itself mentions the credential ("Enter your password"). Placeholders like `<password>` or `your-password-here` are skipped too. A sentence-like value under a plain `password` key, such as a passphrase, is still flagged.
 
 ## 0.17.0 (2026-10-02)

@@ -281,6 +281,7 @@ const runFixBody = async (
 	const engineConfig: EngineConfig = {
 		overrides: config.overrides,
 		rules: config.rules,
+		imports: config.imports,
 		quality: config.quality,
 		security: config.security,
 		lint: config.lint,

@@ -98,5 +98,28 @@ describe("scan render", () => {
 		expect(out).toContain("Clean run");
 		expect(out).not.toContain("Next steps");
 		expect(out).not.toContain("→ Run aislop fix");
+		expect(out).not.toContain("not installed");
+	});
+
+	it("names missing tools even on a clean run", () => {
+		const out = strip(
+			buildScanRender({
+				projectName: "my-app",
+				language: "python",
+				fileCount: 12,
+				results: [
+					engineResult({ engine: "format", skipped: true, missingTools: ["ruff"] }),
+					engineResult({ engine: "lint", missingTools: ["ruff", "golangci-lint"] }),
+				],
+				diagnostics: [],
+				score: { score: 100, label: "Excellent" },
+				elapsedMs: 1400,
+				thresholds: { good: 85, ok: 65 },
+				verbose: false,
+			}),
+		);
+		expect(out).toContain("Clean run");
+		expect(out).toMatch(/ruff, golangci-lint not installed/);
+		expect(out).toContain("aislop doctor");
 	});
 });
