@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+## 0.18.0 (2026-10-03)
+
+Baseline mode, plus fixes for false positives reported by users. `aislop baseline write` lets an existing codebase gate CI on new findings only. Python import checks read every requirements file, PEP 723 metadata, and a new `imports.provided` list. Biome and ruff follow the project's own config and version. Missing tools are reported instead of silently skipped.
+
 ### Added
 
 - **Baseline mode.** `aislop baseline write` records the current findings in `.aislop/ci-baseline.json`, and with `ci.baseline` set, `scan` and `ci` fail only on findings that are not in it. Findings match on rule, file, and the text of the reported line rather than the line number, so unrelated edits do not re-raise them. Stale entries are reported and `aislop baseline prune` removes them. The score still counts every finding. Thanks to @tykeal ([#405](https://github.com/scanaislop/aislop/issues/405)).
@@ -25,7 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Go `v, _ := f()` is only reported when the dropped value can be an error.** `ai-slop/swallowed-exception` now looks up `f` in the caller's package and skips the finding when every declaration's last result is a basic type such as `string`, `int` or `bool`, or a slice, array, map, channel or function type. Named types, aliases, pointers, interfaces, and calls it cannot resolve or that are shadowed locally are still reported. `//nolint`, `//nolint:errcheck`, and `//nolint:all` comments on the line are honored.
 - **A bare `aislop-ignore` comment suppresses its own line.** `# aislop-ignore` and `// aislop-ignore rule-id` now work like `aislop-ignore-line`. Before, they suppressed nothing.
 - **Size findings state their real trigger.** `complexity/file-too-large` and `complexity/function-too-long` allow 10% over the limit before reporting, but the message only showed the limit. The message now shows both, for example `File too large (limit: 400, flagged above 440 lines)`, and the docs describe how lines are counted. When findings fire is unchanged.
-- **ruff from the project's virtualenv is preferred.** When `.venv` or `venv` in the scan root holds a ruff executable, `scan` and `fix` use it before ruff on `PATH` or the bundled copy, so `python-formatting` and ruff lint findings come from the version the project pins. A venv ruff that is committed to the repository, or reached through a symlink, is never run, so a pull request cannot supply its own binary. Agent hooks, which never run project-local tools, keep using `PATH` or the bundled ruff.
+- **ruff from the project's virtualenv is preferred.** When `.venv` or `venv` in the scan root holds a ruff executable, `scan` and `fix` use it before ruff on `PATH` or the bundled copy, so `python-formatting` and ruff lint findings come from the version the project pins. The venv ruff is only used inside a git work tree where the virtualenv is untracked, not a submodule or nested repository, and not reached through a symlink, so a pull request or archive cannot supply its own binary. Agent hooks, which never run project-local tools, keep using `PATH` or the bundled ruff.
 
 ## 0.17.0 (2026-10-02)
 
