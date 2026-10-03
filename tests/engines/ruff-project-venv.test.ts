@@ -6,7 +6,7 @@ import { DEFAULT_CONFIG } from "../../src/config/defaults.js";
 import { fixRuffFormat, runRuffFormat } from "../../src/engines/format/ruff-format.js";
 import { fixRuffLint, fixRuffLintForce, runRuffLint } from "../../src/engines/lint/ruff.js";
 import type { EngineContext } from "../../src/engines/types.js";
-import { resolveToolBinary } from "../../src/utils/tooling.js";
+import { isToolAvailable, resolveToolBinary } from "../../src/utils/tooling.js";
 
 const isWindows = process.platform === "win32";
 
@@ -134,5 +134,29 @@ describe.skipIf(isWindows)("ruff engines use the project's venv ruff", () => {
 		await fixRuffLint(context);
 
 		expect(invokedBinaries()).toEqual(["path", "path", "path", "path"]);
+	});
+});
+
+describe("project venv lookup is limited to ruff", () => {
+	let tmpDir: string;
+
+	beforeEach(() => {
+		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "aislop-venv-other-tool-"));
+	});
+
+	afterEach(() => {
+		fs.rmSync(tmpDir, { recursive: true, force: true });
+	});
+
+	it("does not resolve or detect golangci-lint from the project venv", async () => {
+		const venvBinary = isWindows
+			? path.join(tmpDir, ".venv", "Scripts", "golangci-lint.exe")
+			: path.join(tmpDir, ".venv", "bin", "golangci-lint");
+		writeExecutable(venvBinary, "");
+
+		expect(resolveToolBinary("golangci-lint", { projectRoot: tmpDir })).not.toBe(venvBinary);
+		expect(await isToolAvailable("golangci-lint", tmpDir)).toBe(
+			await isToolAvailable("golangci-lint"),
+		);
 	});
 });

@@ -81,8 +81,10 @@ const findToolOnPath = (toolName: string): string | null => {
 };
 
 const PROJECT_VENV_DIRS = [".venv", "venv"];
+const PROJECT_VENV_TOOL_NAMES = new Set(["ruff"]);
 
 const findProjectVenvTool = (toolName: string, projectRoot: string): string | null => {
+	if (!PROJECT_VENV_TOOL_NAMES.has(toolName)) return null;
 	for (const venvDir of PROJECT_VENV_DIRS) {
 		const candidate =
 			process.platform === "win32"
@@ -116,13 +118,7 @@ const isBundledTool = (toolName: string): boolean => getBundledToolPath(toolName
 
 export const isToolAvailable = async (toolName: string, projectRoot?: string): Promise<boolean> => {
 	if (isBundledTool(toolName)) return true;
-	if (
-		projectRoot &&
-		BUNDLED_TOOL_NAMES.has(toolName) &&
-		findProjectVenvTool(toolName, projectRoot)
-	) {
-		return true;
-	}
+	if (projectRoot && findProjectVenvTool(toolName, projectRoot)) return true;
 	return isToolInstalled(toolName);
 };
 
