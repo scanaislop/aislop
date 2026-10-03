@@ -4,8 +4,8 @@ import {
 	addPyDep,
 	collectFromPipfile,
 	collectFromPyproject,
-	collectFromRequirementsTxt,
-	PYTHON_MANIFEST_FILES,
+	collectFromRequirementsFiles,
+	hasPythonManifest,
 } from "./python-dependency-parser.js";
 import { expandWorkspaceMemberDirs, isWithinWorkspaceRoot } from "./uv-workspace-patterns.js";
 import { readUvWorkspaceDefinition } from "./uv-workspace-definition.js";
@@ -39,7 +39,7 @@ const collectLocalPythonPackages = (rootDir: string, pyDeps: Set<string>): void 
 
 const collectScope = (rootDir: string): PythonDependencyScope => {
 	const pyDeps = new Set<string>();
-	const hasReq = collectFromRequirementsTxt(rootDir, pyDeps);
+	const hasReq = collectFromRequirementsFiles(rootDir, pyDeps);
 	const hasPyproject = collectFromPyproject(rootDir, pyDeps);
 	const hasPipfile = collectFromPipfile(rootDir, pyDeps);
 	collectLocalPythonPackages(rootDir, pyDeps);
@@ -77,11 +77,7 @@ const collectNestedScopes = (rootDir: string): PythonDependencyScope[] => {
 			return;
 		}
 
-		const hasManifest = entries.some(
-			(entry) =>
-				entry.isFile() && PYTHON_MANIFEST_FILES.some((fileName) => fileName === entry.name),
-		);
-		if (dir !== rootDir && hasManifest) {
+		if (dir !== rootDir && hasPythonManifest(dir, entries)) {
 			const scope = collectScope(dir);
 			if (scope.hasPyManifest) scopes.push(scope);
 		}
@@ -108,7 +104,7 @@ const findNearestPythonManifestDirectory = (
 	let directory = path.resolve(startDir);
 	const boundary = path.resolve(boundaryDir);
 	while (isWithinWorkspaceRoot(boundary, directory)) {
-		if (PYTHON_MANIFEST_FILES.some((fileName) => fs.existsSync(path.join(directory, fileName)))) {
+		if (hasPythonManifest(directory)) {
 			return directory;
 		}
 		if (directory === boundary) break;
