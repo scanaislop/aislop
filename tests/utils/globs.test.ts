@@ -19,8 +19,24 @@ describe("expandBraceLists", () => {
 
 	it("leaves patterns without a comma list unchanged", () => {
 		expect(expandBraceLists("src/**/*.cs")).toEqual(["src/**/*.cs"]);
-		expect(expandBraceLists("file{1..3}.cs")).toEqual(["file{1..3}.cs"]);
 		expect(expandBraceLists("\\{a,b}")).toEqual(["\\{a,b}"]);
+	});
+
+	it("expands numeric and letter ranges, with steps and zero padding", () => {
+		expect(expandBraceLists("Generated/File{1..3}.cs")).toEqual([
+			"Generated/File1.cs",
+			"Generated/File2.cs",
+			"Generated/File3.cs",
+		]);
+		expect(expandBraceLists("v{3..1}")).toEqual(["v3", "v2", "v1"]);
+		expect(expandBraceLists("{a..c}")).toEqual(["a", "b", "c"]);
+		expect(expandBraceLists("{0..10..5}")).toEqual(["0", "5", "10"]);
+		expect(expandBraceLists("part{08..10}")).toEqual(["part08", "part09", "part10"]);
+		expect(expandBraceLists("{x..}")).toEqual(["{x..}"]);
+	});
+
+	it("leaves a range that is too large unexpanded", () => {
+		expect(expandBraceLists("{1..100000}")).toEqual(["{1..100000}"]);
 	});
 
 	it("returns the pattern unexpanded when the expansion is too large", () => {
