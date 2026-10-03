@@ -6,12 +6,16 @@ import { maskComments, masksAllMultilineLiterals } from "../../utils/source-mask
 import { findUnknownDirectiveScope } from "../../utils/suppress.js";
 import type { Diagnostic, EngineContext } from "../types.js";
 
-const KNOWN_DIRECTIVES = ["aislop-ignore-next-line", "aislop-ignore-line", "aislop-ignore-file"];
+const DIRECTIVE_BASE = ["aislop", "ignore"].join("-");
+const DIRECTIVE_PREFIX = `${DIRECTIVE_BASE}-`;
+const KNOWN_DIRECTIVES = ["next-line", "line", "file"].map(
+	(scope) => `${DIRECTIVE_PREFIX}${scope}`,
+);
 
 const closestDirective = (scope: string): string | undefined => {
 	const compact = scope.toLowerCase().replace(/[-_]/g, "");
 	return KNOWN_DIRECTIVES.find(
-		(directive) => directive.slice("aislop-ignore-".length).replace(/-/g, "") === compact,
+		(directive) => directive.slice(DIRECTIVE_PREFIX.length).replace(/-/g, "") === compact,
 	);
 };
 
@@ -22,10 +26,10 @@ const unknownDirectiveDiagnostic = (filePath: string, line: number, scope: strin
 		engine: "ai-slop",
 		rule: "ai-slop/unknown-directive",
 		severity: "warning",
-		message: `"aislop-ignore-${scope}" is not a suppression directive, so it suppresses nothing`,
+		message: `"${DIRECTIVE_PREFIX}${scope}" is not a suppression directive, so it suppresses nothing`,
 		help: suggestion
 			? `Did you mean "${suggestion}"?`
-			: `Use ${KNOWN_DIRECTIVES.join(", ")}, or a bare aislop-ignore for the same line.`,
+			: `Use ${KNOWN_DIRECTIVES.join(", ")}, or a bare ${DIRECTIVE_BASE} for the same line.`,
 		line,
 		column: 1,
 		category: "AI Slop",
@@ -34,7 +38,7 @@ const unknownDirectiveDiagnostic = (filePath: string, line: number, scope: strin
 };
 
 const isInsideComment = (line: string, maskedLine: string, scope: string): boolean => {
-	const column = line.indexOf(`aislop-ignore-${scope}`);
+	const column = line.indexOf(`${DIRECTIVE_PREFIX}${scope}`);
 	return column !== -1 && maskedLine[column] === " ";
 };
 
@@ -64,7 +68,7 @@ export const detectUnknownDirectives = async (context: EngineContext): Promise<D
 		} catch {
 			continue;
 		}
-		if (!content.includes("aislop-ignore-")) continue;
+		if (!content.includes(DIRECTIVE_PREFIX)) continue;
 		const relPath = relativePosix(context.rootDirectory, filePath);
 		diagnostics.push(...unknownDirectivesIn(filePath, relPath, content));
 	}

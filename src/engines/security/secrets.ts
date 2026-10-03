@@ -167,6 +167,8 @@ const UI_KEY_TOKENS = new Set([
 const LOCALE_PATH_RE =
 	/(?:^|\/)(?:locales?|i18n|l10n|lang|langs|languages|translations?)\/|(?:^|\/)[a-z]{2}(?:[-_][A-Za-z]{2})?\.json$/i;
 const CREDENTIAL_MENTION_RE = /\b(?:password|passphrase|passcode|secret)\b/i;
+const PROMPT_TEXT_RE =
+	/\b(?:enter|type|confirm|provide|choose|create|reset|forgot|forgotten|change|update|incorrect|invalid|wrong|required|your)\b/i;
 
 const isHumanReadableText = (value: string): boolean => {
 	const words = value.trim().split(/\s+/);
@@ -194,7 +196,7 @@ const isUiCopy = (relativePath: string, key: string, value: string): boolean => 
 	return (
 		keyTokens(key).some((token) => UI_KEY_TOKENS.has(token)) ||
 		LOCALE_PATH_RE.test(relativePath) ||
-		CREDENTIAL_MENTION_RE.test(value)
+		(CREDENTIAL_MENTION_RE.test(value) && PROMPT_TEXT_RE.test(value))
 	);
 };
 

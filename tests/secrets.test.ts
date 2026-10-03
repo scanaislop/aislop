@@ -276,11 +276,12 @@ describe("scanSecrets on UI copy", () => {
 				'export const p1 = { password: "correct horse battery staple!" }',
 				'export const p2 = { password: "Correct horse battery staple" }',
 				'export const p3 = { password: "Пароль от сервера два" }',
+				'export const p4 = { password: "Secret production password!" }',
 				"",
 			].join("\n"),
 		);
 
-		expect(await flaggedLines()).toEqual([2, 3, 4, 5, 6, 7, 8, 9]);
+		expect(await flaggedLines()).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10]);
 	});
 
 	it("does not flag translated labels in locale files", async () => {
