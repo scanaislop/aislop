@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { safeProjectFilePath } from "../../utils/project-path-safety.js";
 import { collectWorkspaceDirs } from "./js-workspaces.js";
-import { PYTHON_MANIFEST_FILES } from "./python-dependency-parser.js";
+import { hasPythonManifest } from "./python-dependency-parser.js";
 import { collectPythonDeps, type PythonDependencyScope } from "./python-manifest.js";
 
 interface JsDependencyScope {
@@ -169,7 +169,7 @@ const isWorkspaceProjectFile = (manifest: PackageManifest, filePath: string): bo
 	const workspaceRoot = path.resolve(manifest.workspaceRootDir);
 	let directory = path.dirname(path.resolve(filePath));
 	while (isWithinDirectory(directory, workspaceRoot)) {
-		if (PYTHON_MANIFEST_FILES.some((fileName) => fs.existsSync(path.join(directory, fileName)))) {
+		if (hasPythonManifest(directory)) {
 			return (
 				directory === workspaceRoot ||
 				manifest.workspaceMemberDirs.some((memberDir) => path.resolve(memberDir) === directory)

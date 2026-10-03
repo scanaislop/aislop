@@ -18,7 +18,17 @@ interface JsonOutput {
 	label: string;
 	scoreable: boolean;
 	coverage: Coverage;
-	engines: Record<string, { issues: number; skipped: boolean; elapsed: number; failed?: true }>;
+	engines: Record<
+		string,
+		{
+			issues: number;
+			skipped: boolean;
+			elapsed: number;
+			failed?: true;
+			skipReason?: string;
+			missingTools?: string[];
+		}
+	>;
 	engineDefinitions: Record<string, EngineInfo>;
 	diagnostics: AssessedDiagnostic[];
 	findingAssessment: FindingAssessmentSummary;
@@ -48,6 +58,8 @@ export const buildJsonOutput = (
 			skipped: result.skipped,
 			elapsed: result.elapsed,
 			...(result.failed ? { failed: true as const } : {}),
+			...(result.skipped && result.skipReason ? { skipReason: result.skipReason } : {}),
+			...(result.missingTools?.length ? { missingTools: result.missingTools } : {}),
 		};
 	}
 

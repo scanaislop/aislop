@@ -41,6 +41,9 @@ export const DEFAULT_CONFIG: AislopConfig = {
 		audit: true,
 		auditTimeout: 25000,
 	},
+	imports: {
+		provided: [],
+	},
 	scoring: {
 		weights: {
 			format: 0.3,
@@ -60,6 +63,7 @@ export const DEFAULT_CONFIG: AislopConfig = {
 	ci: {
 		failBelow: 70,
 		format: "json",
+		failOnMissingTools: false,
 	},
 	telemetry: {
 		enabled: true,

@@ -3,6 +3,7 @@ import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { type AislopConfig, findConfigDir, RULES_FILE } from "../config/index.js";
 import { recordFullScanActivity } from "../engagement/full-scan-activity.js";
+import { collectMissingTools } from "../engines/missing-tools.js";
 import type { EngineConfig } from "../engines/types.js";
 import { renderDiagnostics } from "../output/terminal.js";
 import { calculateScore } from "../scoring/index.js";
@@ -11,6 +12,7 @@ import { isCiEnv } from "../telemetry/env.js";
 import { type EngineCounts, withCommandLifecycle } from "../telemetry/index.js";
 import { renderDisplayRows } from "../ui/display.js";
 import { renderHeader } from "../ui/header.js";
+import { renderMissingTools } from "../ui/summary.js";
 import { detectInvocation } from "../ui/invocation.js";
 import { log } from "../ui/logger.js";
 import { applyChangeContext } from "../utils/change-context.js";
@@ -144,6 +146,7 @@ const runScanBody = async (
 	const engineConfig: EngineConfig = {
 		overrides: config.overrides,
 		rules: config.rules,
+		imports: config.imports,
 		quality: config.quality,
 		security: config.security,
 		lint: config.lint,
@@ -205,11 +208,14 @@ const runScanBody = async (
 	);
 	const scoreable = scanCoverage.scoreable;
 	const hasErrors = allDiagnostics.some((d) => d.severity === "error");
+	const missingTools = collectMissingTools(results);
 	const exitCode = computeScanExitCode({
 		hasErrors,
 		scoreable,
 		score: scoreResult.score,
 		failBelow: config.ci.failBelow,
+		missingTools: missingTools.length > 0,
+		failOnMissingTools: config.ci.failOnMissingTools,
 	});
 
 	const engineIssues: EngineCounts = {};
@@ -254,6 +260,9 @@ const runScanBody = async (
 			if (allDiagnostics.length > 0) {
 				process.stdout.write(renderDiagnostics(allDiagnostics, options.verbose ?? false));
 			}
+			process.stdout.write(
+				renderMissingTools({ tools: missingTools, invocation: detectInvocation() }),
+			);
 		}
 		return completion;
 	}
