@@ -32,6 +32,7 @@ describe("expandBraceLists", () => {
 		expect(expandBraceLists("{a..c}")).toEqual(["a", "b", "c"]);
 		expect(expandBraceLists("{0..10..5}")).toEqual(["0", "5", "10"]);
 		expect(expandBraceLists("part{08..10}")).toEqual(["part08", "part09", "part10"]);
+		expect(expandBraceLists("File{1..3..01}.cs")).toEqual(["File01.cs", "File02.cs", "File03.cs"]);
 		expect(expandBraceLists("{x..}")).toEqual(["{x..}"]);
 	});
 

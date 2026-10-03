@@ -20,13 +20,15 @@ const rangeValues = (from: number, to: number, rawStep: string | undefined): num
 	return Array.from({ length: count }, (_, i) => from + i * step * direction);
 };
 
-const padWidth = (from: string, to: string): number =>
-	/^-?0\d/.test(from) || /^-?0\d/.test(to) ? Math.max(from.length, to.length) : 0;
+const padWidth = (values: string[]): number =>
+	values.some((value) => /^-?0\d/.test(value))
+		? Math.max(...values.map((value) => value.length))
+		: 0;
 
 const expandRange = (body: string): string[] | null => {
 	const numeric = NUMERIC_RANGE_RE.exec(body);
 	if (numeric) {
-		const width = padWidth(numeric[1], numeric[2]);
+		const width = padWidth([numeric[1], numeric[2]].concat(numeric[3] ?? []));
 		const values = rangeValues(Number(numeric[1]), Number(numeric[2]), numeric[3]);
 		return (
 			values?.map((value) => {
