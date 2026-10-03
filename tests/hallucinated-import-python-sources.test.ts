@@ -124,6 +124,48 @@ describe("Python dependency sources", () => {
 		expect(await flaggedImports()).toEqual(["ghostlib"]);
 	});
 
+	it.skipIf(process.platform === "win32")("reads a symlinked requirements file", async () => {
+		writeFile("pyproject.toml", "[tool.ruff]\nline-length = 88\n");
+		writeFile("config/base.txt", "requests\n");
+		fs.symlinkSync(path.join("config", "base.txt"), path.join(tmpDir, "requirements.txt"));
+		writeFile("app/main.py", ["import requests", "import ghostlib"].join("\n"));
+
+		expect(await flaggedImports()).toEqual(["ghostlib"]);
+	});
+
+	it.skipIf(process.platform === "win32")(
+		"does not follow a requirements symlink that leaves the project",
+		async () => {
+			const outside = fs.mkdtempSync(path.join(os.tmpdir(), "aislop-py-link-outside-"));
+			try {
+				fs.writeFileSync(path.join(outside, "reqs.txt"), "ghostlib\n");
+				writeFile("pyproject.toml", "[tool.ruff]\nline-length = 88\n");
+				fs.symlinkSync(path.join(outside, "reqs.txt"), path.join(tmpDir, "requirements.txt"));
+				writeFile("app/main.py", "import ghostlib\n");
+
+				expect(await flaggedImports()).toEqual(["ghostlib"]);
+			} finally {
+				fs.rmSync(outside, { recursive: true, force: true });
+			}
+		},
+	);
+
+	it("does not read a standalone constraints file as dependencies", async () => {
+		writeFile("requirements/base.txt", "requests\n");
+		writeFile("requirements/constraints.txt", "ghostlib==1.0\n");
+		writeFile("app/main.py", ["import requests", "import ghostlib"].join("\n"));
+
+		expect(await flaggedImports()).toEqual(["ghostlib"]);
+	});
+
+	it("still reads a constraints-named file included with -r", async () => {
+		writeFile("requirements.txt", "-r requirements/constraints.txt\n");
+		writeFile("requirements/constraints.txt", "requests\n");
+		writeFile("app/main.py", "import requests\n");
+
+		expect(await flaggedImports()).toEqual([]);
+	});
+
 	it("does not read constraint files kept in a requirements/ directory", async () => {
 		writeFile("requirements/base.txt", "-c constraints.txt\nrequests\n");
 		writeFile("requirements/constraints.txt", "ghostlib==1.0\n");

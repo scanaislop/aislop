@@ -24,14 +24,26 @@ const listDirectory = (directory: string): fs.Dirent[] => {
 	}
 };
 
+const CONSTRAINTS_FILE_RE = /constraints?/i;
+
+const isFileEntry = (entry: fs.Dirent): boolean => entry.isFile() || entry.isSymbolicLink();
+
+const isSeedFileName = (name: string): boolean => !CONSTRAINTS_FILE_RE.test(name);
+
 const requirementsDirFiles = (directory: string): string[] =>
 	listDirectory(path.join(directory, REQUIREMENTS_DIR))
-		.filter((entry) => entry.isFile() && /\.(?:txt|in)$/i.test(entry.name))
+		.filter(
+			(entry) =>
+				isFileEntry(entry) && /\.(?:txt|in)$/i.test(entry.name) && isSeedFileName(entry.name),
+		)
 		.map((entry) => path.join(directory, REQUIREMENTS_DIR, entry.name));
 
 const requirementsFilesIn = (directory: string, entries: fs.Dirent[]): string[] => [
 	...entries
-		.filter((entry) => entry.isFile() && isRequirementsFileName(entry.name))
+		.filter(
+			(entry) =>
+				isFileEntry(entry) && isRequirementsFileName(entry.name) && isSeedFileName(entry.name),
+		)
 		.map((entry) => path.join(directory, entry.name)),
 	...(entries.some((entry) => entry.isDirectory() && entry.name === REQUIREMENTS_DIR)
 		? requirementsDirFiles(directory)
@@ -42,7 +54,7 @@ export const hasPythonManifest = (
 	directory: string,
 	entries: fs.Dirent[] = listDirectory(directory),
 ): boolean =>
-	entries.some((entry) => entry.isFile() && isPythonManifestFileName(entry.name)) ||
+	entries.some((entry) => isFileEntry(entry) && isPythonManifestFileName(entry.name)) ||
 	requirementsFilesIn(directory, entries).length > 0;
 
 const isWithinDirectory = (directory: string, filePath: string): boolean => {
