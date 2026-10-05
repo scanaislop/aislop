@@ -178,7 +178,7 @@ const opts = { ...defaults, ...(input || {}) };
 const legacy = doThing(); // aislop-ignore-line
 ```
 
-`aislop-ignore-next-line` covers the line below, `aislop-ignore-line` the line it sits on, and `aislop-ignore-file` (place anywhere in the file) the whole file. Name one or more rules to scope the suppression, or omit them to silence every rule on that line. The directive works in any comment syntax (`//`, `#`, `<!-- -->`). Suppressed findings are removed before scoring, and the run reports how many were silenced.
+`aislop-ignore-next-line` covers the line below, `aislop-ignore-line` (or a bare `aislop-ignore`) the line it sits on, and `aislop-ignore-file` (place anywhere in the file) the whole file. Name one or more rules to scope the suppression, or omit them to silence every rule on that line. The directive works in any comment syntax (`//`, `#`, `<!-- -->`). Suppressed findings are removed before scoring, and the run reports how many were silenced. A misspelled directive such as `aislop-ignore-nextline` suppresses nothing and is reported as `ai-slop/unknown-directive`.
 
 **Ignore whole paths**: Add an `.aislopignore` at the project root (same glob semantics as `exclude`, `#` comments allowed):
 
@@ -318,7 +318,11 @@ aislop ci                  # JSON output, exits 1 if score < threshold
 aislop ci --changes --base origin/main  # gate only the files a PR changes
 aislop ci --human          # human-friendly CI output
 aislop ci --sarif          # SARIF output for code scanning
+aislop baseline write      # accept current findings; ci then fails only on new ones
+aislop baseline prune      # drop baseline entries for findings you fixed
 ```
+
+Set `ci.baseline: .aislop/ci-baseline.json` after `aislop baseline write` so `scan` and `ci` use it. See [docs/ci.md](docs/ci.md#baseline-fail-only-on-new-findings).
 
 `ci` accepts the same `--changes` / `--staged` / `--base <ref>` scoping as `scan`. Use `--changes --base origin/<target>` to gate a pull request on only the files it touches; the score gate and exit code still apply.
 

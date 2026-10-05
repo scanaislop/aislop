@@ -136,6 +136,69 @@ const FIXTURE_LINE_RE = /\b(?:fixture|mock|sample|seed|test)\b|(?:^|[^A-Za-z])B?
 const FIXTURE_VALUE_RE =
 	/^(?:password1!?\.?|passwd\+us3r\d+|sys@dmin-sample\d+|usr@mmtest\d+|test(?:ing)?[-_ ]?(?:password|secret)?\d*)$/i;
 const MASKED_SECRET_RE = /^[*xX]{6,}$/;
+const CREDENTIAL_WORD = "(?:client[-_ ]?)?(?:password|passwd|pwd|secret|pass)";
+const PLACEHOLDER_SHAPE_RE = new RegExp(
+	`^<(?:your[-_ ])?${CREDENTIAL_WORD}>$|^your[-_ ]${CREDENTIAL_WORD}(?:[-_ ]here)?$`,
+	"i",
+);
+const PROSE_WORD_RE = /^[\p{L}\p{N}\p{Pi}\p{Pf}'.,!?:;()-]+$/u;
+
+const UI_KEY_TOKENS = new Set([
+	"awaiting",
+	"caption",
+	"description",
+	"enter",
+	"error",
+	"forgot",
+	"help",
+	"hint",
+	"invalid",
+	"label",
+	"message",
+	"msg",
+	"placeholder",
+	"prompt",
+	"status",
+	"text",
+	"title",
+	"tooltip",
+	"waiting",
+]);
+const LOCALE_PATH_RE =
+	/(?:^|\/)(?:locales?|i18n|l10n|lang|langs|languages|translations?)\/|(?:^|\/)[a-z]{2}(?:[-_][A-Za-z]{2})?\.json$/i;
+const CREDENTIAL_MENTION_RE = /\b(?:password|passphrase|passcode|secret)s?\b/i;
+const PROMPT_TEXT_RE =
+	/\b(?:enter|type|confirm|provide|choose|create|reset|forgot|forgotten|change|update|incorrect|invalid|wrong|required|your|must|should|contain|contains|include|includes|least|characters?|minimum|maximum|match|matches|long)\b/i;
+
+const isHumanReadableText = (value: string): boolean => {
+	const words = value.trim().split(/\s+/);
+	if (words.length < 2 || !words.every((word) => PROSE_WORD_RE.test(word))) return false;
+	return /[^\p{ASCII}]/u.test(value) || /^\p{Lu}\p{Ll}/u.test(words[0]) || /[.!?:]$/.test(value);
+};
+
+const keyTokens = (key: string): string[] =>
+	key
+		.replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+		.toLowerCase()
+		.split(/[^a-z0-9]+/)
+		.filter(Boolean);
+
+const identifierAt = (content: string, index: number): string => {
+	let start = index;
+	while (start > 0 && /[\w$-]/.test(content[start - 1])) start -= 1;
+	let end = index;
+	while (end < content.length && /[\w$-]/.test(content[end])) end += 1;
+	return content.slice(start, end);
+};
+
+const isUiCopy = (relativePath: string, key: string, value: string): boolean => {
+	if (!isHumanReadableText(value)) return false;
+	return (
+		keyTokens(key).some((token) => UI_KEY_TOKENS.has(token)) ||
+		LOCALE_PATH_RE.test(relativePath) ||
+		(CREDENTIAL_MENTION_RE.test(value) && PROMPT_TEXT_RE.test(value))
+	);
+};
 
 const isPlaceholderCredentialUrl = (matchedText: string): boolean => {
 	const credentialMatch = matchedText.match(/^[a-z][a-z+.-]*:\/\/([^:@/\s]+):([^@/\s]+)@/i);
@@ -233,6 +296,7 @@ const shouldSkipSecretFinding = (
 	if (GENERATED_SECRET_RE.test(lineText) || GENERATED_SECRET_RE.test(matchedText)) return true;
 	if (isHeaderNameConstant(lineText, matchedText)) return true;
 	if (isFixtureSecret(relativePath, lineText, matchedText)) return true;
+	if (name === "Hardcoded password/secret" && PLACEHOLDER_SHAPE_RE.test(matchedText)) return true;
 	if (
 		(name === "Hardcoded password/secret" || name === "Authentication token") &&
 		isSymbolicConstantValue(matchedText)
@@ -267,6 +331,12 @@ export const scanSecrets = async (context: EngineContext): Promise<Diagnostic[]>
 				const lineText = lineForMatch(content, match.index);
 				if (isPlaceholderValue(matchedText)) continue;
 				if (shouldSkipSecretFinding(relativePath, name, lineText, matchedText)) continue;
+				if (
+					name === "Hardcoded password/secret" &&
+					isUiCopy(relativePath, identifierAt(content, match.index), matchedText)
+				) {
+					continue;
+				}
 				if (keywordPrefixed && isInsideStringLiteral(content, match.index)) continue;
 
 				const line = content.slice(0, match.index).split("\n").length;

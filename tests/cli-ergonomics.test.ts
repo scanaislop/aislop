@@ -56,6 +56,9 @@ const PUBLIC_HELP_COMMANDS: string[][] = [
 	["install", "hooks", "--help"],
 	["uninstall", "--help"],
 	["uninstall", "hooks", "--help"],
+	["baseline", "--help"],
+	["baseline", "write", "--help"],
+	["baseline", "prune", "--help"],
 	["badge", "--help"],
 	["trend", "--help"],
 	["trends", "--help"],
@@ -176,6 +179,8 @@ describe("cli ergonomics", () => {
 		expect(result.stdout).toContain("--agent <names>");
 		expect(result.stdout).toContain("--quality-gate");
 		expect(result.stdout).toContain("--copilot");
+		expect(result.stdout).toContain("aislop baseline write [directory]");
+		expect(result.stdout).toContain("aislop baseline prune [directory]");
 		expect(result.stdout).toContain("aislop badge [directory]");
 		expect(result.stdout).toContain("aislop trends [directory]");
 		expect(result.stdout).toContain("--owner <owner>");

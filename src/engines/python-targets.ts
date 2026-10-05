@@ -1,5 +1,6 @@
 import path from "node:path";
 import { getSourceFiles } from "../utils/source-files.js";
+import { resolveToolBinary } from "../utils/tooling.js";
 import type { EngineContext } from "./types.js";
 
 const PYTHON_EXTENSIONS = new Set([".py", ".pyi"]);
@@ -32,3 +33,9 @@ export const getRuffDiagnosticPath = (rootDirectory: string, filePath: string): 
 
 	return normalizeProjectPath(relativePath);
 };
+
+export const resolveRuffBinary = (context: EngineContext): string =>
+	resolveToolBinary("ruff", {
+		projectRoot:
+			context.config.allowProjectLocalTools === false ? undefined : context.rootDirectory,
+	});

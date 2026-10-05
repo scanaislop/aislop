@@ -59,6 +59,9 @@ export const AI_SLOP_RULE_SCORE_IMPACTS: Record<string, RuleScoreImpact> = {
 	"ai-slop/ts-directive": style(
 		"TypeScript suppressions need review, but individual directives can be intentional debt.",
 	),
+	"ai-slop/unknown-directive": style(
+		"A misspelled suppression is a config mistake; surface it without heavy scoring impact.",
+	),
 	"ai-slop/narrative-comment": style(
 		"Narrative comments are cleanup/style findings rather than defects.",
 	),

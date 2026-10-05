@@ -69,7 +69,7 @@ const checkFileDiagnostics = (
 			engine: "code-quality",
 			rule: "complexity/file-too-large",
 			severity: "warning",
-			message: `File too large (max: ${configuredMax})`,
+			message: `File too large (limit: ${configuredMax}, flagged above ${triggerAt} lines)`,
 			help: fileTooLargeHelp(ext),
 			line: 0,
 			column: 0,
@@ -102,13 +102,14 @@ const checkFunctionDiagnostics = (
 
 	const fnMax = functionLocBudget(fn, ext, limits.maxFunctionLoc);
 	const effectiveLineCount = fn.lineCount - fn.templateLines;
-	if (effectiveLineCount > Math.ceil(fnMax * 1.1)) {
+	const fnTriggerAt = Math.ceil(fnMax * 1.1);
+	if (effectiveLineCount > fnTriggerAt) {
 		results.push({
 			filePath: relativePath,
 			engine: "code-quality",
 			rule: "complexity/function-too-long",
 			severity: "warning",
-			message: `Function too long (max: ${fnMax})`,
+			message: `Function too long (limit: ${fnMax}, flagged above ${fnTriggerAt} lines)`,
 			help: "Consider breaking this function into smaller pieces",
 			line: fn.startLine,
 			column: 0,

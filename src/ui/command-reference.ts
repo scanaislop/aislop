@@ -25,6 +25,7 @@ const commandGroupLabel = (command: string): string => {
 	if (command.startsWith("aislop scan")) return "Core Workflow";
 	if (command.startsWith("aislop fix")) return "Core Workflow";
 	if (command.startsWith("aislop ci")) return "Core Workflow";
+	if (command.startsWith("aislop baseline")) return "Core Workflow";
 	if (command.startsWith("aislop hook")) return "Hooks";
 	if (command === "aislop hooks") return "Hooks";
 	if (command.startsWith("aislop install")) return "Hooks";

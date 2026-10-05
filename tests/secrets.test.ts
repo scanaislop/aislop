@@ -224,3 +224,83 @@ describe("scanSecrets", () => {
 		expect(diagnostics[0].rule).toBe("security/hardcoded-secret");
 	});
 });
+
+describe("scanSecrets on UI copy", () => {
+	const flaggedLines = async (): Promise<number[]> =>
+		(await scanSecrets(buildContext())).map((d) => d.line).sort((a, b) => a - b);
+
+	it("does not flag human-readable labels under password-like keys", async () => {
+		writeFile(
+			"src/lib/uiLabels.ts",
+			[
+				"export const STATUS_LABELS = {",
+				"  awaiting_password: 'Ожидает действия',",
+				"  waiting_password: 'Ожидает пароль 2FA',",
+				"  PASSWORD_HASH_INVALID: 'Неверный пароль 2FA',",
+				'  password: "Enter your password here",',
+				'  resetSecret: "Your secret link has expired.",',
+				"}",
+				'export const PASSWORD_PROMPT = "Please enter your password"',
+				"",
+			].join("\n"),
+		);
+
+		expect(await flaggedLines()).toEqual([]);
+	});
+
+	it("does not flag obvious placeholders", async () => {
+		writeFile(
+			"src/form.ts",
+			[
+				'export const a = { password: "<password>" }',
+				'export const b = { password: "your-password-here" }',
+				'export const c = { secret: "<your-client-secret>" }',
+				'export const d = { password: "********" }',
+				"",
+			].join("\n"),
+		);
+
+		expect(await flaggedLines()).toEqual([]);
+	});
+
+	it("still flags real secrets next to UI copy", async () => {
+		writeFile(
+			"src/config.ts",
+			[
+				'export const label = { awaiting_password: "Waiting for the password" }',
+				'export const db = { password: "Tr0ub4dor&3xK9" }',
+				'export const passphrase = { password: "correct horse battery staple" }',
+				'export const client = { secret: "a8f5f167f44f4964e6c998dee827110c" }',
+				'export const url = "postgres://admin:Sup3rS3cret@db.internal:5432/app"',
+				'export const pw = { password: "hunter2 hunter2" }',
+				'export const p1 = { password: "correct horse battery staple!" }',
+				'export const p2 = { password: "Correct horse battery staple" }',
+				'export const p3 = { password: "Пароль от сервера два" }',
+				'export const p4 = { password: "Secret production password!" }',
+				"",
+			].join("\n"),
+		);
+
+		expect(await flaggedLines()).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10]);
+	});
+
+	it("does not flag password requirement text", async () => {
+		writeFile(
+			"src/validation.ts",
+			[
+				'export const rules = { password: "Password must contain at least 8 characters." }',
+				'export const hint = { password: "Passwords should match." }',
+				"",
+			].join("\n"),
+		);
+
+		expect(await flaggedLines()).toEqual([]);
+	});
+
+	it("does not flag translated labels in locale files", async () => {
+		writeFile("src/locales/ru.json", '{\n  "password": "Введите пароль"\n}\n');
+		writeFile("src/i18n/de.ts", 'export default { password: "Passwort eingeben" }\n');
+
+		expect(await flaggedLines()).toEqual([]);
+	});
+});

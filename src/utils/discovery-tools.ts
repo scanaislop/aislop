@@ -25,11 +25,13 @@ export const TOOLS_TO_CHECK = [
 	"clang-tidy",
 ];
 
-export const checkInstalledTools = async (): Promise<Record<string, boolean>> => {
+export const checkInstalledTools = async (
+	projectRoot?: string,
+): Promise<Record<string, boolean>> => {
 	const results: Record<string, boolean> = {};
 	await Promise.all(
 		TOOLS_TO_CHECK.map(async (tool) => {
-			results[tool] = await isToolAvailable(tool);
+			results[tool] = await isToolAvailable(tool, projectRoot);
 		}),
 	);
 	return results;

@@ -1,16 +1,16 @@
 import path from "node:path";
-import micromatch from "micromatch";
+import picomatch from "picomatch";
 import type { Diagnostic } from "../engines/types.js";
 import { toPosix } from "./paths.js";
 
-// micromatch compiles every pattern it is handed, so an unbounded user entry is
+// picomatch compiles every pattern it is handed, so an unbounded user entry is
 // wasted work; oversized entries are dropped instead of expanded.
 export const MAX_GLOB_PATTERN_LENGTH = 256;
 
 export const supportedGlobPatterns = (patterns: string[]): string[] =>
 	patterns.filter((pattern) => pattern.length <= MAX_GLOB_PATTERN_LENGTH);
 
-// Expand user-facing exclude entries into micromatch globs. A bare path
+// Expand user-facing exclude entries into picomatch globs. A bare path
 // ("external/VendorLib", ".claude") matches both the entry itself and everything
 // under it; anything already glob-shaped ("**/*.generated.cs") is kept verbatim.
 // A leading "./" and trailing slashes are cosmetic and stripped first.
@@ -25,7 +25,7 @@ export const normalizeExcludePatterns = (patterns: string[]): string[] =>
 		const normalized = withoutProjectPrefix.slice(0, end);
 		if (normalized.length === 0) return [];
 		if (normalized.length > MAX_GLOB_PATTERN_LENGTH) return [];
-		if (micromatch.scan(normalized).isGlob) return [normalized];
+		if (picomatch.scan(normalized).isGlob) return [normalized];
 		// A bare dot-prefixed name (".claude") is a dotfile or dot-directory
 		// anywhere in the tree, not an extension. Excluding by extension needs an
 		// unambiguous glob ("**/*.cs"), which the branch above passes through.
@@ -37,7 +37,7 @@ export const normalizeExcludePatterns = (patterns: string[]): string[] =>
 
 export const isPathExcluded = (relativePath: string, normalizedPatterns: string[]): boolean => {
 	if (normalizedPatterns.length === 0) return false;
-	return micromatch.isMatch(relativePath, normalizedPatterns, { dot: true });
+	return picomatch.isMatch(relativePath, normalizedPatterns, { dot: true });
 };
 
 // Drop diagnostics whose file lies under a user-excluded path. The build-backed

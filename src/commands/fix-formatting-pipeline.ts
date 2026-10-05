@@ -68,7 +68,11 @@ export const runFormattingStep = async (deps: PipelineDeps): Promise<void> => {
 		log.warn("Go detected but gofmt is not installed; skipping Go formatting fixes.");
 	}
 
-	if (deps.projectInfo.languages.includes("rust") && deps.projectInfo.installedTools.rustfmt) {
+	if (
+		deps.projectInfo.languages.includes("rust") &&
+		deps.projectInfo.installedTools.cargo &&
+		deps.projectInfo.installedTools.rustfmt
+	) {
 		if (isScopedFix(deps.context)) {
 			deps.skipStep?.("Formatting (rust)", CANNOT_SCOPE_REASON);
 		} else {
@@ -79,7 +83,9 @@ export const runFormattingStep = async (deps: PipelineDeps): Promise<void> => {
 			);
 		}
 	} else if (deps.projectInfo.languages.includes("rust")) {
-		log.warn("Rust detected but rustfmt is not installed; skipping Rust formatting fixes.");
+		log.warn(
+			"Rust detected but cargo or rustfmt is not installed; skipping Rust formatting fixes.",
+		);
 	}
 
 	if (deps.projectInfo.languages.includes("ruby") && deps.projectInfo.installedTools.rubocop) {

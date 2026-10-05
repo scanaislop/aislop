@@ -73,6 +73,10 @@ const SecurityConfigSchema = z.object({
 	auditTimeout: z.number().positive().default(25000),
 });
 
+const ImportsSchema = z.object({
+	provided: z.array(z.string().min(1)).default(() => []),
+});
+
 const ThresholdsSchema = z.object({
 	good: z.number().default(75),
 	ok: z.number().default(50),
@@ -91,6 +95,8 @@ const ScoringSchema = z.object({
 const CiSchema = z.object({
 	failBelow: z.number().default(70),
 	format: z.enum(["json"]).default("json"),
+	failOnMissingTools: z.boolean().default(false),
+	baseline: z.string().min(1).optional(),
 });
 
 const TelemetrySchema = z.object({
@@ -153,6 +159,9 @@ const AislopConfigSchema = z.object({
 		audit: true,
 		auditTimeout: 25000,
 	})),
+	imports: ImportsSchema.default(() => ({
+		provided: [],
+	})),
 	scoring: ScoringSchema.default(() => ({
 		weights: { ...DEFAULT_WEIGHTS },
 		thresholds: {
@@ -165,6 +174,7 @@ const AislopConfigSchema = z.object({
 	ci: CiSchema.default(() => ({
 		failBelow: 70,
 		format: "json" as const,
+		failOnMissingTools: false,
 	})),
 	telemetry: TelemetrySchema.default(() => ({
 		enabled: true,

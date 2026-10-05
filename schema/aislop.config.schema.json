@@ -223,6 +223,22 @@
 				}
 			}
 		},
+		"imports": {
+			"default": {
+				"provided": []
+			},
+			"type": "object",
+			"properties": {
+				"provided": {
+					"default": [],
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1
+					}
+				}
+			}
+		},
 		"scoring": {
 			"default": {
 				"weights": {
@@ -291,7 +307,8 @@
 		"ci": {
 			"default": {
 				"failBelow": 70,
-				"format": "json"
+				"format": "json",
+				"failOnMissingTools": false
 			},
 			"type": "object",
 			"properties": {
@@ -305,6 +322,14 @@
 					"enum": [
 						"json"
 					]
+				},
+				"failOnMissingTools": {
+					"default": false,
+					"type": "boolean"
+				},
+				"baseline": {
+					"type": "string",
+					"minLength": 1
 				}
 			}
 		},

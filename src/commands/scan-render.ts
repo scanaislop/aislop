@@ -1,3 +1,5 @@
+import { renderBaselineSummary, type ScanBaselineSummary } from "./scan-baseline.js";
+import { collectMissingTools } from "../engines/missing-tools.js";
 import type { Diagnostic, EngineResult } from "../engines/types.js";
 import { summarizeFindingAssessments } from "../output/finding-assessment.js";
 import { renderDiagnostics } from "../output/terminal.js";
@@ -7,6 +9,7 @@ import {
 	type BreakdownSummary,
 	type NextStep,
 	renderCleanRun,
+	renderMissingTools,
 	renderStarCta,
 	renderSummary,
 	renderTeamCta,
@@ -115,6 +118,7 @@ interface BuildScanRenderInput {
 	includeHeader?: boolean;
 	printBrand?: boolean;
 	showPilotInvitation?: boolean;
+	baseline?: ScanBaselineSummary;
 }
 
 export const buildScanRender = (input: BuildScanRenderInput): string => {
@@ -154,11 +158,19 @@ export const buildScanRender = (input: BuildScanRenderInput): string => {
 					? renderStarCta(deps)
 					: "";
 
+	const baselineNotice = input.baseline
+		? renderBaselineSummary(input.baseline, invocation, deps)
+		: "";
+	const missingTools = renderMissingTools(
+		{ tools: collectMissingTools(input.results), invocation },
+		deps,
+	);
+
 	if (input.diagnostics.length === 0 && input.score.score === 100) {
 		return `${header}${renderCleanRun(
 			{ score: input.score.score, label: input.score.label, elapsedMs: input.elapsedMs },
 			deps,
-		)}${cta}`;
+		)}${missingTools}${baselineNotice}${cta}`;
 	}
 
 	const diagBlock =
@@ -188,5 +200,5 @@ export const buildScanRender = (input: BuildScanRenderInput): string => {
 		deps,
 	);
 
-	return `${header}${diagBlock}${summary}${cta}`;
+	return `${header}${diagBlock}${summary}${missingTools}${baselineNotice}${cta}`;
 };
