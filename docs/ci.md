@@ -30,14 +30,22 @@ jobs:
       - run: npx --yes aislop@latest ci
 ```
 
-Prefer the Marketplace Action? It wraps `setup-node` and runs the same gate. `@v1` tracks the latest release and `version: latest` keeps the CLI current, so there is still nothing to bump:
+Prefer the Marketplace Action? It wraps `setup-node` and runs the same gate. From v0.18.1, the CLI version it runs follows the ref in `uses:` unless `version` is set. Tags before v0.18.1 run the latest CLI unless `version` is set.
+
+| `uses:` ref | CLI version |
+|---|---|
+| `@v1`, `@main`, other branches | latest release |
+| a release tag, e.g. `@v0.18.1` | `0.18.1` |
+| a commit SHA | the `package.json` version at that commit |
+
+Pinning a release tag or SHA gives reproducible builds, and Dependabot's `github-actions` updates bump the Action and the CLI together, so there is no separate version to remember:
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: scanaislop/aislop@v1   # or pin a release, e.g. @v0.11.0, for reproducible builds
-  with:
-    version: latest            # CLI version; or pin one, e.g. "0.11.0"
+- uses: scanaislop/aislop@v0.18.1   # or @v1 to always run the latest release
 ```
+
+Set `version` only to run a different CLI than the ref implies. An explicit `version` always wins, so Dependabot bumps to `uses:` no longer change the CLI.
 
 ## GitLab CI
 

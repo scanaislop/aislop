@@ -395,13 +395,11 @@ jobs:
       - run: npx --yes aislop@latest ci
 ```
 
-Prefer the Marketplace Action? `@v1` tracks the latest release and `version: latest` keeps the CLI current. Pin `@v0.11.0` and a `version` for reproducible builds:
+Prefer the Marketplace Action? `@v1` runs the latest release. From v0.18.1, pinning a release tag such as `@v0.18.1` (or its commit SHA) runs the matching CLI version, so Dependabot's `github-actions` updates keep it current. Older tags run the latest CLI unless `version` is set.
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: scanaislop/aislop@v1
-  with:
-    version: latest
+- uses: scanaislop/aislop@v0.18.1
 ```
 
 **GitHub code scanning (SARIF)**: emit a SARIF 2.1.0 report and upload it so findings appear in the Security tab:
