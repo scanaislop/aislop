@@ -42,22 +42,32 @@ export const runProvider = (
 			},
 		);
 
-		const flushLine = (stream: "stdout" | "stderr") => {
+		const lineReader = (stream: "stdout" | "stderr") => {
 			let buffer = "";
-			return (chunk: Buffer) => {
-				buffer += chunk.toString("utf-8");
-				let newline = buffer.indexOf("\n");
-				while (newline >= 0) {
-					const line = buffer.slice(0, newline).trimEnd();
-					buffer = buffer.slice(newline + 1);
-					if (line.trim().length > 0) input.onEvent?.({ stream, line });
-					newline = buffer.indexOf("\n");
-				}
+			const emit = (line: string) => {
+				const trimmed = line.trimEnd();
+				if (trimmed.trim().length > 0) input.onEvent?.({ stream, line: trimmed });
+			};
+			return {
+				push: (chunk: Buffer) => {
+					buffer += chunk.toString("utf-8");
+					const lines = buffer.split(/\r\n|\n|\r/);
+					buffer = lines.pop() ?? "";
+					for (const line of lines) emit(line);
+				},
+				flush: () => {
+					emit(buffer);
+					buffer = "";
+				},
 			};
 		};
 
-		child.stdout?.on("data", flushLine("stdout"));
-		child.stderr?.on("data", flushLine("stderr"));
+		const stdout = lineReader("stdout");
+		const stderr = lineReader("stderr");
+		child.stdout?.on("data", stdout.push);
+		child.stdout?.on("end", stdout.flush);
+		child.stderr?.on("data", stderr.push);
+		child.stderr?.on("end", stderr.flush);
 		child.once("error", (error) => reject(error));
 		child.once("close", (code) => {
 			if (code === 0) {

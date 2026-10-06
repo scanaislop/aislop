@@ -37,15 +37,18 @@ type Workflow = {
 };
 
 describe("GitHub action manifest", () => {
-	it("keeps the action version input flexible by default", () => {
+	it("derives the CLI version from the action ref unless an input is set", () => {
 		const manifest = YAML.parse(
 			fs.readFileSync(path.join(rootDir, "action.yml"), "utf-8"),
 		) as ActionManifest;
 
-		expect(manifest.inputs?.version?.default).toBe("latest");
-		expect(manifest.inputs?.version?.description).toContain("latest published");
+		expect(manifest.inputs?.version?.default).toBe("");
+		expect(manifest.inputs?.version?.description).toContain("latest release");
 		const runScript = manifest.runs?.steps?.map((step) => step.run?.toString()).join("\n");
-		expect(runScript).toContain('npm exec --yes --package "aislop@${AISLOP_VERSION}"');
+		expect(runScript).toContain(
+			'bash "$GITHUB_ACTION_PATH/action/resolve-version.sh" "$AISLOP_VERSION_INPUT" "$GITHUB_ACTION_PATH" "$AISLOP_ACTION_REF"',
+		);
+		expect(runScript).toContain('npm exec --yes --package "aislop@${aislop_version}"');
 		expect(runScript).toContain('scan_dir="$GITHUB_WORKSPACE/$scan_dir"');
 		expect(runScript).toContain('npm_exec_dir="$(mktemp -d)"');
 	});

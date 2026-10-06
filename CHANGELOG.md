@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+## 0.18.1 (2026-10-06)
+
+A patch release. Pinning the GitHub Action to a release tag now pins the CLI it runs, `aislop agent` shows the provider's own error when it fails, and dependency advisories are patched.
+
+### Changed
+
+- **The GitHub Action runs the CLI version that matches its ref.** From this release, with no `version` input, a release tag ref such as `uses: scanaislop/aislop@v0.18.1` runs `aislop@0.18.1`, a commit SHA ref runs the version in that commit's `package.json`, and `@v1` or a branch still runs the latest release. Pinning the Action now pins the CLI, and Dependabot's `github-actions` updates bump both. An explicit `version` input still wins.
+
+### Fixed
+
+- **Dependency advisories.** `proxy-addr` (critical, through `@modelcontextprotocol/sdk` and `express`), `source-map-js`, and `smol-toml` are raised to patched releases.
+- **`aislop agent` shows why the provider failed.** When the provider exits with an error, the message now includes its last stderr lines instead of only the exit code ([#228](https://github.com/scanaislop/aislop/issues/228)).
+
 ## 0.18.0 (2026-10-03)
 
 Baseline mode, plus fixes for false positives reported by users. `aislop baseline write` lets an existing codebase gate CI on new findings only. Python import checks read every requirements file, PEP 723 metadata, and a new `imports.provided` list. Biome and ruff follow the project's own config and version. Missing tools are reported instead of silently skipped.

@@ -11,6 +11,11 @@ const providerWithExitCode = (exitCode: number): AgentProvider => ({
 	buildArgs: () => ["-e", `process.exitCode = ${exitCode}`],
 });
 
+const providerRunning = (script: string): AgentProvider => ({
+	...providerWithExitCode(0),
+	buildArgs: () => ["-e", script],
+});
+
 describe("provider runner", () => {
 	it("resolves when the provider process exits successfully", async () => {
 		await expect(
@@ -34,5 +39,27 @@ describe("provider runner", () => {
 			providerId: "opencode",
 			exitCode: 7,
 		});
+	});
+
+	it("emits a final line without a newline and splits carriage returns", async () => {
+		const events: string[] = [];
+		await expect(
+			runProvider(
+				providerRunning(
+					'process.stderr.write("progress 1\\rprogress 2\\nError: no model configured"); process.exitCode = 1',
+				),
+				{
+					cwd: process.cwd(),
+					prompt: "repair",
+					maxTurns: 1,
+					onEvent: (event) => events.push(`${event.stream}:${event.line}`),
+				},
+			),
+		).rejects.toMatchObject({ exitCode: 1 });
+		expect(events).toEqual([
+			"stderr:progress 1",
+			"stderr:progress 2",
+			"stderr:Error: no model configured",
+		]);
 	});
 });
