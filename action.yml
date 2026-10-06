@@ -19,7 +19,7 @@ inputs:
     required: false
     default: "json"
   version:
-    description: npm aislop CLI version to run, for example "0.18.0" or "latest". When empty, a release tag ref such as @v0.18.0, or a commit SHA ref, runs the matching CLI version, and any other ref such as @v1 runs the latest release.
+    description: npm aislop CLI version to run, for example "0.18.0" or "latest". When empty, a release tag ref such as @v0.18.1, or a commit SHA ref, runs the matching CLI version, and any other ref such as @v1 runs the latest release.
     required: false
     default: ""
 

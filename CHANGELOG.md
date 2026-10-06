@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **The GitHub Action runs the CLI version that matches its ref.** With no `version` input, `uses: scanaislop/aislop@v0.18.0` runs `aislop@0.18.0`, a commit SHA ref runs the version in that commit's `package.json`, and `@v1` or a branch still runs the latest release. Pinning the Action now pins the CLI, and Dependabot's `github-actions` updates bump both. An explicit `version` input still wins.
+- **The GitHub Action runs the CLI version that matches its ref.** From this release, with no `version` input, a release tag ref such as `uses: scanaislop/aislop@v0.18.1` runs `aislop@0.18.1`, a commit SHA ref runs the version in that commit's `package.json`, and `@v1` or a branch still runs the latest release. Pinning the Action now pins the CLI, and Dependabot's `github-actions` updates bump both. An explicit `version` input still wins.
 
 ### Fixed
 
