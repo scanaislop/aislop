@@ -46,7 +46,7 @@ describe("GitHub action manifest", () => {
 		expect(manifest.inputs?.version?.description).toContain("latest release");
 		const runScript = manifest.runs?.steps?.map((step) => step.run?.toString()).join("\n");
 		expect(runScript).toContain(
-			'bash "$GITHUB_ACTION_PATH/action/resolve-version.sh" "$AISLOP_VERSION_INPUT" "$GITHUB_ACTION_PATH"',
+			'bash "$GITHUB_ACTION_PATH/action/resolve-version.sh" "$AISLOP_VERSION_INPUT" "$GITHUB_ACTION_PATH" "$AISLOP_ACTION_REF"',
 		);
 		expect(runScript).toContain('npm exec --yes --package "aislop@${aislop_version}"');
 		expect(runScript).toContain('scan_dir="$GITHUB_WORKSPACE/$scan_dir"');

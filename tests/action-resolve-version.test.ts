@@ -9,11 +9,11 @@ const SHA = "fbec7d7bc41ee93f61a9b42c7651a2309adbb0ea";
 
 let actionsRoot: string;
 
-const resolve = (requested: string, actionPath: string): string =>
-	spawnSync("bash", [SCRIPT, requested, actionPath], { encoding: "utf-8" }).stdout.trim();
+const resolve = (requested: string, actionPath: string, actionRef = ""): string =>
+	spawnSync("bash", [SCRIPT, requested, actionPath, actionRef], { encoding: "utf-8" }).stdout.trim();
 
 const actionDir = (ref: string, version?: string): string => {
-	const dir = path.join(actionsRoot, "scanaislop", "aislop", ref);
+	const dir = path.join(actionsRoot, "_actions", "scanaislop", "aislop", ref);
 	fs.mkdirSync(dir, { recursive: true });
 	if (version) fs.writeFileSync(path.join(dir, "package.json"), `{\n\t"name": "aislop",\n\t"version": "${version}"\n}\n`);
 	return dir;
@@ -42,6 +42,12 @@ describe.skipIf(process.platform === "win32")("action CLI version resolution", (
 
 	it("reads the version from package.json for a commit SHA ref", () => {
 		expect(resolve("", actionDir(SHA, "0.18.0"))).toBe("0.18.0");
+	});
+
+	it("matches the full ref, so a branch named like a tag runs latest", () => {
+		expect(resolve("", actionDir("release/v1.2.3"))).toBe("latest");
+		expect(resolve("", actionDir("v0.18.1"), "release/v1.2.3")).toBe("latest");
+		expect(resolve("", actionDir("main"), "v0.18.1")).toBe("0.18.1");
 	});
 
 	it("handles Windows-style action paths", () => {

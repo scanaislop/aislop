@@ -3,6 +3,7 @@ set -euo pipefail
 
 requested="${1:-}"
 action_path="${2:-}"
+action_ref="${3:-}"
 
 if [ -n "$requested" ]; then
   echo "$requested"
@@ -10,8 +11,13 @@ if [ -n "$requested" ]; then
 fi
 
 action_path="${action_path//\\//}"
-ref="${action_path%/}"
-ref="${ref##*/}"
+action_path="${action_path%/}"
+ref="$action_ref"
+if [ -z "$ref" ] && [[ "$action_path" == */_actions/*/*/* ]]; then
+  ref="${action_path#*/_actions/}"
+  ref="${ref#*/}"
+  ref="${ref#*/}"
+fi
 
 if [[ "$ref" =~ ^v([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?)$ ]]; then
   echo "${BASH_REMATCH[1]}"

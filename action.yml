@@ -36,6 +36,7 @@ runs:
       env:
         AISLOP_FORMAT: ${{ inputs.format }}
         AISLOP_VERSION_INPUT: ${{ inputs.version }}
+        AISLOP_ACTION_REF: ${{ github.action_ref }}
         AISLOP_DIR: ${{ inputs.directory }}
       run: |
         scan_dir="$AISLOP_DIR"
@@ -48,7 +49,7 @@ runs:
           args+=("--human")
         fi
 
-        aislop_version="$(bash "$GITHUB_ACTION_PATH/action/resolve-version.sh" "$AISLOP_VERSION_INPUT" "$GITHUB_ACTION_PATH")"
+        aislop_version="$(bash "$GITHUB_ACTION_PATH/action/resolve-version.sh" "$AISLOP_VERSION_INPUT" "$GITHUB_ACTION_PATH" "$AISLOP_ACTION_REF")"
         echo "Running aislop@${aislop_version}"
 
         npm_exec_dir="$(mktemp -d)"
