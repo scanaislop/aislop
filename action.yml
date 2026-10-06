@@ -19,9 +19,9 @@ inputs:
     required: false
     default: "json"
   version:
-    description: npm aislop CLI version to run (e.g. "0.10.1"). Defaults to the latest published release. This is separate from the GitHub Action ref in uses:.
+    description: npm aislop CLI version to run, for example "0.18.0" or "latest". When empty, a release tag ref such as @v0.18.0, or a commit SHA ref, runs the matching CLI version, and any other ref such as @v1 runs the latest release.
     required: false
-    default: "latest"
+    default: ""
 
 runs:
   using: composite
@@ -35,7 +35,7 @@ runs:
       shell: bash
       env:
         AISLOP_FORMAT: ${{ inputs.format }}
-        AISLOP_VERSION: ${{ inputs.version }}
+        AISLOP_VERSION_INPUT: ${{ inputs.version }}
         AISLOP_DIR: ${{ inputs.directory }}
       run: |
         scan_dir="$AISLOP_DIR"
@@ -48,7 +48,10 @@ runs:
           args+=("--human")
         fi
 
+        aislop_version="$(bash "$GITHUB_ACTION_PATH/action/resolve-version.sh" "$AISLOP_VERSION_INPUT" "$GITHUB_ACTION_PATH")"
+        echo "Running aislop@${aislop_version}"
+
         npm_exec_dir="$(mktemp -d)"
         trap 'rm -rf "$npm_exec_dir"' EXIT
         cd "$npm_exec_dir"
-        npm exec --yes --package "aislop@${AISLOP_VERSION}" -- aislop "${args[@]}"
+        npm exec --yes --package "aislop@${aislop_version}" -- aislop "${args[@]}"
