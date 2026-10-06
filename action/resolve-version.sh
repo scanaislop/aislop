@@ -13,7 +13,7 @@ action_path="${action_path//\\//}"
 ref="${action_path%/}"
 ref="${ref##*/}"
 
-if [[ "$ref" =~ ^v([0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?)$ ]]; then
+if [[ "$ref" =~ ^v([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?)$ ]]; then
   echo "${BASH_REMATCH[1]}"
   exit 0
 fi

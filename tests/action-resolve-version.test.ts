@@ -36,6 +36,8 @@ describe.skipIf(process.platform === "win32")("action CLI version resolution", (
 	it("runs the CLI version that matches a release tag ref", () => {
 		expect(resolve("", actionDir("v0.18.0"))).toBe("0.18.0");
 		expect(resolve("", actionDir("v1.2.3-rc.1"))).toBe("1.2.3-rc.1");
+		expect(resolve("", actionDir("v1.2.3+build.5"))).toBe("1.2.3+build.5");
+		expect(resolve("", actionDir("v1.2.3-rc.1+build.5"))).toBe("1.2.3-rc.1+build.5");
 	});
 
 	it("reads the version from package.json for a commit SHA ref", () => {
