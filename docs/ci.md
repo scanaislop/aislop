@@ -43,9 +43,9 @@ Pinning a release tag or SHA gives reproducible builds, and Dependabot's `github
 ```yaml
 - uses: actions/checkout@v4
 - uses: scanaislop/aislop@v0.18.1   # or @v1 to always run the latest release
-  with:
-    version: "0.18.1"               # optional; overrides the version taken from the ref
 ```
+
+Set `version` only to run a different CLI than the ref implies. An explicit `version` always wins, so Dependabot bumps to `uses:` no longer change the CLI.
 
 ## GitLab CI
 
