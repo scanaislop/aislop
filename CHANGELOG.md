@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - **Dependency advisories.** `proxy-addr` (critical, through `@modelcontextprotocol/sdk` and `express`), `source-map-js`, and `smol-toml` are raised to patched releases.
+- **`aislop agent` shows why the provider failed.** When the provider exits with an error, the message now includes its last stderr lines instead of only the exit code ([#228](https://github.com/scanaislop/aislop/issues/228)).
 
 ## 0.18.0 (2026-10-03)
 
