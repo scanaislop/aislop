@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Fixed
+
+- **`aislop agent` shows why the provider failed.** When the provider exits with an error, the message now includes its last stderr lines instead of only the exit code ([#228](https://github.com/scanaislop/aislop/issues/228)).
+
 ## 0.18.0 (2026-10-03)
 
 Baseline mode, plus fixes for false positives reported by users. `aislop baseline write` lets an existing codebase gate CI on new findings only. Python import checks read every requirements file, PEP 723 metadata, and a new `imports.provided` list. Biome and ruff follow the project's own config and version. Missing tools are reported instead of silently skipped.

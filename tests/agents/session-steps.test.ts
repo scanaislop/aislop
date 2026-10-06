@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { maybeApplyDiff } from "../../src/commands/agent-session-steps.js";
+import { maybeApplyDiff, providerFailureMessage } from "../../src/commands/agent-session-steps.js";
 import type { AgentOptions } from "../../src/commands/agent-types.js";
 import type { AgentTui } from "../../src/ui/agent-tui.js";
 
@@ -72,5 +72,13 @@ describe("agent session steps", () => {
 			{ value: "apply", label: "Apply changes to flashwave" },
 			{ value: "review", label: "Keep worktree for review" },
 		]);
+	});
+
+	it("adds the provider's last stderr lines to a failure message", () => {
+		const error = new Error("OpenCode exited with code 1.");
+		expect(providerFailureMessage(error, ["Error: no model configured", "see opencode auth"])).toBe(
+			"OpenCode exited with code 1. Last stderr lines:\n  Error: no model configured\n  see opencode auth",
+		);
+		expect(providerFailureMessage(error, [])).toBe("OpenCode exited with code 1.");
 	});
 });
