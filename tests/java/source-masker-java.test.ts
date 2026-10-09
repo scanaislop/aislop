@@ -87,3 +87,14 @@ describe("Java function length", () => {
 		expect(diagnostics.filter((d) => d.rule === "complexity/function-too-long")).toEqual([]);
 	});
 });
+
+describe("Java package paths", () => {
+	it("does not treat package segments under a JVM source root as excluded directories", async () => {
+		const { isExcludedFromScan } = await import("../../src/utils/source-file-policy.js");
+		expect(isExcludedFromScan("src/main/java/com/example/demo/DemoApplication.java")).toBe(false);
+		expect(isExcludedFromScan("app/src/main/java/org/springframework/samples/petclinic/Owner.java")).toBe(false);
+		expect(isExcludedFromScan("src/test/java/com/example/demo/DemoTests.java")).toBe(true);
+		expect(isExcludedFromScan("examples/src/main/java/com/acme/App.java")).toBe(true);
+		expect(isExcludedFromScan("src/main/java/build/Generated.java")).toBe(false);
+	});
+});
