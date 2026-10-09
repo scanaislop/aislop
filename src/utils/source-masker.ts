@@ -1,8 +1,9 @@
 import { maskCSharp, maskCStyle } from "./source-masker-cstyle.js";
+import { maskRust } from "./source-masker-rust.js";
 import { maskSimple } from "./source-masker-simple.js";
 import { consumeQuotedString } from "./string-literals.js";
 
-type LangFamily = "js" | "py" | "rb" | "php" | "csharp" | "cstyle" | "none";
+type LangFamily = "js" | "py" | "rb" | "php" | "csharp" | "cstyle" | "rust" | "none";
 
 const JS_EXTS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
 const PY_EXTS = new Set([".py"]);
@@ -16,6 +17,8 @@ const CSHARP_EXTS = new Set([".cs"]);
 // and `//` + `/* */` comments, so the cstyle masker handles them.
 const CPP_EXTS = new Set([".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx"]);
 const C_STYLE_COMMENT_EXTS = new Set([".go"]);
+// Rust lifetimes (`'a`) would open a char literal in the cstyle masker.
+const RUST_EXTS = new Set([".rs"]);
 
 const familyForExt = (ext: string): LangFamily => {
 	if (JS_EXTS.has(ext)) return "js";
@@ -25,6 +28,7 @@ const familyForExt = (ext: string): LangFamily => {
 	if (CSHARP_EXTS.has(ext)) return "csharp";
 	if (CPP_EXTS.has(ext)) return "cstyle";
 	if (C_STYLE_COMMENT_EXTS.has(ext)) return "cstyle";
+	if (RUST_EXTS.has(ext)) return "rust";
 	return "none";
 };
 
@@ -39,6 +43,7 @@ export const maskStringsAndComments = (content: string, ext: string): string => 
 	if (family === "js") return maskJs(content, true);
 	if (family === "csharp") return maskCSharp(content, true);
 	if (family === "cstyle") return maskCStyle(content, true);
+	if (family === "rust") return maskRust(content, true);
 	return maskSimple(content, family, true);
 };
 
@@ -49,6 +54,7 @@ export const maskComments = (content: string, ext: string): string => {
 	if (family === "js") return maskJs(content, false);
 	if (family === "csharp") return maskCSharp(content, false);
 	if (family === "cstyle") return maskCStyle(content, false);
+	if (family === "rust") return maskRust(content, false);
 	return maskSimple(content, family, false);
 };
 
