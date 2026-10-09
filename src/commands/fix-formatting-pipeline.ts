@@ -7,6 +7,8 @@ import {
 } from "../engines/format/dotnet-format.js";
 import { fixGenericFormatter, runGenericFormatter } from "../engines/format/generic.js";
 import { fixGofmt, runGofmt } from "../engines/format/gofmt.js";
+import { fixJavaFormat, runJavaFormat } from "../engines/format/java-format.js";
+import { detectJavaFormatStyle } from "../engines/java-targets.js";
 import { fixRuffFormat, runRuffFormat } from "../engines/format/ruff-format.js";
 import { log } from "../ui/logger.js";
 import type { PipelineDeps } from "./fix-pipeline.js";
@@ -115,7 +117,25 @@ export const runFormattingStep = async (deps: PipelineDeps): Promise<void> => {
 		log.warn("PHP detected but php-cs-fixer is not installed; skipping PHP formatting fixes.");
 	}
 
+	await runJavaFormattingStep(deps);
+
 	await runNativeFormattingSteps(deps);
+};
+
+const runJavaFormattingStep = async (deps: PipelineDeps): Promise<void> => {
+	if (!deps.projectInfo.languages.includes("java")) return;
+	if (detectJavaFormatStyle(deps.context.rootDirectory) === null) return;
+	if (!deps.projectInfo.installedTools["google-java-format"]) {
+		log.warn(
+			"Java uses google-java-format but it is not installed; skipping Java formatting fixes.",
+		);
+		return;
+	}
+	await deps.runStep(
+		"Formatting (java)",
+		() => runJavaFormat(deps.context),
+		() => fixJavaFormat(deps.context),
+	);
 };
 
 const runNativeFormattingSteps = async (deps: PipelineDeps): Promise<void> => {

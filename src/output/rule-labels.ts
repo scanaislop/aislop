@@ -193,6 +193,7 @@ const RULE_DESCRIPTIONS: Record<string, string> = {
 	"rust-formatting": "Rust file needs rustfmt.",
 	"ruby-formatting": "Ruby file needs rubocop formatting.",
 	"php-formatting": "PHP file needs php-cs-fixer formatting.",
+	"java-formatting": "Java file needs google-java-format formatting.",
 	"csharp-formatting": "C# file needs dotnet format.",
 };
 
