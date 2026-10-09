@@ -86,6 +86,12 @@ const FORMAT_SPECS: LangToolSpec[] = [
 		"Install: composer global require friendsofphp/php-cs-fixer",
 	),
 	spec(
+		"java",
+		"google-java-format",
+		"google-java-format",
+		"Install: brew install google-java-format | https://github.com/google/google-java-format/releases",
+	),
+	spec(
 		"csharp",
 		"dotnet",
 		"dotnet format whitespace",
