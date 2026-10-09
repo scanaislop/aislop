@@ -110,6 +110,7 @@ const LINT_SPECS: LangToolSpec[] = [
 	spec("go", "golangci-lint", "golangci-lint", "Install: brew install golangci-lint"),
 	spec("rust", "clippy-driver", "clippy", "Install: rustup component add clippy"),
 	spec("ruby", "rubocop", "rubocop", "Install: gem install rubocop"),
+	spec("java", "pmd", "pmd", "Install: brew install pmd | https://pmd.github.io"),
 	spec(
 		"csharp",
 		"jb",

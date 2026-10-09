@@ -186,6 +186,8 @@ const RULE_DESCRIPTIONS: Record<string, string> = {
 	"go/*": "Go lint finding from bundled checks.",
 	"clippy/*": "Rust lint finding from clippy.",
 	"rubocop/*": "Ruby lint finding from rubocop.",
+	"pmd/*": "Java lint finding from PMD.",
+	"checkstyle/*": "Java style finding from the project's Checkstyle configuration.",
 	"typescript/*": "TypeScript compiler finding.",
 	"import-order": "Imports need deterministic ordering.",
 	"python-formatting": "Python file needs ruff formatting.",
