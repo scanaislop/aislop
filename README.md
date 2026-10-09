@@ -6,7 +6,7 @@
 
 The patterns Claude Code, Cursor, Codex, and OpenCode leave behind: narrative comments above self-explanatory code, swallowed exceptions, hidden fallbacks, `as any` casts, hallucinated imports, duplicated helpers, dead code, todo stubs, oversized functions. Tests pass. Lint passes. The code rots anyway.
 
-aislop catches them. 50+ rules across 10 language targets (TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, C#, C/C++). Scores every change 0–100. Sub-second. Deterministic: no LLM in the runtime path, same code in, same score out. MIT-licensed, free CLI.
+aislop catches them. 50+ rules across 11 language targets (TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, C#, C/C++). Scores every change 0–100. Sub-second. Deterministic: no LLM in the runtime path, same code in, same score out. MIT-licensed, free CLI.
 
 ## Quick start
 
@@ -36,7 +36,7 @@ See [Installation](#installation) for every option.
 
 ## Language support
 
-aislop supports TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, C#, and C/C++.
+aislop supports TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, C#, and C/C++.
 
 Coverage includes formatting, linting, complexity, AI-slop detection, and security checks. Some checks use optional system tools; see [Installation](docs/installation.md) and the [rules reference](docs/rules.md) for details.
 
@@ -473,11 +473,11 @@ Six deterministic engines run in parallel:
 
 | Engine | What it checks | How |
 |---|---|---|
-| **Formatting** | Code style consistency | Biome, ruff, gofmt, cargo fmt, rubocop, php-cs-fixer, dotnet format, clang-format |
-| **Linting** | Language-specific issues | oxlint, ruff, golangci-lint, clippy, expo-doctor, Roslynator, JetBrains InspectCode, cppcheck, clang-tidy |
+| **Formatting** | Code style consistency | Biome, ruff, gofmt, cargo fmt, rubocop, php-cs-fixer, google-java-format, dotnet format, clang-format |
+| **Linting** | Language-specific issues | oxlint, ruff, golangci-lint, clippy, expo-doctor, PMD, Checkstyle, Roslynator, JetBrains InspectCode, cppcheck, clang-tidy |
 | **Code Quality** | Complexity and dead code | Function/file size limits, deep nesting, unused files/deps (knip), AST-based unused-declaration removal |
 | **AI Slop** | AI-authored code patterns | Narrative comments, trivial comments, dead patterns, unused imports, `as any`, `console.log` leftovers, TODO stubs, generic names |
-| **Security** | Vulnerabilities and risky code | eval, innerHTML, SQL/shell injection, dependency audits for JavaScript, Python, Rust, Go, and .NET |
+| **Security** | Vulnerabilities and risky code | eval, innerHTML, SQL/shell injection, unsafe deserialization, dependency audits for JavaScript, Python, Rust, Go, and .NET |
 | **Architecture** | Structural rules (opt-in) | Custom import bans, layering rules, required patterns |
 
 See the full [rules reference](docs/rules.md).
