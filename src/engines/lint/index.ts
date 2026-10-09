@@ -7,6 +7,7 @@ import { runDotnetLint } from "./dotnet.js";
 import { runExpoDoctor } from "./expo-doctor.js";
 import { runGenericLinter } from "./generic.js";
 import { runGolangciLint } from "./golangci.js";
+import { findProjectCheckstyleConfig, runCheckstyle, runPmd } from "./java.js";
 import { resolveCsharpLintConfig, runJbLint } from "./jb.js";
 import { runOxlint } from "./oxlint.js";
 import { runRuffLint } from "./ruff.js";
@@ -23,6 +24,12 @@ const LINT_TOOL_REQUIREMENTS: readonly ToolRequirement[] = [
 	{ language: "rust", tool: "cargo" },
 	{ language: "rust", tool: "clippy-driver", label: "clippy" },
 	{ language: "ruby", tool: "rubocop" },
+	{ language: "java", tool: "pmd" },
+	{
+		language: "java",
+		tool: "checkstyle",
+		applies: (context) => findProjectCheckstyleConfig(context.rootDirectory) !== null,
+	},
 	{
 		language: "cpp",
 		tool: "cppcheck",
@@ -136,6 +143,18 @@ export const lintEngine: Engine = {
 
 		if (languages.includes("ruby") && installedTools.rubocop) {
 			promises.push(runGenericLinter(context, "ruby"));
+		}
+
+		if (languages.includes("java") && installedTools.pmd) {
+			promises.push(runPmd(context));
+		}
+
+		if (
+			languages.includes("java") &&
+			installedTools.checkstyle &&
+			findProjectCheckstyleConfig(context.rootDirectory) !== null
+		) {
+			promises.push(runCheckstyle(context));
 		}
 
 		const cpp = resolveCppLintConfig(context);
