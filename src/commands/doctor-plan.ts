@@ -147,8 +147,8 @@ const ENGINE_ORDER: EngineName[] = [
 ];
 
 export const languageLabelFor = (info: ProjectInfo): string => {
-	const langs = info.languages.filter((l) => l !== "java"); // java is a signal-only placeholder
-	if (langs.length === 0) return info.languages[0] ?? "unknown";
+	const langs = info.languages;
+	if (langs.length === 0) return "unknown";
 	if (langs.length === 1) return langs[0];
 	const primary = primaryLanguage(langs);
 	return primary ? `${primary} (mixed)` : "mixed";

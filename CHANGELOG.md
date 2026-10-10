@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Added
+
+- **Java support.** Java projects get real engine coverage instead of detection only:
+  - Strings, text blocks, chars, and comments are masked, so braces inside them no longer distort function lengths.
+  - Package directories under `src/<set>/java/` (and `kotlin/`) are no longer read as excluded folders, so `com/example/demo` or `org/springframework/samples` code is scanned instead of skipped.
+  - Formatting runs google-java-format, including the AOSP style, when the build configures it (Spotless `googleJavaFormat` or `fmt-maven-plugin`).
+  - Linting runs PMD with a focused set of bug-finding rules, or the project's own PMD ruleset, plus Checkstyle when the project has a `checkstyle.xml`.
+  - Security flags SQL and process commands built by string concatenation or `String.format`, and `ObjectInputStream` / `XMLDecoder` deserialization.
+  - AI-slop rules cover unused and duplicate imports, `System.out` leftovers, catch blocks that only print, and the new `ai-slop/java-broad-throws`.
+  - `aislop doctor` shows the Java tools and how to install them.
+
 ## 0.18.1 (2026-10-06)
 
 A patch release. Pinning the GitHub Action to a release tag now pins the CLI it runs, `aislop agent` shows the provider's own error when it fails, and dependency advisories are patched.

@@ -139,6 +139,9 @@ export const AI_SLOP_RULE_SCORE_IMPACTS: Record<string, RuleScoreImpact> = {
 	"ai-slop/csharp-broad-catch": standard(
 		"catch (Exception) buries specific failures, though it is sometimes intentional at boundaries.",
 	),
+	"ai-slop/java-broad-throws": standard(
+		"throws Exception hides which failures callers must handle, though framework callbacks sometimes require it.",
+	),
 	"ai-slop/csharp-linq-count": advisory(
 		"Comparing .Count() to 0/1 is a readability/perf idiom signal, often harmless.",
 	),

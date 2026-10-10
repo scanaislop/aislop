@@ -1,4 +1,5 @@
 import type { AislopConfig } from "../config/index.js";
+import { detectJavaFormatStyle } from "../engines/java-targets.js";
 import type { ProjectInfo } from "../utils/discover.js";
 
 export interface FixPlanStep {
@@ -118,6 +119,12 @@ const planFormatters = (
 		"Formatting (php)",
 		projectInfo.languages.includes("php") && Boolean(projectInfo.installedTools["php-cs-fixer"]),
 		safe ? SKIPPED_BY_SAFE : undefined,
+	);
+	add(
+		"Formatting (java)",
+		projectInfo.languages.includes("java") &&
+			Boolean(projectInfo.installedTools["google-java-format"]) &&
+			detectJavaFormatStyle(projectInfo.rootDirectory) !== null,
 	);
 	add(
 		"Formatting (csharp)",

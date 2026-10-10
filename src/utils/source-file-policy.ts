@@ -159,11 +159,18 @@ export const hasAllowedSourceExtension = (
 ): boolean =>
 	SOURCE_EXTENSIONS.has(path.extname(filePath)) || extraExtensions.has(path.extname(filePath));
 
+const JVM_SOURCE_ROOT_RE = /(?:^|\/)src\/[^/]+\/(?:java|kotlin)\//;
+
+const directoryPathToCheck = (normalized: string): string => {
+	const root = JVM_SOURCE_ROOT_RE.exec(normalized);
+	return root ? normalized.slice(0, root.index + root[0].length) : normalized;
+};
+
 export const isInExcludedDirectory = (
 	filePath: string,
 	excludedDirectories: readonly string[],
 ): boolean => {
-	const normalized = filePath.toLowerCase();
+	const normalized = directoryPathToCheck(filePath.toLowerCase());
 	return excludedDirectories.some(
 		(directory) =>
 			normalized === directory ||

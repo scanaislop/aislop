@@ -95,6 +95,7 @@ Some checks depend on tools already installed on your machine:
 - `cargo`, `clippy` (Rust)
 - `rubocop` (Ruby)
 - `phpcs`, `php-cs-fixer` (PHP)
+- `pmd`, plus `google-java-format` and `checkstyle` when the project uses them (Java, needs a JRE)
 - `.NET SDK`, `roslynator`, `jb` (C#)
 - `cppcheck`, `clang-format`, `clang-tidy` (C/C++)
 

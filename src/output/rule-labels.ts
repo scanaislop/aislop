@@ -61,6 +61,7 @@ const RULE_LABELS: Record<string, string> = {
 	"ai-slop/csharp-null-forgiving": "Null-forgiving ! operator",
 	"ai-slop/csharp-console-leftover": "Console/Debug/Trace output leftover",
 	"ai-slop/csharp-broad-catch": "Broad catch (Exception)",
+	"ai-slop/java-broad-throws": "Broad throws (Exception)",
 	"ai-slop/csharp-linq-count": "LINQ .Count() instead of .Any()",
 	"ai-slop/csharp-index-loop": "Index for-loop better as foreach",
 	"ai-slop/csharp-if-ladder": "if/else-if ladder better as switch",
@@ -186,6 +187,8 @@ const RULE_DESCRIPTIONS: Record<string, string> = {
 	"go/*": "Go lint finding from bundled checks.",
 	"clippy/*": "Rust lint finding from clippy.",
 	"rubocop/*": "Ruby lint finding from rubocop.",
+	"pmd/*": "Java lint finding from PMD.",
+	"checkstyle/*": "Java style finding from the project's Checkstyle configuration.",
 	"typescript/*": "TypeScript compiler finding.",
 	"import-order": "Imports need deterministic ordering.",
 	"python-formatting": "Python file needs ruff formatting.",
@@ -193,6 +196,7 @@ const RULE_DESCRIPTIONS: Record<string, string> = {
 	"rust-formatting": "Rust file needs rustfmt.",
 	"ruby-formatting": "Ruby file needs rubocop formatting.",
 	"php-formatting": "PHP file needs php-cs-fixer formatting.",
+	"java-formatting": "Java file needs google-java-format formatting.",
 	"csharp-formatting": "C# file needs dotnet format.",
 };
 
