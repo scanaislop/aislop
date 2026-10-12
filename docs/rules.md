@@ -242,6 +242,7 @@ The rules that make aislop unique. These catch the patterns AI assistants leave 
 | `ai-slop/csharp-null-forgiving` | warning | C# null-forgiving `!` operator silencing nullable warnings instead of handling null |
 | `ai-slop/csharp-console-leftover` | warning | C# `Console.*` / `Debug.*` / `Trace.*` output left in library code |
 | `ai-slop/csharp-broad-catch` | warning | C# `catch (Exception)` that catches everything (non-empty, non-rethrow) instead of the specific type(s) it can handle |
+| `ai-slop/java-broad-throws` | warning | Java method declaring `throws Exception` / `throws Throwable` instead of the specific checked exceptions (`main`, `close`, `call`, and tests are exempt) |
 | `ai-slop/csharp-linq-count` | warning | C# `.Count() > 0` / `.Count() == 0` enumerating a whole sequence where `.Any()` short-circuits |
 | `ai-slop/csharp-index-loop` | warning | C# index `for` loop over `.Length`/`.Count` that reads more clearly as `foreach` |
 | `ai-slop/csharp-if-ladder` | warning | C# chain of 4+ if/else-if branches comparing one value against constants (a `switch` in disguise) |
