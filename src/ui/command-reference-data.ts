@@ -16,6 +16,7 @@ const SCAN_FLAGS = [
 	"--format <format>",
 	"--include <patterns>",
 	"--exclude <patterns>",
+	"--explain-scope",
 ];
 
 const FIX_AGENT_FLAGS = [
@@ -318,6 +319,7 @@ export const FLAG_GUIDE_ROWS: DisplayRow[] = [
 	{ label: "--changes", value: "scan or gate files changed from HEAD or --base" },
 	{ label: "--staged", value: "scan or gate staged files" },
 	{ label: "--json", value: "emit machine-readable scan output" },
+	{ label: "--explain-scope", value: "explain file scope and exclusions, then exit" },
 	{ label: "--sarif", value: "emit SARIF for code scanning" },
 	{ label: "--safe", value: "only apply reversible fixes" },
 	{

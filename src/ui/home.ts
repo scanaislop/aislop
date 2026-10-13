@@ -159,6 +159,7 @@ const renderHelpDetails = (): string =>
 		"   .gitignore       respected for untracked files",
 		"   --exclude        skip extra paths for this run",
 		"   --include        scan only matching paths for this run",
+		"   --explain-scope  show the file scope a scan would use",
 		"",
 		` ${style(theme, "dim", "More")}`,
 		"   aislop commands        show every command and major flag",

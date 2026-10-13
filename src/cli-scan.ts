@@ -1,3 +1,4 @@
+import { explainScopeCommand } from "./commands/explain-scope.js";
 import { scanCommand } from "./commands/scan.js";
 import { loadConfig } from "./config/index.js";
 import { flushTelemetry } from "./telemetry/index.js";
@@ -12,6 +13,7 @@ export interface ScanFlags {
 	format?: string;
 	exclude?: string[];
 	include?: string[];
+	explainScope?: boolean;
 }
 
 export const commaSeparatedParser = (value: string, previous: string[] = []): string[] => {
@@ -33,6 +35,20 @@ export const runScan = async (directory: string, flags: ScanFlags): Promise<void
 		exclude: [...(config.exclude ?? []), ...(flags.exclude ?? [])],
 		include: [...(config.include ?? []), ...(flags.include ?? [])],
 	};
+	if (flags.explainScope) {
+		const exitCode = explainScopeCommand(directory, finalConfig, {
+			changes: Boolean(flags.changes),
+			staged: Boolean(flags.staged),
+			base: flags.base,
+			verbose: Boolean(flags.verbose),
+			json: wantsJson(flags),
+			sarif: wantsSarif(flags),
+			exclude: flags.exclude,
+			include: flags.include,
+		});
+		if (exitCode !== 0) process.exitCode = exitCode;
+		return;
+	}
 	const sarif = wantsSarif(flags);
 	const { exitCode } = await scanCommand(directory, finalConfig, {
 		changes: Boolean(flags.changes),
@@ -58,4 +74,5 @@ export const noFlagsPassed = (flags: ScanFlags): boolean =>
 	!flags.sarif &&
 	!flags.format &&
 	!(flags.exclude && flags.exclude.length > 0) &&
-	!(flags.include && flags.include.length > 0);
+	!(flags.include && flags.include.length > 0) &&
+	!flags.explainScope;

@@ -42,6 +42,21 @@ const UNSUPPORTED_CODE_EXTENSIONS: Readonly<Record<string, string>> = {
 	".groovy": "Groovy",
 };
 
+export const listUnsupportedCoverageFiles = (
+	rootDirectory: string,
+	selection: CoverageSelection,
+): string[] => {
+	const allFiles = selection.projectFiles ?? listProjectFiles(rootDirectory);
+	const selectFiles = selection.projectFiles ? filterEnumeratedProjectFiles : filterProjectFiles;
+	return selectFiles(
+		rootDirectory,
+		allFiles,
+		Object.keys(UNSUPPORTED_CODE_EXTENSIONS),
+		selection.excludePatterns,
+		selection.includePatterns,
+	).filter((file) => UNSUPPORTED_CODE_EXTENSIONS[path.extname(file).toLowerCase()] !== undefined);
+};
+
 export const analyzeCoverage = (rootDirectory: string, selection: CoverageSelection): Coverage => {
 	const allFiles = selection.projectFiles ?? listProjectFiles(rootDirectory);
 	const selectFiles = selection.projectFiles ? filterEnumeratedProjectFiles : filterProjectFiles;
@@ -53,20 +68,13 @@ export const analyzeCoverage = (rootDirectory: string, selection: CoverageSelect
 		selection.includePatterns,
 	).length;
 	const counts = new Map<string, number>();
-	let unsupportedFiles = 0;
-	const candidates = selectFiles(
-		rootDirectory,
-		allFiles,
-		Object.keys(UNSUPPORTED_CODE_EXTENSIONS),
-		selection.excludePatterns,
-		selection.includePatterns,
-	);
-	for (const file of candidates) {
+	const unsupportedList = listUnsupportedCoverageFiles(rootDirectory, selection);
+	for (const file of unsupportedList) {
 		const language = UNSUPPORTED_CODE_EXTENSIONS[path.extname(file).toLowerCase()];
 		if (!language) continue;
-		unsupportedFiles++;
 		counts.set(language, (counts.get(language) ?? 0) + 1);
 	}
+	const unsupportedFiles = unsupportedList.length;
 
 	let dominantUnsupported: string | null = null;
 	let largestCount = 0;
