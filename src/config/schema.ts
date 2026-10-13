@@ -103,6 +103,22 @@ const TelemetrySchema = z.object({
 	enabled: z.boolean().default(true),
 });
 
+export const DEFAULT_CHECK_TIMEOUT_MS = 120_000;
+
+const FixSchema = z.object({
+	checks: z
+		.array(z.string())
+		.default(() => [])
+		.describe(
+			"Opt-in shell commands run after fixes, in listed order. Package scripts are never discovered.",
+		),
+	checkTimeoutMs: z
+		.number()
+		.positive()
+		.default(DEFAULT_CHECK_TIMEOUT_MS)
+		.describe("Per-command timeout in milliseconds for fix.checks."),
+});
+
 const RuleSeverityOverride = z.enum(["error", "warning", "off"]);
 
 const RulesSchema = z.record(z.string(), RuleSeverityOverride).default(() => ({}));
@@ -179,6 +195,10 @@ const AislopConfigSchema = z.object({
 	telemetry: TelemetrySchema.default(() => ({
 		enabled: true,
 	})),
+	fix: FixSchema.default(() => ({
+		checks: [],
+		checkTimeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
+	})),
 	rules: RulesSchema,
 	overrides: z.array(FileOverrideSchema).default(() => []),
 	exclude: z.array(z.string()).default(() => ["node_modules", ".git", "dist", "build", "coverage"]),
@@ -197,6 +217,13 @@ const defaults: AislopConfig = AislopConfigSchema.parse({});
  * Pre-merge scoring weights so partial overrides extend the defaults
  * rather than replacing them entirely (z.record replaces by default).
  */
+const preNormalizeFixChecks = (raw: Record<string, unknown>): void => {
+	const fix = raw.fix;
+	if (!fix || typeof fix !== "object" || Array.isArray(fix)) return;
+	const record = fix as Record<string, unknown>;
+	if (typeof record.checks === "string") record.checks = [record.checks];
+};
+
 const preMergeWeights = (raw: Record<string, unknown>): void => {
 	const scoring = raw.scoring as Record<string, unknown> | undefined;
 	if (!scoring) return;
@@ -213,6 +240,7 @@ export const parseConfig = (raw: unknown): AislopConfig => {
 	try {
 		const input = raw as Record<string, unknown>;
 		preMergeWeights(input);
+		preNormalizeFixChecks(input);
 		return AislopConfigSchema.parse(input);
 	} catch {
 		// If validation fails, return defaults rather than crashing

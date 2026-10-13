@@ -115,6 +115,8 @@ const renderHelpDetails = (): string =>
 		"",
 		` ${style(theme, "dim", "Fix flags")}`,
 		"   --safe           only reversible fixes",
+		"   --check          opt-in project check; repeat to run more",
+		"   --check-timeout  per-check timeout in milliseconds",
 		"   --force          aggressive dependency and framework fixes",
 		"   --prompt         print an agent handoff prompt",
 		"   --codex          open Codex to fix remaining findings",

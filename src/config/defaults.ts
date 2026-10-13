@@ -68,6 +68,10 @@ export const DEFAULT_CONFIG: AislopConfig = {
 	telemetry: {
 		enabled: true,
 	},
+	fix: {
+		checks: [],
+		checkTimeoutMs: 120_000,
+	},
 	rules: {},
 	overrides: [],
 };

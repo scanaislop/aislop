@@ -345,6 +345,29 @@
 				}
 			}
 		},
+		"fix": {
+			"default": {
+				"checks": [],
+				"checkTimeoutMs": 120000
+			},
+			"type": "object",
+			"properties": {
+				"checks": {
+					"default": [],
+					"description": "Opt-in shell commands run after fixes, in listed order. Package scripts are never discovered.",
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"checkTimeoutMs": {
+					"default": 120000,
+					"description": "Per-command timeout in milliseconds for fix.checks.",
+					"type": "number",
+					"exclusiveMinimum": 0
+				}
+			}
+		},
 		"rules": {
 			"default": {},
 			"type": "object",

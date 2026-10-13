@@ -109,8 +109,7 @@ describe("parseConfig", () => {
 
 	it("requires explicit opt-in before evaluating C# project files", () => {
 		expect(
-			parseConfig({ lint: { csharp: { projectEvaluation: true } } }).lint.csharp
-				.projectEvaluation,
+			parseConfig({ lint: { csharp: { projectEvaluation: true } } }).lint.csharp.projectEvaluation,
 		).toBe(true);
 	});
 
@@ -143,6 +142,22 @@ describe("parseConfig", () => {
 		expect(cfg.lint.cpp.jbSeverityFloor).toBe("WARNING");
 		expect(cfg.lint.cpp.jbExcludeTypes).toEqual([]);
 		expect(cfg.lint.cpp.jbProjects).toBeUndefined();
+	});
+
+	it("keeps project checks empty unless the user opts in", () => {
+		expect(parseConfig({}).fix.checks).toEqual([]);
+		expect(parseConfig({}).fix.checkTimeoutMs).toBe(120_000);
+		expect(parseConfig({ fix: { checks: ["pnpm test", "pnpm typecheck"] } }).fix.checks).toEqual([
+			"pnpm test",
+			"pnpm typecheck",
+		]);
+		expect(parseConfig({ fix: { checks: "pnpm typecheck" } }).fix.checks).toEqual([
+			"pnpm typecheck",
+		]);
+		expect(parseConfig({ fix: { checkTimeoutMs: 5000 } }).fix).toEqual({
+			checks: [],
+			checkTimeoutMs: 5000,
+		});
 	});
 });
 
