@@ -29,9 +29,9 @@ const ENV_REFERENCE_RE =
 const DOC_URL_CONTEXT_RE =
 	/\b(?:docs?|documentation|homepage|repository|bugs|license|readme|source|svgUrl|pageUrl|href|link|install)\b/i;
 const URL_CONFIG_CONTEXT_RE =
-	/\b(?:api|base[_-]?url|baseUrl|endpoint|host|origin|webhook|callback|redirect|server|service|domain|url)\b/i;
+	/\b(?:api|base[_-]?url|baseUrl|endpoint|host|origin|webhook|callback|redirect|server|service|domain|url)\b|(?:api|base)[_-]?url/i;
 const ENVIRONMENT_HOST_RE =
-	/(?:^|[.-])(?:api|app|admin|auth|staging|stage|prod|dev|sandbox|webhook|internal)(?:[.-]|$)|^(?:localhost|127\.0\.0\.1|0\.0\.0\.0)$/i;
+	/(?:^|[.-])(?:app|admin|auth|staging|stage|prod|dev|sandbox|webhook|internal)[.-]|^(?:localhost|127\.0\.0\.1|0\.0\.0\.0)$/i;
 const ID_CONTEXT_RE =
 	/(?:^|[^A-Za-z0-9])(?:api[_-]?key|client[_-]?id|project[_-]?id|org(?:anization)?[_-]?id|workspace[_-]?id|tenant[_-]?id|price[_-]?id|product[_-]?id|customer[_-]?id|subscription[_-]?id|account[_-]?id|app[_-]?id|key|token|secret)(?:$|[^A-Za-z0-9])/i;
 const MIGRATION_PATH_RE = /(?:^|[\\/])(?:migrations?|db[\\/]migrate)[\\/]/i;
@@ -60,6 +60,7 @@ const VENDOR_API_DOMAINS = [
 	"twimg.com",
 	"t.co",
 	"api.telegram.org",
+	"expo.dev",
 ];
 const isVendorApiHost = (host: string): boolean =>
 	VENDOR_API_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`));
@@ -133,7 +134,7 @@ const shouldFlagUrlLiteral = (line: string, urlText: string): boolean => {
 	if (LOOPBACK_HOSTS.has(host)) return false;
 	if (isVendorApiHost(host)) return false;
 	if (DOC_URL_CONTEXT_RE.test(line) && !ENVIRONMENT_HOST_RE.test(host)) return false;
-	return URL_CONFIG_CONTEXT_RE.test(line) || ENVIRONMENT_HOST_RE.test(host);
+	return URL_CONFIG_CONTEXT_RE.test(line.replace(urlText, "")) || ENVIRONMENT_HOST_RE.test(host);
 };
 
 const ENV_VAR_NAME_RE = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+$/;

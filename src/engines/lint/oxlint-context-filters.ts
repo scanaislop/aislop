@@ -163,3 +163,41 @@ export const fileReferencesSstPlatform = (rootDir: string, relativeFilePath: str
 	sstReferencedFiles.set(relativeFilePath, referenced);
 	return referenced;
 };
+
+const GLOBAL_DIRECTIVE_RE = /\/\*\s*globals?\s+([^*]*?)\*\//g;
+const globalDirectiveCache = new Map<string, Set<string>>();
+
+const readDeclaredGlobals = (absolutePath: string): Set<string> => {
+	const cached = globalDirectiveCache.get(absolutePath);
+	if (cached) return cached;
+	const names = new Set<string>();
+	try {
+		const content = fs.readFileSync(absolutePath, "utf-8");
+		for (const match of content.matchAll(GLOBAL_DIRECTIVE_RE)) {
+			for (const entry of match[1].split(",")) {
+				for (const token of entry.trim().split(/\s+/)) {
+					const name = token.split(":")[0];
+					if (name) names.add(name);
+				}
+			}
+		}
+	} catch {
+		// unreadable file: leave the finding in place
+	}
+	globalDirectiveCache.set(absolutePath, names);
+	return names;
+};
+
+// ESLint honours global-directive block comments; oxlint does not, so drop those findings.
+export const isDeclaredGlobalFalsePositive = (
+	rule: string,
+	message: string,
+	rootDir: string,
+	filePath: string,
+): boolean => {
+	if (rule !== "eslint/no-undef") return false;
+	const ident = extractNoUndefIdentifier(message);
+	if (!ident) return false;
+	const absolute = path.isAbsolute(filePath) ? filePath : path.join(rootDir, filePath);
+	return readDeclaredGlobals(absolute).has(ident);
+};

@@ -48,7 +48,7 @@ export const detectUnsafeTypePatterns = (
 			);
 		}
 
-		if (trimmed.startsWith("//") || trimmed.startsWith("*")) continue;
+		if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) continue;
 
 		if (/\bRegExp\b|new\s+RegExp|\/.*\\b/.test(trimmed)) continue;
 		if (/["'`].*\\b.*["'`]/.test(trimmed)) continue;

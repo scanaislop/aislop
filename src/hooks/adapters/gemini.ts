@@ -1,6 +1,7 @@
 import path from "node:path";
 import { buildHookScanCompletedProps, track } from "../../telemetry/index.js";
 import { buildFeedback } from "../feedback.js";
+import { resolveHookRoot } from "../io/project-root.js";
 import { acquireHookLock } from "../io/scan-lock.js";
 import { resolveHookFiles, runScopedScan } from "../io/scoped-scan.js";
 
@@ -60,7 +61,7 @@ export const runGeminiHook = async (
 
 	const raw = await getStdin();
 	const input = parseGeminiStdin(raw);
-	const cwd = input.cwd && path.isAbsolute(input.cwd) ? input.cwd : process.cwd();
+	const cwd = resolveHookRoot(input.cwd && path.isAbsolute(input.cwd) ? input.cwd : process.cwd());
 	const files = resolveHookFiles(cwd, extractFiles(input));
 
 	if (files.length === 0) return 0;

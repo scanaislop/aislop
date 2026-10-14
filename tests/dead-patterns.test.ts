@@ -397,6 +397,25 @@ describe("hardcoded config literals", () => {
 		expect(matches[0].line).toBe(1);
 	});
 
+	it("does not treat a vendor api. host or a .dev TLD as an environment signal", async () => {
+		const filePath = writeFile(
+			"vendor-hosts.ts",
+			[
+				'const A = "https://api.vendor.com/v1/items/";',
+				'const B = "https://u.expo.dev/abc";',
+				'const C = "https://www.vendor.com/v1/items/";',
+			].join("\n"),
+		);
+		const diagnostics = await detectHardcodedConfigLiterals(makeContext([filePath]));
+		expect(diagnostics.filter((d) => d.rule === "ai-slop/hardcoded-url")).toEqual([]);
+	});
+
+	it("still flags dev./staging. subdomains", async () => {
+		const filePath = writeFile("staging-host.ts", 'const A = "https://staging.vendor.com/v1";');
+		const diagnostics = await detectHardcodedConfigLiterals(makeContext([filePath]));
+		expect(diagnostics.filter((d) => d.rule === "ai-slop/hardcoded-url")).toHaveLength(1);
+	});
+
 	it("does not flag URLs that are already env-backed", async () => {
 		const filePath = writeFile(
 			"client-env.ts",
@@ -978,6 +997,15 @@ describe("unsafe type assertions", () => {
 		const diagnostics = await detectDeadPatterns(makeContext([filePath]));
 		const asAny = diagnostics.filter((d) => d.rule === "ai-slop/unsafe-type-assertion");
 		expect(asAny.length).toBe(1);
+	});
+
+	it("ignores the words in a single-line block comment", async () => {
+		const filePath = writeFile(
+			"block-comment.ts",
+			"/** The platform types these values as any; only a string counts. */\nexport const x = 1;",
+		);
+		const diagnostics = await detectDeadPatterns(makeContext([filePath]));
+		expect(diagnostics.filter((d) => d.rule === "ai-slop/unsafe-type-assertion")).toEqual([]);
 	});
 
 	it("detects double assertion 'as unknown as'", async () => {
