@@ -1,5 +1,6 @@
 import type { EngineContext } from "../engines/types.js";
 import {
+	filterEnumeratedProjectFiles,
 	filterEnumeratedTestFiles,
 	filterExplicitFiles,
 	filterProjectDeclarationFiles,
@@ -44,14 +45,46 @@ export const getTestFiles = (context: EngineContext): string[] => {
 	return getTestFilesForRoot(context.rootDirectory);
 };
 
+const selectWithExtras = (
+	context: EngineContext,
+	candidates: string[],
+	extraExtensions: string[],
+): string[] =>
+	filterEnumeratedProjectFiles(
+		context.rootDirectory,
+		candidates,
+		extraExtensions,
+		context.excludePatterns ?? [],
+		context.includePatterns ?? [],
+	);
+
+/** Files in the scan's scope, including the extra extensions a detector reads beyond source code. */
 export const getSourceFilesWithExtras = (
 	context: EngineContext,
 	extraExtensions: string[],
-): string[] =>
-	context.files
+): string[] => {
+	if (context.candidateFiles) {
+		return selectWithExtras(context, context.candidateFiles, extraExtensions);
+	}
+	return context.files
 		? filterExplicitFiles(context.rootDirectory, context.files, extraExtensions)
 		: filterProjectFiles(
 				context.rootDirectory,
 				listProjectFiles(context.rootDirectory),
 				extraExtensions,
 			);
+};
+
+/** Every project file with the given extra extensions, whatever the scan's scope. */
+export const getProjectFilesWithExtras = (
+	context: EngineContext,
+	extraExtensions: string[],
+): string[] => {
+	if (context.projectCandidateFiles) {
+		return selectWithExtras(context, context.projectCandidateFiles, extraExtensions);
+	}
+	if (!context.files && !context.candidateFiles) {
+		return getSourceFilesWithExtras(context, extraExtensions);
+	}
+	return selectWithExtras(context, listProjectFiles(context.rootDirectory), extraExtensions);
+};
