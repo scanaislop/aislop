@@ -21,9 +21,11 @@ interface ScanFileScopeRequest {
 }
 
 export interface ScanFileScope {
+	readonly candidateFiles: string[];
 	readonly dependencyAuditFiles: string[];
 	readonly dependencyAuditScope: "files" | "full";
 	readonly files: string[];
+	readonly projectCandidateFiles: string[];
 	readonly projectFiles: string[];
 	readonly scoreFileCount: number;
 	readonly scopeLabel: string;
@@ -95,6 +97,7 @@ export const collectScanFileScope = (request: ScanFileScopeRequest): ScanFileSco
 		request.includePatterns,
 	);
 	return {
+		candidateFiles: candidates.files,
 		dependencyAuditFiles: filterDependencyAuditFiles(
 			request.rootDirectory,
 			candidates.files,
@@ -103,6 +106,7 @@ export const collectScanFileScope = (request: ScanFileScopeRequest): ScanFileSco
 		),
 		dependencyAuditScope: request.mode.kind === "full" ? "full" : "files",
 		files,
+		projectCandidateFiles: projectCandidates,
 		projectFiles: [...new Set([...projectSourceFiles, ...declarations])],
 		scoreFileCount: projectSourceFiles.length + projectTestFiles.length,
 		scopeLabel: candidates.label,

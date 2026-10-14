@@ -39,6 +39,9 @@ export const createEngineContext = (
 				files: options.scope.files,
 				testFiles: options.scope.testFiles,
 				projectFiles: options.scope.projectFiles,
+				candidateFiles: options.scope.candidateFiles,
+				projectCandidateFiles: options.scope.projectCandidateFiles,
+				includePatterns: config.include,
 				dependencyAuditFiles: options.scope.dependencyAuditFiles,
 				dependencyAuditScope: options.scope.dependencyAuditScope,
 				// Scoped languages come from the selected files, so a manifest-only scope has
