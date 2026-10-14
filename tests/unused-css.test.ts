@@ -103,6 +103,18 @@ describe("ai-slop/unused-css", () => {
 		expect(diags).toHaveLength(0);
 	});
 
+	it("does NOT flag classes a build step adds to generated markup", async () => {
+		writeFile(
+			"src/styles/code.css",
+			".astro-code { overflow-x: auto; }\n.astro-j7pv25f6 { margin: 0; }\n.shiki { padding: 1rem; }\n.code-legacy { color: red; }\n",
+		);
+		writeFile("src/index.ts", "export const ready = true;\n");
+
+		const names = unused(await detectUnusedCss(buildContext())).map((d) => d.message);
+		expect(names).toHaveLength(1);
+		expect(names[0]).toContain(".code-legacy");
+	});
+
 	it("treats cn()/clsx() argument strings as references", async () => {
 		writeFile("src/index.css", ".btn-primary { color: white; }\n");
 		writeFile(
