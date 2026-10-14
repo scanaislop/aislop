@@ -1,7 +1,7 @@
 import path from "node:path";
 import { buildHookScanCompletedProps, track } from "../../telemetry/index.js";
 import { buildFeedback } from "../feedback.js";
-import { resolveHookRoot } from "../io/project-root.js";
+import { resolveAgentPaths, resolveHookRoot } from "../io/project-root.js";
 import { acquireHookLock } from "../io/scan-lock.js";
 import { resolveHookFiles, runScopedScan } from "../io/scoped-scan.js";
 import {
@@ -89,8 +89,9 @@ export const runClaudeHook = async (
 
 	const raw = await getStdin();
 	const input = parseClaudeStdin(raw);
-	const cwd = resolveHookRoot(input.cwd && path.isAbsolute(input.cwd) ? input.cwd : process.cwd());
-	const files = resolveHookFiles(cwd, extractFiles(input));
+	const agentCwd = input.cwd && path.isAbsolute(input.cwd) ? input.cwd : process.cwd();
+	const cwd = resolveHookRoot(agentCwd);
+	const files = resolveHookFiles(cwd, resolveAgentPaths(agentCwd, extractFiles(input)));
 
 	if (files.length === 0) return 0;
 	const release = acquireHookLock(cwd);
@@ -152,7 +153,8 @@ export const runClaudeFileChangedHook = async (
 
 	const raw = await getStdin();
 	const input = parseClaudeFileChangedStdin(raw);
-	const cwd = resolveHookRoot(input.cwd && path.isAbsolute(input.cwd) ? input.cwd : process.cwd());
+	const agentCwd = input.cwd && path.isAbsolute(input.cwd) ? input.cwd : process.cwd();
+	const cwd = resolveHookRoot(agentCwd);
 
 	const release = acquireHookLock(cwd);
 	if (!release) return 0;
@@ -200,7 +202,8 @@ export const runClaudeStopHook = async (
 
 	const raw = await getStdin();
 	const input = parseClaudeStopStdin(raw);
-	const cwd = resolveHookRoot(input.cwd && path.isAbsolute(input.cwd) ? input.cwd : process.cwd());
+	const agentCwd = input.cwd && path.isAbsolute(input.cwd) ? input.cwd : process.cwd();
+	const cwd = resolveHookRoot(agentCwd);
 
 	// Avoid infinite Stop loops if the model has already replied to a previous block.
 	if (input.stop_hook_active) return 0;

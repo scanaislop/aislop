@@ -22,6 +22,7 @@ interface KnipFileIssue {
 	exports?: KnipIssueItem[];
 	types?: KnipIssueItem[];
 	duplicates?: KnipIssueItem[];
+	files?: KnipIssueItem[];
 }
 
 interface KnipJsonOutput {
@@ -319,7 +320,11 @@ export const runKnip = async (rootDirectory: string): Promise<Diagnostic[]> => {
 		const parsed = JSON.parse(result.stdout) as KnipJsonOutput;
 
 		const diagnostics: Diagnostic[] = [];
-		const files = parsed.files ?? [];
+		// Knip 5 listed unused files at the top level; Knip 6 nests them under each issue.
+		const files = new Set(parsed.files ?? []);
+		for (const fileIssue of parsed.issues ?? []) {
+			if (getIssueItems(fileIssue, "files").length > 0) files.add(fileIssue.file);
+		}
 		for (const unusedFile of files) {
 			const filePath = getRelativePathWithinRoot(rootDirectory, knipRuntime.cwd, unusedFile);
 			if (!filePath) continue;

@@ -57,4 +57,24 @@ describe("Knip runtime resolution", () => {
 		expect(fs.existsSync(projectKnip)).toBe(true);
 		expect(fs.existsSync(proofPath)).toBe(false);
 	});
+
+	it("reports unused files from Knip 6 output, where they are nested under issues", async () => {
+		fs.mkdirSync(path.join(tmpDir, "src"), { recursive: true });
+		fs.writeFileSync(
+			path.join(tmpDir, "package.json"),
+			JSON.stringify({
+				name: "declared",
+				type: "module",
+				main: "src/index.js",
+				devDependencies: { knip: "^6.0.0" },
+			}),
+		);
+		fs.writeFileSync(path.join(tmpDir, "src/index.js"), "export const used = 1;\n");
+		fs.writeFileSync(path.join(tmpDir, "src/orphan.js"), "export const orphan = 1;\n");
+
+		const diagnostics = await runKnip(tmpDir);
+		expect(diagnostics.some((d) => d.rule === "knip/files" && d.filePath === "src/orphan.js")).toBe(
+			true,
+		);
+	});
 });

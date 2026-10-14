@@ -134,10 +134,13 @@ export const isRuntimeGlobalFalsePositive = (
 	return false;
 };
 
+const GLOBAL_DIRECTIVE_RE = /\/\*\s*globals?\s+([^*]*?)\*\//g;
+const globalDirectiveCache = new Map<string, Set<string>>();
 const sstReferencedFiles = new Map<string, boolean>();
 
 export const clearSstReferenceCache = (): void => {
 	sstReferencedFiles.clear();
+	globalDirectiveCache.clear();
 	chromeExtensionFileCache.clear();
 };
 
@@ -164,9 +167,6 @@ export const fileReferencesSstPlatform = (rootDir: string, relativeFilePath: str
 	return referenced;
 };
 
-const GLOBAL_DIRECTIVE_RE = /\/\*\s*globals?\s+([^*]*?)\*\//g;
-const globalDirectiveCache = new Map<string, Set<string>>();
-
 const readDeclaredGlobals = (absolutePath: string): Set<string> => {
 	const cached = globalDirectiveCache.get(absolutePath);
 	if (cached) return cached;
@@ -175,9 +175,13 @@ const readDeclaredGlobals = (absolutePath: string): Set<string> => {
 		const content = fs.readFileSync(absolutePath, "utf-8");
 		for (const match of content.matchAll(GLOBAL_DIRECTIVE_RE)) {
 			for (const entry of match[1].split(",")) {
-				for (const token of entry.trim().split(/\s+/)) {
-					const name = token.split(":")[0];
-					if (name) names.add(name);
+				for (const token of entry
+					.replace(/\s*:\s*/g, ":")
+					.trim()
+					.split(/\s+/)) {
+					const [name, value] = token.split(":");
+					// ESLint treats NAME:off as undeclared.
+					if (name && value?.trim() !== "off") names.add(name);
 				}
 			}
 		}

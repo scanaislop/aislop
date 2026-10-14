@@ -52,14 +52,13 @@ describe("runOxlint project context", () => {
 	it("honours global directive comments", async () => {
 		const file = writeFile(
 			"src/page.js",
-			"/* global APP, OTHER:readonly */\nAPP.run();\nOTHER.go();\nMISSING.x();\n",
+			"/* global APP, OTHER: readonly, OFF:off */\nAPP.run();\nOTHER.go();\nOFF();\nMISSING.x();\n",
 		);
-		const diagnostics = await runOxlint(
-			context({ languages: ["javascript"], changedFiles: [file] } as never),
-		);
+		const diagnostics = await runOxlint(context({ languages: ["javascript"], files: [file] }));
 		const undef = diagnostics.filter((d) => d.rule === "eslint/no-undef").map((d) => d.message);
 		expect(undef.some((m) => m.includes("APP"))).toBe(false);
 		expect(undef.some((m) => m.includes("OTHER"))).toBe(false);
+		expect(undef.some((m) => m.includes("OFF"))).toBe(true);
 		expect(undef.some((m) => m.includes("MISSING"))).toBe(true);
 	});
 

@@ -1,4 +1,5 @@
 import type { Diagnostic } from "../types.js";
+import { maskComments } from "../../utils/source-masker.js";
 import { slop } from "./dead-pattern-diagnostic.js";
 import { isNonProductionPath } from "./non-production-paths.js";
 
@@ -29,6 +30,8 @@ export const detectUnsafeTypePatterns = (
 
 	const diagnostics: Diagnostic[] = [];
 	const lines = content.split("\n");
+	// Comment text is masked so prose such as a single-line block comment never reads as code.
+	const codeLines = maskComments(content, ext).split("\n");
 
 	for (let i = 0; i < lines.length; i++) {
 		const trimmed = lines[i].trim();
@@ -48,12 +51,13 @@ export const detectUnsafeTypePatterns = (
 			);
 		}
 
-		if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) continue;
+		const code = (codeLines[i] ?? "").trim();
+		if (!code) continue;
 
-		if (/\bRegExp\b|new\s+RegExp|\/.*\\b/.test(trimmed)) continue;
-		if (/["'`].*\\b.*["'`]/.test(trimmed)) continue;
+		if (/\bRegExp\b|new\s+RegExp|\/.*\\b/.test(code)) continue;
+		if (/["'`].*\\b.*["'`]/.test(code)) continue;
 
-		if (asAnyPattern.test(trimmed)) {
+		if (asAnyPattern.test(code)) {
 			diagnostics.push(
 				unsafeTypeDiagnostic(relativePath, i + 1, {
 					rule: "ai-slop/unsafe-type-assertion",
@@ -64,9 +68,9 @@ export const detectUnsafeTypePatterns = (
 			);
 		}
 
-		if (doubleAssertPattern.test(trimmed)) {
+		if (doubleAssertPattern.test(code)) {
 			const isOrmReturn =
-				/\.query[(<]/.test(trimmed) || /result\[0\]/.test(trimmed) || /rows\s/.test(trimmed);
+				/\.query[(<]/.test(code) || /result\[0\]/.test(code) || /rows\s/.test(code);
 			if (!isOrmReturn) {
 				diagnostics.push(
 					unsafeTypeDiagnostic(relativePath, i + 1, {
