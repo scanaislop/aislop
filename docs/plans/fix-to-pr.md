@@ -99,7 +99,7 @@ Using `@octokit/rest` authenticated as the installation (see auth model):
   this prevents the LLM from "fixing" by deleting code or disabling rules (those would
   not improve the score, since rule config is read from the repo and not modifiable by
   the job).
-- **No config tampering.** `.aislop/config.yaml` and `.aislop/rules.yaml` are treated
+- **No config tampering.** `.aislop/config.yml` and `.aislop/rules.yml` are treated
   as read-only inputs in the sandbox so the gate cannot be gamed.
 
 ## Where it slots into the hosted platform

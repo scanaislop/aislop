@@ -49,6 +49,19 @@ describe("runOxlint project context", () => {
 		fs.rmSync(tmpDir, { recursive: true, force: true });
 	});
 
+	it("honours global directive comments", async () => {
+		const file = writeFile(
+			"src/page.js",
+			"/* global APP, OTHER: readonly, OFF:off */\nAPP.run();\nOTHER.go();\nOFF();\nMISSING.x();\n",
+		);
+		const diagnostics = await runOxlint(context({ languages: ["javascript"], files: [file] }));
+		const undef = diagnostics.filter((d) => d.rule === "eslint/no-undef").map((d) => d.message);
+		expect(undef.some((m) => m.includes("APP"))).toBe(false);
+		expect(undef.some((m) => m.includes("OTHER"))).toBe(false);
+		expect(undef.some((m) => m.includes("OFF"))).toBe(true);
+		expect(undef.some((m) => m.includes("MISSING"))).toBe(true);
+	});
+
 	it("uses filtered source files and generated ambient globals", async () => {
 		writeFile(
 			"biome.json",
@@ -187,9 +200,9 @@ describe("runOxlint project context", () => {
 		expect(diagnostics.some((d) => d.message.includes("'jQuery' is not defined"))).toBe(false);
 		expect(diagnostics.some((d) => d.message.includes("'$' is not defined"))).toBe(false);
 		expect(diagnostics.some((d) => d.message.includes("'CFG_GLPI' is not defined"))).toBe(false);
-		expect(
-			diagnostics.some((d) => d.message.includes("'serverInjectedName' is not defined")),
-		).toBe(false);
+		expect(diagnostics.some((d) => d.message.includes("'serverInjectedName' is not defined"))).toBe(
+			false,
+		);
 		expect(
 			diagnostics.some((d) => d.message.includes("'missingIgnoredGlobal' is not defined")),
 		).toBe(false);
