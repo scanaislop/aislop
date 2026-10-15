@@ -57,6 +57,7 @@ const BUILTIN_RULES: { engine: string; rules: string[] }[] = [
 			"knip/exports",
 			"knip/types",
 			"knip/duplicates",
+			"knip/skipped",
 			"code-quality/duplicate-block",
 			"code-quality/repeated-chained-call",
 			"code-quality/unused-declaration",
