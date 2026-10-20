@@ -11,6 +11,8 @@ const AI_SLOP_ERRORS = new Set<string>(["ai-slop/hallucinated-import"]);
 
 const SECURITY_INFO = new Set<string>(["security/dependency-audit-skipped"]);
 
+const INFO_RULES = new Set<string>(["knip/skipped"]);
+
 export const toRuleEntry = (engine: string, ruleId: string): RuleEntry => {
 	if (engine === "format") {
 		return { id: ruleId, engine, severity: "warning", fixable: true };
@@ -31,5 +33,10 @@ export const toRuleEntry = (engine: string, ruleId: string): RuleEntry => {
 			fixable: AI_SLOP_FIXABLE.has(ruleId),
 		};
 	}
-	return { id: ruleId, engine, severity: "warning", fixable: false };
+	return {
+		id: ruleId,
+		engine,
+		severity: INFO_RULES.has(ruleId) ? "info" : "warning",
+		fixable: false,
+	};
 };

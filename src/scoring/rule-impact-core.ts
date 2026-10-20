@@ -45,6 +45,9 @@ export const CORE_RULE_SCORE_IMPACTS: Record<string, RuleScoreImpact> = {
 	),
 	"knip/types": mechanical("Unused exported types are low-risk cleanup."),
 	"knip/duplicates": maintainability("Duplicate exports are real API hygiene issues."),
+	"knip/skipped": advisory(
+		"A skipped unused code check is visibility loss, not evidence of dead code.",
+	),
 
 	"security/hardcoded-secret": strict("Secret-looking source literals are high-risk."),
 	"security/vulnerable-dependency": strict(

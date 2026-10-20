@@ -14,6 +14,7 @@ import {
 	detectAmbientSources,
 	fileReferencesSstPlatform,
 	isAmbientFalsePositive,
+	isDeclaredGlobalFalsePositive,
 	isRuntimeGlobalFalsePositive,
 } from "./oxlint-context-filters.js";
 import { collectAmbientGlobals, collectEslintIgnorePatterns } from "./oxlint-globals.js";
@@ -263,6 +264,9 @@ const shouldKeepOxlintDiagnostic = (
 	if (isViteVirtualImportFalsePositive(d.rule, d.message)) return false;
 	if (isAmbientFalsePositive(d.rule, d.message, ambientSources)) return false;
 	if (isRuntimeGlobalFalsePositive(d.rule, d.message, context.rootDirectory, relativePath)) {
+		return false;
+	}
+	if (isDeclaredGlobalFalsePositive(d.rule, d.message, context.rootDirectory, d.filePath)) {
 		return false;
 	}
 	if (isSolidRefFalsePositive(context, d)) return false;

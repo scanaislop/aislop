@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { maskComments, maskStringsAndComments } from "../../utils/source-masker.js";
 
 const AMBIENT_GLOBAL_DEPS = ["unplugin-icons", "@types/bun", "bun-types"] as const;
 type AmbientSource = (typeof AMBIENT_GLOBAL_DEPS)[number];
@@ -134,10 +135,13 @@ export const isRuntimeGlobalFalsePositive = (
 	return false;
 };
 
+const GLOBAL_DIRECTIVE_RE = /\/\*\s*globals?\s+([^*]*?)\*\//g;
+const globalDirectiveCache = new Map<string, Set<string>>();
 const sstReferencedFiles = new Map<string, boolean>();
 
 export const clearSstReferenceCache = (): void => {
 	sstReferencedFiles.clear();
+	globalDirectiveCache.clear();
 	chromeExtensionFileCache.clear();
 };
 
@@ -162,4 +166,55 @@ export const fileReferencesSstPlatform = (rootDir: string, relativeFilePath: str
 	}
 	sstReferencedFiles.set(relativeFilePath, referenced);
 	return referenced;
+};
+
+// Blank string, template and regex bodies but keep comments, so directive text quoted in code is not read as a directive.
+const maskLiteralsOnly = (content: string, ext: string): string => {
+	const commentsMasked = maskComments(content, ext);
+	const allMasked = maskStringsAndComments(content, ext);
+	const out = content.split("");
+	for (let k = 0; k < out.length; k++) {
+		if (commentsMasked[k] === content[k]) out[k] = allMasked[k];
+	}
+	return out.join("");
+};
+
+const readDeclaredGlobals = (absolutePath: string): Set<string> => {
+	const cached = globalDirectiveCache.get(absolutePath);
+	if (cached) return cached;
+	const names = new Set<string>();
+	try {
+		const raw = fs.readFileSync(absolutePath, "utf-8");
+		const content = maskLiteralsOnly(raw, path.extname(absolutePath).toLowerCase());
+		for (const match of content.matchAll(GLOBAL_DIRECTIVE_RE)) {
+			for (const entry of match[1].split(",")) {
+				for (const token of entry
+					.replace(/\s*:\s*/g, ":")
+					.trim()
+					.split(/\s+/)) {
+					const [name, value] = token.split(":");
+					// ESLint treats NAME:off as undeclared.
+					if (name && value?.trim() !== "off") names.add(name);
+				}
+			}
+		}
+	} catch {
+		// unreadable file: leave the finding in place
+	}
+	globalDirectiveCache.set(absolutePath, names);
+	return names;
+};
+
+// ESLint honours global-directive block comments; oxlint does not, so drop those findings.
+export const isDeclaredGlobalFalsePositive = (
+	rule: string,
+	message: string,
+	rootDir: string,
+	filePath: string,
+): boolean => {
+	if (rule !== "eslint/no-undef") return false;
+	const ident = extractNoUndefIdentifier(message);
+	if (!ident) return false;
+	const absolute = path.isAbsolute(filePath) ? filePath : path.join(rootDir, filePath);
+	return readDeclaredGlobals(absolute).has(ident);
 };

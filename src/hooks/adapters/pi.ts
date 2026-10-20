@@ -1,6 +1,7 @@
 import path from "node:path";
 import { buildHookScanCompletedProps, track } from "../../telemetry/index.js";
 import { type AislopFeedback, buildFeedback } from "../feedback.js";
+import { resolveAgentPaths, resolveHookRoot } from "../io/project-root.js";
 import { acquireHookLock } from "../io/scan-lock.js";
 import { resolveHookFiles, runScopedScan } from "../io/scoped-scan.js";
 import { appendSessionFiles, readBaseline } from "../quality-gate/baseline.js";
@@ -62,8 +63,12 @@ export const runPiHook = async (
 
 	const raw = await getStdin();
 	const input = parsePiStdin(raw);
-	const cwd = input.cwd && path.isAbsolute(input.cwd) ? input.cwd : process.cwd();
-	const files = resolveHookFiles(cwd, input.file_path ? [input.file_path] : []);
+	const agentCwd = input.cwd && path.isAbsolute(input.cwd) ? input.cwd : process.cwd();
+	const cwd = resolveHookRoot(agentCwd);
+	const files = resolveHookFiles(
+		cwd,
+		resolveAgentPaths(agentCwd, input.file_path ? [input.file_path] : []),
+	);
 
 	if (files.length === 0) return 0;
 	const release = acquireHookLock(cwd);

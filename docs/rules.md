@@ -188,6 +188,9 @@ Measures structural complexity, finds dead code, and detects unused dependencies
 | `knip/unresolved` | Imports that cannot be resolved |
 | `knip/binaries` | Binaries used but not declared in package.json |
 | `knip/duplicates` | Duplicate exports reported by knip |
+| `knip/skipped` | Info: the knip checks above did not run, either because the project has not set knip up (no knip dependency, knip config file or `"knip"` key in package.json) or because knip failed or timed out |
+
+The knip rules run only for projects that use knip: knip is listed as a dependency, or the project has a knip config file (`knip.json`, `knip.jsonc`, `.knip.json`, `.knip.jsonc`, `knip.ts`, `knip.js`, `knip.config.ts`, `knip.config.js`) or a `"knip"` key in package.json. aislop always runs its own bundled knip, never a copy installed in the scanned project. Without that setup, knip cannot tell which files are entry points and reports test and example folders as unused.
 
 ## AI Slop
 

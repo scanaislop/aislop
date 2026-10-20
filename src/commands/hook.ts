@@ -22,6 +22,7 @@ import type {
 	HookInstallResult,
 	HookUninstallResult,
 } from "../hooks/install/types.js";
+import { resolveHookRoot } from "../hooks/io/project-root.js";
 import { captureBaseline } from "../hooks/quality-gate/baseline.js";
 import { flushTelemetry } from "../telemetry/client.js";
 import {
@@ -282,7 +283,7 @@ export const hookRun = async (
 };
 
 export const hookBaseline = async (): Promise<void> => {
-	const cwd = process.cwd();
+	const cwd = resolveHookRoot(process.cwd());
 	const result = await captureBaseline(cwd);
 	process.stdout.write(
 		renderHookBaseline({ score: result.score, fileCount: result.fileCount, path: result.path }),
