@@ -410,6 +410,24 @@ describe("hardcoded config literals", () => {
 		expect(diagnostics.filter((d) => d.rule === "ai-slop/hardcoded-url")).toEqual([]);
 	});
 
+	it("does not flag social profiles, store listings or public legal pages", async () => {
+		const filePath = writeFile(
+			"links.ts",
+			[
+				"export const social = [",
+				"  { network: 'instagram', url: 'https://www.instagram.com/exampleapp' },",
+				"  { network: 'linkedin', url: 'https://linkedin.com/company/exampleapp' },",
+				"];",
+				"export const legal = { privacy: 'https://example.app/privacy', terms: 'https://acme.io/legal/terms' };",
+				"export const store = { url: 'https://apps.apple.com/app/id123', android: 'https://play.google.com/store/apps/details?id=x' };",
+				"export const API_BASE_URL = 'https://staging.acme.io/privacy';",
+			].join("\n"),
+		);
+		const diagnostics = await detectHardcodedConfigLiterals(makeContext([filePath]));
+		const lines = diagnostics.filter((d) => d.rule === "ai-slop/hardcoded-url").map((d) => d.line);
+		expect(lines).toEqual([7]);
+	});
+
 	it("keeps config-named and environment-host URLs flagged", async () => {
 		const filePath = writeFile(
 			"service-config.ts",

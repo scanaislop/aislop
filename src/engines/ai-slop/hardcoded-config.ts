@@ -68,6 +68,38 @@ const VENDOR_API_DOMAINS = [
 ];
 const isVendorApiHost = (host: string): boolean =>
 	VENDOR_API_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`));
+// Social profiles and store listings are content links, identical in every environment.
+const PUBLIC_LINK_DOMAINS = [
+	"instagram.com",
+	"facebook.com",
+	"linkedin.com",
+	"youtube.com",
+	"youtu.be",
+	"tiktok.com",
+	"threads.net",
+	"bsky.app",
+	"reddit.com",
+	"medium.com",
+	"pinterest.com",
+	"mastodon.social",
+	"t.me",
+	"wa.me",
+	"apps.apple.com",
+	"play.google.com",
+	"chromewebstore.google.com",
+	"marketplace.visualstudio.com",
+];
+const isPublicLinkHost = (host: string): boolean =>
+	PUBLIC_LINK_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`));
+const LEGAL_PAGE_PATH_RE =
+	/^\/(?:legal\/)?(?:privacy(?:-policy)?|terms(?:-of-(?:service|use))?|tos|cookies?(?:-policy)?|imprint|impressum|eula|legal)\/?$/i;
+const isLegalPageUrl = (urlText: string): boolean => {
+	try {
+		return LEGAL_PAGE_PATH_RE.test(new URL(urlText).pathname);
+	} catch {
+		return false;
+	}
+};
 const PLACEHOLDER_ID_RE = /^(?:changeme|replace[_-]?me|your[_-]|example|placeholder|todo)/i;
 const PROVIDER_ID_RE =
 	/^(?:price|prod|cus|sub|acct|org|app|tenant|workspace|project|client|key|tok|token|sk|pk)_[A-Za-z0-9][A-Za-z0-9_-]{7,}$/i;
@@ -168,6 +200,7 @@ const shouldFlagUrlLiteral = (line: string, urlText: string): boolean => {
 	if (LOOPBACK_HOSTS.has(host)) return false;
 	if (isVendorApiHost(host)) return false;
 	const environmentHost = isEnvironmentHost(host);
+	if (!environmentHost && (isPublicLinkHost(host) || isLegalPageUrl(urlText))) return false;
 	if (DOC_URL_CONTEXT_RE.test(line) && !environmentHost) return false;
 	return hasUrlConfigContext(line, urlText, host) || environmentHost;
 };
