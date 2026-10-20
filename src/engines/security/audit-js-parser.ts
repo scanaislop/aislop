@@ -24,6 +24,7 @@ interface VulnAggregate {
 // Omit this and every advisory keeps full severity, which is the safe default.
 export interface JsAuditManifest {
 	runtimeDependencies: Set<string>;
+	declaredVersions?: Map<string, string>;
 }
 
 // npm's audit JSON has no dev flag; `effects` names the packages pulling a vulnerable one in.
@@ -77,6 +78,42 @@ const cmpSemver = (a: string, b: string): number => {
 	if (Number(a1) !== Number(b1)) return Number(a1) - Number(b1);
 	if (Number(a2) !== Number(b2)) return Number(a2) - Number(b2);
 	return Number(a3) - Number(b3);
+};
+
+// npm falls back to an older major of the parent when no newer release drops the vulnerable range.
+const isDowngrade = (fixVersion: string, declaredSpec: string | undefined): boolean =>
+	declaredSpec !== undefined &&
+	SEMVER_RE.test(declaredSpec) &&
+	SEMVER_RE.test(fixVersion) &&
+	cmpSemver(fixVersion, declaredSpec) < 0;
+
+// An advisory range with a strict upper bound (`>=10.2.0 <10.5.0`) names its first patched version.
+const patchedVersionFromVia = (vulnerability: Record<string, unknown>): string | undefined => {
+	if (!Array.isArray(vulnerability.via)) return undefined;
+	for (const via of vulnerability.via) {
+		if (!isRecord(via)) continue;
+		const bound = /<\s*(\d+\.\d+\.\d+)\s*$/.exec(readString(via, "range") ?? "");
+		if (bound) return bound[1];
+	}
+	return undefined;
+};
+
+const recommendFix = (
+	packageName: string,
+	vulnerability: Record<string, unknown>,
+	fix: Record<string, unknown>,
+	manifest: JsAuditManifest | undefined,
+): string => {
+	const name = readString(fix, "name");
+	const version = readString(fix, "version");
+	if (!name || !version) return "";
+	if (fix.isSemVerMajor !== true || !isDowngrade(version, manifest?.declaredVersions?.get(name))) {
+		return `upgrade to ${name}@${version}`;
+	}
+	const patched = patchedVersionFromVia(vulnerability);
+	return patched
+		? `no safe direct fix — override "${packageName}" to ^${patched}`
+		: `no safe direct fix — npm would downgrade ${name} to ${version}`;
 };
 
 const pickBestRecommendation = (recs: string[]): string => {
@@ -193,11 +230,7 @@ const parseModernVulnerabilities = (
 		} else if (!isDirect && fixAvailable === true) {
 			recommendation = "transitive — may need override or parent upgrade";
 		} else if (isRecord(fixAvailable)) {
-			const name = readString(fixAvailable, "name");
-			const version = readString(fixAvailable, "version");
-			if (name && version) {
-				recommendation = `upgrade to ${name}@${version}`;
-			}
+			recommendation = recommendFix(packageName, vulnerability, fixAvailable, manifest);
 		}
 
 		upsertVuln(bucket, packageName, severity, recommendation);

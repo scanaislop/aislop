@@ -344,6 +344,19 @@ describe("checkComplexity — too many parameters", () => {
 		expect(paramDiags[0].message).toContain("3");
 	});
 
+	it("counts a destructured object or array parameter as one parameter", async () => {
+		const content = [
+			"export function Stepper({ label, value, min, max, onChange, format, step = 1 }: Props) {",
+			"  return null;",
+			"}",
+			"export const Pair = ([a, b, c, d, e, f, g]: number[], opts = [1, 2, 3]) => a;",
+		].join("\n");
+		const filePath = writeFile("destructured-params.tsx", content);
+		const diagnostics = await checkComplexity(makeContext([filePath], { maxParams: 2 }));
+		const paramDiags = diagnostics.filter((d) => d.rule === "complexity/too-many-params");
+		expect(paramDiags).toHaveLength(0);
+	});
+
 	it("counts parameters correctly for 0-param functions", async () => {
 		const content = "function noParams() { return 1; }";
 		const filePath = writeFile("no-params.ts", content);
