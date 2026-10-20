@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { maskComments, maskStringsAndComments } from "../../utils/source-masker.js";
 
 const AMBIENT_GLOBAL_DEPS = ["unplugin-icons", "@types/bun", "bun-types"] as const;
 type AmbientSource = (typeof AMBIENT_GLOBAL_DEPS)[number];
@@ -167,12 +168,24 @@ export const fileReferencesSstPlatform = (rootDir: string, relativeFilePath: str
 	return referenced;
 };
 
+// Blank string, template and regex bodies but keep comments, so directive text quoted in code is not read as a directive.
+const maskLiteralsOnly = (content: string, ext: string): string => {
+	const commentsMasked = maskComments(content, ext);
+	const allMasked = maskStringsAndComments(content, ext);
+	const out = content.split("");
+	for (let k = 0; k < out.length; k++) {
+		if (commentsMasked[k] === content[k]) out[k] = allMasked[k];
+	}
+	return out.join("");
+};
+
 const readDeclaredGlobals = (absolutePath: string): Set<string> => {
 	const cached = globalDirectiveCache.get(absolutePath);
 	if (cached) return cached;
 	const names = new Set<string>();
 	try {
-		const content = fs.readFileSync(absolutePath, "utf-8");
+		const raw = fs.readFileSync(absolutePath, "utf-8");
+		const content = maskLiteralsOnly(raw, path.extname(absolutePath).toLowerCase());
 		for (const match of content.matchAll(GLOBAL_DIRECTIVE_RE)) {
 			for (const entry of match[1].split(",")) {
 				for (const token of entry

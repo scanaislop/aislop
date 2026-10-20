@@ -62,6 +62,23 @@ describe("runOxlint project context", () => {
 		expect(undef.some((m) => m.includes("MISSING"))).toBe(true);
 	});
 
+	it("ignores global directive text inside string and template literals", async () => {
+		const file = writeFile(
+			"src/docs.js",
+			[
+				'const single = "/* global SDK */";',
+				"const tpl = `/* globals TPL */`;",
+				"SDK.init(single);",
+				"TPL.init(tpl);",
+				"",
+			].join("\n"),
+		);
+		const diagnostics = await runOxlint(context({ languages: ["javascript"], files: [file] }));
+		const undef = diagnostics.filter((d) => d.rule === "eslint/no-undef").map((d) => d.message);
+		expect(undef.some((m) => m.includes("SDK"))).toBe(true);
+		expect(undef.some((m) => m.includes("TPL"))).toBe(true);
+	});
+
 	it("uses filtered source files and generated ambient globals", async () => {
 		writeFile(
 			"biome.json",
