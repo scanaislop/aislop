@@ -32,13 +32,16 @@ const collectRuntimeNames = (manifest: Record<string, unknown>, into: Set<string
 
 const collectDeclaredVersions = (
 	manifest: Record<string, unknown>,
-	into: Map<string, string>,
+	into: Map<string, string[]>,
 ): void => {
 	for (const field of [...RUNTIME_DEPENDENCY_FIELDS, "devDependencies"]) {
 		const section = manifest[field];
 		if (!section || typeof section !== "object") continue;
 		for (const [name, spec] of Object.entries(section)) {
-			if (typeof spec === "string" && !into.has(name)) into.set(name, spec);
+			if (typeof spec !== "string") continue;
+			const specs = into.get(name) ?? [];
+			if (!specs.includes(spec)) specs.push(spec);
+			into.set(name, specs);
 		}
 	}
 };
@@ -102,7 +105,7 @@ export const readRuntimeDependencies = (rootDir: string): JsAuditManifest | unde
 	if (!rootManifest) return undefined;
 
 	const names = new Set<string>();
-	const declaredVersions = new Map<string, string>();
+	const declaredVersions = new Map<string, string[]>();
 	collectRuntimeNames(rootManifest, names);
 	collectDeclaredVersions(rootManifest, declaredVersions);
 

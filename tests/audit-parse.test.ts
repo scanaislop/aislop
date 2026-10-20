@@ -122,8 +122,8 @@ describe("parseJsAudit — modern vulnerabilities", () => {
 	const nextManifest = {
 		runtimeDependencies: new Set(["@opennextjs/cloudflare"]),
 		declaredVersions: new Map([
-			["eslint-config-next", "16.4.2"],
-			["@opennextjs/cloudflare", "^1.20.12"],
+			["eslint-config-next", ["16.4.2"]],
+			["@opennextjs/cloudflare", ["^1.20.12"]],
 		]),
 	};
 
@@ -138,13 +138,72 @@ describe("parseJsAudit — modern vulnerabilities", () => {
 	it("keeps a semver-major fix that moves forward as an upgrade", () => {
 		const manifest = {
 			runtimeDependencies: new Set(["@opennextjs/cloudflare"]),
-			declaredVersions: new Map([["@opennextjs/cloudflare", "^1.19.0"]]),
+			declaredVersions: new Map([["@opennextjs/cloudflare", ["^1.19.0"]]]),
 		};
 		const glob = parseJsAudit(downgradeAudit, "npm audit", manifest).find((d) =>
 			d.message.startsWith("glob"),
 		);
 
 		expect(glob?.message).toContain("upgrade to @opennextjs/cloudflare@1.20.9");
+	});
+
+	it("reads shortened version declarations", () => {
+		for (const spec of ["16", "^16.4", "~16.4"]) {
+			const manifest = {
+				runtimeDependencies: new Set<string>(),
+				declaredVersions: new Map([["eslint-config-next", [spec]]]),
+			};
+			const braces = parseJsAudit(downgradeAudit, "npm audit", manifest).find((d) =>
+				d.message.startsWith("braces"),
+			);
+
+			expect(braces?.message).toContain("no safe direct fix");
+		}
+	});
+
+	it("treats a fix as a downgrade when any workspace declares a newer version", () => {
+		const manifest = {
+			runtimeDependencies: new Set<string>(),
+			declaredVersions: new Map([["eslint-config-next", ["^14.0.0", "^16.4.2"]]]),
+		};
+		const braces = parseJsAudit(downgradeAudit, "npm audit", manifest).find((d) =>
+			d.message.startsWith("braces"),
+		);
+
+		expect(braces?.message).toContain("no safe direct fix");
+	});
+
+	const multiAdvisoryAudit = (secondRange: string): string =>
+		JSON.stringify({
+			vulnerabilities: {
+				lib: {
+					name: "lib",
+					severity: "high",
+					isDirect: false,
+					fixAvailable: { name: "parent", version: "1.0.0", isSemVerMajor: true },
+					via: [
+						{ source: 1, name: "lib", title: "A", severity: "high", range: "<1.5.0" },
+						{ source: 2, name: "lib", title: "B", severity: "high", range: secondRange },
+					],
+				},
+			},
+		});
+	const parentManifest = {
+		runtimeDependencies: new Set<string>(),
+		declaredVersions: new Map([["parent", ["^2.0.0"]]]),
+	};
+
+	it("suggests an override that clears every advisory", () => {
+		const [lib] = parseJsAudit(multiAdvisoryAudit(">=1.8.0 <2.0.0"), "npm audit", parentManifest);
+
+		expect(lib.message).toContain('override "lib" to ^2.0.0');
+	});
+
+	it("suggests no override when one advisory has no patched version", () => {
+		const [lib] = parseJsAudit(multiAdvisoryAudit("<=2.0.0"), "npm audit", parentManifest);
+
+		expect(lib.message).not.toContain("override");
+		expect(lib.message).toContain("npm would downgrade parent to 1.0.0");
 	});
 
 	it("reports every package when none carry an advisory object (no root info)", () => {
