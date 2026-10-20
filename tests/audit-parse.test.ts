@@ -90,6 +90,63 @@ describe("parseJsAudit — modern vulnerabilities", () => {
 		expect(diagnostics[0].severity).toBe("error");
 	});
 
+	// Mirrors a fresh create-next-app: npm's only "fix" is an older major of the direct parent.
+	const downgradeAudit = JSON.stringify({
+		vulnerabilities: {
+			braces: {
+				name: "braces",
+				severity: "high",
+				isDirect: false,
+				effects: ["eslint-config-next"],
+				fixAvailable: { name: "eslint-config-next", version: "14.2.35", isSemVerMajor: true },
+				via: [{ source: 1, name: "braces", title: "ReDoS", severity: "high", range: "<=3.0.3" }],
+			},
+			glob: {
+				name: "glob",
+				severity: "high",
+				isDirect: false,
+				effects: ["@opennextjs/cloudflare"],
+				fixAvailable: { name: "@opennextjs/cloudflare", version: "1.20.9", isSemVerMajor: true },
+				via: [
+					{
+						source: 2,
+						name: "glob",
+						title: "Injection",
+						severity: "high",
+						range: ">=10.2.0 <10.5.0",
+					},
+				],
+			},
+		},
+	});
+	const nextManifest = {
+		runtimeDependencies: new Set(["@opennextjs/cloudflare"]),
+		declaredVersions: new Map([
+			["eslint-config-next", "16.4.2"],
+			["@opennextjs/cloudflare", "^1.20.12"],
+		]),
+	};
+
+	it("never presents a downgrade of the parent as an upgrade", () => {
+		const messages = parseJsAudit(downgradeAudit, "npm audit", nextManifest).map((d) => d.message);
+
+		expect(messages.some((m) => m.includes("upgrade to"))).toBe(false);
+		expect(messages.find((m) => m.startsWith("braces"))).toContain("no safe direct fix");
+		expect(messages.find((m) => m.startsWith("glob"))).toContain('override "glob" to ^10.5.0');
+	});
+
+	it("keeps a semver-major fix that moves forward as an upgrade", () => {
+		const manifest = {
+			runtimeDependencies: new Set(["@opennextjs/cloudflare"]),
+			declaredVersions: new Map([["@opennextjs/cloudflare", "^1.19.0"]]),
+		};
+		const glob = parseJsAudit(downgradeAudit, "npm audit", manifest).find((d) =>
+			d.message.startsWith("glob"),
+		);
+
+		expect(glob?.message).toContain("upgrade to @opennextjs/cloudflare@1.20.9");
+	});
+
 	it("reports every package when none carry an advisory object (no root info)", () => {
 		const audit = JSON.stringify({
 			vulnerabilities: {
