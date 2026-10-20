@@ -24,7 +24,7 @@ interface VulnAggregate {
 // Omit this and every advisory keeps full severity, which is the safe default.
 export interface JsAuditManifest {
 	runtimeDependencies: Set<string>;
-	declaredVersions?: Map<string, string>;
+	declaredVersions?: Map<string, string[]>;
 }
 
 // npm's audit JSON has no dev flag; `effects` names the packages pulling a vulnerable one in.
@@ -80,22 +80,34 @@ const cmpSemver = (a: string, b: string): number => {
 	return Number(a3) - Number(b3);
 };
 
-// npm falls back to an older major of the parent when no newer release drops the vulnerable range.
-const isDowngrade = (fixVersion: string, declaredSpec: string | undefined): boolean =>
-	declaredSpec !== undefined &&
-	SEMVER_RE.test(declaredSpec) &&
-	SEMVER_RE.test(fixVersion) &&
-	cmpSemver(fixVersion, declaredSpec) < 0;
+// npm accepts shortened specs (`16`, `^16.4`); missing parts are zero.
+const DECLARED_VERSION_RE = /(\d+)(?:\.(\d+))?(?:\.(\d+))?/;
+const normalizeDeclared = (spec: string): string | undefined => {
+	const match = DECLARED_VERSION_RE.exec(spec);
+	return match ? `${match[1]}.${match[2] ?? "0"}.${match[3] ?? "0"}` : undefined;
+};
 
-// An advisory range with a strict upper bound (`>=10.2.0 <10.5.0`) names its first patched version.
+// npm falls back to an older major of the parent when no newer release drops the vulnerable range.
+// Any workspace declaring a newer version than the fix makes the fix a downgrade there.
+const isDowngrade = (fixVersion: string, declaredSpecs: string[] | undefined): boolean =>
+	SEMVER_RE.test(fixVersion) &&
+	(declaredSpecs ?? []).some((spec) => {
+		const declared = normalizeDeclared(spec);
+		return declared !== undefined && cmpSemver(fixVersion, declared) < 0;
+	});
+
+// A strict upper bound (`>=10.2.0 <10.5.0`) names the first patched version; the override must
+// clear every advisory, so take the highest bound, and give up if any advisory has none.
 const patchedVersionFromVia = (vulnerability: Record<string, unknown>): string | undefined => {
 	if (!Array.isArray(vulnerability.via)) return undefined;
+	let patched: string | undefined;
 	for (const via of vulnerability.via) {
 		if (!isRecord(via)) continue;
 		const bound = /<\s*(\d+\.\d+\.\d+)\s*$/.exec(readString(via, "range") ?? "");
-		if (bound) return bound[1];
+		if (!bound) return undefined;
+		if (!patched || cmpSemver(bound[1], patched) > 0) patched = bound[1];
 	}
-	return undefined;
+	return patched;
 };
 
 const recommendFix = (
@@ -112,8 +124,8 @@ const recommendFix = (
 	}
 	const patched = patchedVersionFromVia(vulnerability);
 	return patched
-		? `no safe direct fix — override "${packageName}" to ^${patched}`
-		: `no safe direct fix — npm would downgrade ${name} to ${version}`;
+		? `no safe direct fix: override "${packageName}" to ^${patched}`
+		: `no safe direct fix: npm would downgrade ${name} to ${version}`;
 };
 
 const pickBestRecommendation = (recs: string[]): string => {
