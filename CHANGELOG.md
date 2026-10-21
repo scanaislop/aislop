@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Fixed
+
+- **`ai-slop/unused-css` runs on real scans.** `scan`, `ci`, `fix` and agent hooks passed engines a file list already narrowed to source extensions, so stylesheets never reached the rule and it could not report anything outside direct API calls. Stylesheets in the scan's scope are now checked, and class references are read from the whole project, so a stylesheet changed on its own is not compared against only the other changed files. Classes a build step adds to generated markup (`astro-code`, Astro's `astro-<hash>` scoped classes, Shiki's `shiki`) are not reported. Upgrading can surface dead CSS that was always there.
+- **Secret detection reads config files on real scans.** The same narrowing kept `.yaml`, `.yml`, `.json` and `.toml` files out of `security/hardcoded-secret`. They are scanned again, with the scan's include and exclude settings.
+
 ## 0.18.1 (2026-10-06)
 
 A patch release. Pinning the GitHub Action to a release tag now pins the CLI it runs, `aislop agent` shows the provider's own error when it fails, and dependency advisories are patched.

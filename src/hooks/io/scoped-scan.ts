@@ -116,6 +116,10 @@ export const runScopedScan = async (
 				),
 			]),
 		],
+		candidateFiles: scopedCandidates,
+		projectCandidateFiles: projectCandidates,
+		excludePatterns,
+		includePatterns: config.include,
 		installedTools: project.installedTools,
 		config: {
 			overrides: config.overrides,
