@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Fixed
+
+- **No crash when the output reader closes early.** Piping into `head`, a `jq` that exits, or an agent hook that stops reading made the next write fail with `EPIPE`, which aislop printed as an uncaught exception and exited 1. aislop now drops the remaining output and exits with the command's own result.
+
 ## 0.18.1 (2026-10-06)
 
 A patch release. Pinning the GitHub Action to a release tag now pins the CLI it runs, `aislop agent` shows the provider's own error when it fails, and dependency advisories are patched.
