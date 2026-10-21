@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import { findConfigDir, loadConfig, RULES_FILE } from "../config/index.js";
+import { findConfigDir, loadConfig, RULES_FILE, resolveConfigFile } from "../config/index.js";
 import { runEngines } from "../engines/orchestrator.js";
 import type { Diagnostic, EngineContext, EngineName } from "../engines/types.js";
 import { readBaseline } from "../hooks/quality-gate/baseline.js";
@@ -35,7 +35,7 @@ const buildEngineContext = (
 	config: ReturnType<typeof loadConfig>,
 ): EngineContext => {
 	const configDir = findConfigDir(rootDirectory);
-	const rulesPath = configDir ? path.join(configDir, RULES_FILE) : undefined;
+	const rulesPath = configDir ? resolveConfigFile(configDir, RULES_FILE) : undefined;
 	return {
 		rootDirectory,
 		languages: project.languages,
