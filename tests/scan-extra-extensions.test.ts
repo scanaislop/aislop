@@ -110,4 +110,13 @@ describe("scan reaches files outside the source-extension set", () => {
 			"ai-slop/unused-css src/styles.css",
 		]);
 	});
+	it("resolves class references outside the include list", async () => {
+		writeFile("src/index.ts", 'export const html = `<div class="card">x</div>`;\n');
+		writeFile("src/styles.css", ".card { padding: 4px; }\n.promo-ribbon { color: red; }\n");
+		const findings = await scanRules(buildConfig({ include: ["src/**/*.css"] }));
+
+		expect(findings.filter((f) => f.startsWith("ai-slop/unused-css"))).toEqual([
+			"ai-slop/unused-css src/styles.css",
+		]);
+	});
 });

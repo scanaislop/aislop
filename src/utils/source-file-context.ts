@@ -49,13 +49,14 @@ const selectWithExtras = (
 	context: EngineContext,
 	candidates: string[],
 	extraExtensions: string[],
+	includePatterns: string[] = context.includePatterns ?? [],
 ): string[] =>
 	filterEnumeratedProjectFiles(
 		context.rootDirectory,
 		candidates,
 		extraExtensions,
 		context.excludePatterns ?? [],
-		context.includePatterns ?? [],
+		includePatterns,
 	);
 
 /** Files in the scan's scope, including the extra extensions a detector reads beyond source code. */
@@ -75,16 +76,20 @@ export const getSourceFilesWithExtras = (
 			);
 };
 
-/** Every project file with the given extra extensions, whatever the scan's scope. */
+/**
+ * Every project file with the given extra extensions, whatever the scan's scope.
+ * `include` narrows what is diagnosed, not where references are looked up, so it
+ * is not applied here.
+ */
 export const getProjectFilesWithExtras = (
 	context: EngineContext,
 	extraExtensions: string[],
 ): string[] => {
 	if (context.projectCandidateFiles) {
-		return selectWithExtras(context, context.projectCandidateFiles, extraExtensions);
+		return selectWithExtras(context, context.projectCandidateFiles, extraExtensions, []);
 	}
 	if (!context.files && !context.candidateFiles) {
 		return getSourceFilesWithExtras(context, extraExtensions);
 	}
-	return selectWithExtras(context, listProjectFiles(context.rootDirectory), extraExtensions);
+	return selectWithExtras(context, listProjectFiles(context.rootDirectory), extraExtensions, []);
 };
