@@ -302,6 +302,9 @@ const runFixBody = async (
 						files: context.files,
 						testFiles: context.testFiles,
 						projectFiles: context.projectFiles,
+						candidateFiles: context.candidateFiles,
+						projectCandidateFiles: context.projectCandidateFiles,
+						includePatterns: context.includePatterns,
 						dependencyAuditFiles: context.dependencyAuditFiles,
 						dependencyAuditScope: context.dependencyAuditScope,
 					}
