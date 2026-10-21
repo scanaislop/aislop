@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { findConfigDir, loadConfig, RULES_FILE } from "../../config/index.js";
+import { findConfigDir, loadConfig, RULES_FILE, resolveConfigFile } from "../../config/index.js";
 import { runEngines } from "../../engines/orchestrator.js";
 import type { Diagnostic, EngineContext, EngineName } from "../../engines/types.js";
 import { calculateScore } from "../../scoring/index.js";
@@ -80,7 +80,7 @@ export const runScopedScan = async (
 		sourceFiles: projectSourceFiles,
 	});
 	const configDir = findConfigDir(rootDirectory);
-	const rulesPath = configDir ? path.join(configDir, RULES_FILE) : undefined;
+	const rulesPath = configDir ? resolveConfigFile(configDir, RULES_FILE) : undefined;
 	const enumeratedPaths = new Set(
 		projectCandidates.map((filePath) => path.resolve(rootDirectory, filePath)),
 	);

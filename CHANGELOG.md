@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Fixed
+
+- **`.aislop/config.yaml` and `rules.yaml` are read.** aislop only looked for the `.yml` spelling, so a `config.yaml` was ignored without a warning and the scan used the defaults. The agent instructions written by `aislop hook install` also pointed at the `.yaml` names. Both spellings now load, `.yml` wins when both exist, and the instructions name the `.yml` files ([#471](https://github.com/scanaislop/aislop/issues/471)).
+
 ## 0.18.1 (2026-10-06)
 
 A patch release. Pinning the GitHub Action to a release tag now pins the CLI it runs, `aislop agent` shows the provider's own error when it fails, and dependency advisories are patched.
