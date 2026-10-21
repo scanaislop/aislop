@@ -1,5 +1,5 @@
 import path from "node:path";
-import { findConfigDir, RULES_FILE } from "../config/index.js";
+import { findConfigDir, RULES_FILE, resolveConfigFile } from "../config/index.js";
 import { loadArchitectureRules } from "../engines/architecture/rule-loader.js";
 import { descriptionForRule } from "../output/rule-labels.js";
 import { detectInvocation } from "../ui/invocation.js";
@@ -170,7 +170,7 @@ const collectRuleEntries = (directory: string): RuleEntry[] => {
 
 	const configDir = findConfigDir(resolvedDir);
 	if (configDir) {
-		const rulesPath = path.join(configDir, RULES_FILE);
+		const rulesPath = resolveConfigFile(configDir, RULES_FILE);
 		const archRules = loadArchitectureRules(rulesPath);
 		for (const rule of archRules) {
 			entries.push({
