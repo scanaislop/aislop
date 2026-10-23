@@ -20,6 +20,7 @@ quality:
   maxFileLoc: 400
   maxNesting: 5
   maxParams: 6
+  knip: auto             # always | off, see docs/rules.md
 
 security:
   audit: true
