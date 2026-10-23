@@ -73,6 +73,7 @@ export interface EngineConfig {
 		maxFileLoc: number;
 		maxNesting: number;
 		maxParams: number;
+		knip?: "auto" | "always" | "off";
 	};
 	security: {
 		audit: boolean;

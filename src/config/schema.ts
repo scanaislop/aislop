@@ -23,6 +23,11 @@ const QualitySchema = z.object({
 	maxFileLoc: z.number().positive().default(400),
 	maxNesting: z.number().positive().default(5),
 	maxParams: z.number().positive().default(6),
+	/**
+	 * Knip loads the project's config files, so by default ("auto") it only runs for projects
+	 * that declare or configure it. "always" runs aislop's bundled Knip anyway.
+	 */
+	knip: z.enum(["auto", "always", "off"]).default("auto"),
 });
 
 const CsharpLintSchema = z.object({
@@ -135,6 +140,7 @@ const AislopConfigSchema = z.object({
 		maxFileLoc: 400,
 		maxNesting: 5,
 		maxParams: 6,
+		knip: "auto" as const,
 	})),
 	lint: LintConfigSchema.default(() => ({
 		typecheck: false,

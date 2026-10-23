@@ -4,8 +4,9 @@ import type { Diagnostic, EngineContext } from "../engines/types.js";
 import { applyRuleSeverities } from "../scoring/rule-severity.js";
 import type { AislopConfig } from "./schema.js";
 
-type FilePolicy = Pick<AislopConfig, "quality"> &
-	Partial<Pick<AislopConfig, "rules" | "overrides">>;
+type FilePolicy = { quality: Omit<AislopConfig["quality"], "knip"> } & Partial<
+	Pick<AislopConfig, "rules" | "overrides">
+>;
 
 export const overrideRelativePath = (rootDirectory: string, filePath: string): string => {
 	const paths =
