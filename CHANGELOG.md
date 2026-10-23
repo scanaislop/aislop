@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Added
+
+- **`quality.knip` setting.** `auto` (the default) runs Knip for projects that declare or configure it. `always` runs aislop's bundled Knip on every JavaScript or TypeScript project, and `off` never runs it and reports no `knip/skipped`. Knip loads the project's config files, so `always` runs code from the scanned repository ([#474](https://github.com/scanaislop/aislop/issues/474)).
+
 ## 0.18.1 (2026-10-06)
 
 A patch release. Pinning the GitHub Action to a release tag now pins the CLI it runs, `aislop agent` shows the provider's own error when it fails, and dependency advisories are patched.

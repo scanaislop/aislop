@@ -44,7 +44,7 @@ const isUnusedVarRule = (rule: string): boolean =>
 export const detectUnusedDeclarations = async (context: EngineContext): Promise<Diagnostic[]> => {
 	const [oxlintDiagnostics, knipDiagnostics] = await Promise.all([
 		runOxlint(context).catch(() => [] as Diagnostic[]),
-		runKnip(context.rootDirectory).catch(() => [] as Diagnostic[]),
+		runKnip(context.rootDirectory, context.config.quality.knip).catch(() => [] as Diagnostic[]),
 	]);
 
 	const merged: Diagnostic[] = [];
