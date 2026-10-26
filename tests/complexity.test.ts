@@ -297,6 +297,38 @@ describe("analyzeFunctions: braces inside strings/comments don't skew length", (
 	});
 });
 
+describe("analyzeFunctions: Rust braces inside strings/comments don't skew length", () => {
+	const lengthOf = (body: string[]): number | undefined => {
+		const content = ["fn f() {", ...body, "}", "fn after() {", "    2", "}"].join("\n");
+		return analyzeFunctions(content, ".rs").find((f) => f.name === "f")?.lineCount;
+	};
+
+	it("ignores braces in comments", () => {
+		expect(lengthOf(["    // a { in a comment", "    let a = 1;"])).toBe(4);
+		expect(lengthOf(["    /* outer /* nested { */ still } comment */", "    let a = 1;"])).toBe(4);
+	});
+
+	it("ignores braces in string, raw string and char literals", () => {
+		expect(lengthOf(['    let a = "${";'])).toBe(3);
+		expect(lengthOf(['    let a = r#"{ "quoted" "#;'])).toBe(3);
+		expect(lengthOf(["    let a = '{';", "    let b = b'{';"])).toBe(4);
+	});
+
+	it("does not treat lifetimes as char literals", () => {
+		const content = [
+			"fn f(x: &'static str) -> &'static str {",
+			"    let c = '{';",
+			"    'outer: loop { break 'outer; }",
+			"    x",
+			"}",
+			"fn after() {",
+			"    2",
+			"}",
+		].join("\n");
+		expect(analyzeFunctions(content, ".rs").find((f) => f.name === "f")?.lineCount).toBe(5);
+	});
+});
+
 describe("analyzeFunctions: Python end-detection uses masked lines", () => {
 	it("does not truncate a Python function at a comment dedented to column 0", () => {
 		const content = [
