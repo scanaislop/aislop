@@ -39,6 +39,12 @@ describe("resolveHookRoot", () => {
 		expect(resolveHookRoot(mkdir("packages", "a", "src"))).toBe(path.join(tmp, "packages", "a"));
 	});
 
+	it("treats a .yaml config as project config", () => {
+		mkdir(".git");
+		write("packages/a/.aislop/config.yaml", "");
+		expect(resolveHookRoot(mkdir("packages", "a", "src"))).toBe(path.join(tmp, "packages", "a"));
+	});
+
 	it("falls back to the git root when no .aislop config exists", () => {
 		mkdir(".git");
 		expect(resolveHookRoot(mkdir("docs"))).toBe(tmp);
