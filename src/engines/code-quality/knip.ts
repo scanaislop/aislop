@@ -285,13 +285,19 @@ const knipFailureReason = (error: unknown): string => {
 	return "Knip failed to run";
 };
 
-export const runKnipDependencyCheck = async (rootDirectory: string): Promise<Diagnostic[]> => {
-	const all = await runKnip(rootDirectory);
+export const runKnipDependencyCheck = async (
+	rootDirectory: string,
+	mode: KnipMode = "auto",
+): Promise<Diagnostic[]> => {
+	const all = await runKnip(rootDirectory, mode);
 	return all.filter((d) => d.rule === "knip/dependencies" || d.rule === "knip/devDependencies");
 };
 
-export const fixUnusedDependencies = async (rootDirectory: string): Promise<void> => {
-	const diagnostics = await runKnipDependencyCheck(rootDirectory);
+export const fixUnusedDependencies = async (
+	rootDirectory: string,
+	mode: KnipMode = "auto",
+): Promise<void> => {
+	const diagnostics = await runKnipDependencyCheck(rootDirectory, mode);
 	if (diagnostics.length === 0) return;
 
 	const pkgPath = path.join(rootDirectory, "package.json");
@@ -334,16 +340,20 @@ export const fixUnusedDependencies = async (rootDirectory: string): Promise<void
 	}
 };
 
-export const runKnipUnusedFiles = async (rootDirectory: string): Promise<Diagnostic[]> => {
-	const all = await runKnip(rootDirectory);
+export const runKnipUnusedFiles = async (
+	rootDirectory: string,
+	mode: KnipMode = "auto",
+): Promise<Diagnostic[]> => {
+	const all = await runKnip(rootDirectory, mode);
 	return all.filter((d) => d.rule === "knip/files");
 };
 
 export const fixUnusedFiles = async (
 	rootDirectory: string,
 	allow: (filePath: string) => boolean = () => true,
+	mode: KnipMode = "auto",
 ): Promise<void> => {
-	const diagnostics = await runKnipUnusedFiles(rootDirectory);
+	const diagnostics = await runKnipUnusedFiles(rootDirectory, mode);
 	for (const d of diagnostics) {
 		if (!allow(d.filePath)) continue;
 		const absolutePath = getSafeUnusedFilePath(rootDirectory, d.filePath);

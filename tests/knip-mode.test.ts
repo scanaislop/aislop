@@ -2,7 +2,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { runKnip } from "../src/engines/code-quality/knip.js";
+import {
+	fixUnusedFiles,
+	runKnip,
+	runKnipDependencyCheck,
+	runKnipUnusedFiles,
+} from "../src/engines/code-quality/knip.js";
 
 let tmpDir: string;
 
@@ -60,5 +65,20 @@ describe("quality.knip", () => {
 
 		expect(rules(diagnostics)).toEqual(["knip/skipped package.json"]);
 		expect(diagnostics[0].message).not.toContain("not set up");
+	});
+
+	it("off keeps aislop fix from running Knip or removing files", async () => {
+		writeOrphanProject({ devDependencies: { knip: "^6.0.0" } });
+
+		expect(await runKnipDependencyCheck(tmpDir, "off")).toEqual([]);
+		expect(await runKnipUnusedFiles(tmpDir, "off")).toEqual([]);
+		await fixUnusedFiles(tmpDir, () => true, "off");
+		expect(fs.existsSync(path.join(tmpDir, "src/orphan.js"))).toBe(true);
+	});
+
+	it("always lets aislop fix find unused files without Knip set up", async () => {
+		writeOrphanProject();
+
+		expect(rules(await runKnipUnusedFiles(tmpDir, "always"))).toEqual(["knip/files src/orphan.js"]);
 	});
 });
