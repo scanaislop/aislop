@@ -36,6 +36,32 @@ describe("readRuntimeDependencies", () => {
 		expect(result?.runtimeDependencies.has("mocha")).toBe(false);
 	});
 
+	it("records declared versions for runtime and dev dependencies", () => {
+		writeManifest("package.json", {
+			dependencies: { commander: "^12.0.0" },
+			devDependencies: { "eslint-config-next": "16.4.2" },
+		});
+
+		const result = readRuntimeDependencies(tmpDir);
+
+		expect(result?.declaredVersions?.get("commander")).toEqual(["^12.0.0"]);
+		expect(result?.declaredVersions?.get("eslint-config-next")).toEqual(["16.4.2"]);
+	});
+
+	it("keeps every workspace declaration of the same package", () => {
+		writeManifest("package.json", {
+			workspaces: ["packages/*"],
+			devDependencies: { "eslint-config-next": "^14.0.0" },
+		});
+		writeManifest("packages/web/package.json", {
+			devDependencies: { "eslint-config-next": "^16.4.2" },
+		});
+
+		const result = readRuntimeDependencies(tmpDir);
+
+		expect(result?.declaredVersions?.get("eslint-config-next")).toEqual(["^14.0.0", "^16.4.2"]);
+	});
+
 	it("counts optional and peer dependencies as shipped", () => {
 		writeManifest("package.json", {
 			optionalDependencies: { fsevents: "^2.0.0" },
