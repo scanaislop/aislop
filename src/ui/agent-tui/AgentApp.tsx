@@ -1,4 +1,4 @@
-import { Box, Text, useInput, useStdout } from "ink";
+import { Box, Text, useInput, useWindowSize } from "ink";
 import type { SessionStore } from "../../agents/session-state.js";
 import { ActivityPane } from "./ActivityPane.js";
 import { DecisionBar } from "./DecisionBar.js";
@@ -18,8 +18,7 @@ export const AgentApp = ({ store }: { store: SessionStore }) => {
 			process.exit(130);
 		}
 	});
-	const { stdout } = useStdout();
-	const totalRows = stdout?.rows ?? 24;
+	const { rows: totalRows } = useWindowSize();
 	const activityRows = Math.max(3, Math.floor((totalRows - 10) / 2));
 
 	return (
