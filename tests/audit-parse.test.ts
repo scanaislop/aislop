@@ -206,6 +206,24 @@ describe("parseJsAudit — modern vulnerabilities", () => {
 		expect(lib.message).toContain("npm would downgrade parent to 1.0.0");
 	});
 
+	it("suggests no override when the package is also vulnerable through a dependency", () => {
+		const audit = JSON.stringify({
+			vulnerabilities: {
+				lib: {
+					name: "lib",
+					severity: "high",
+					isDirect: false,
+					fixAvailable: { name: "parent", version: "1.0.0", isSemVerMajor: true },
+					via: [{ source: 1, name: "lib", title: "A", severity: "high", range: "<1.5.0" }, "dep"],
+				},
+			},
+		});
+		const [lib] = parseJsAudit(audit, "npm audit", parentManifest);
+
+		expect(lib.message).not.toContain("override");
+		expect(lib.message).toContain("npm would downgrade parent to 1.0.0");
+	});
+
 	it("reports every package when none carry an advisory object (no root info)", () => {
 		const audit = JSON.stringify({
 			vulnerabilities: {

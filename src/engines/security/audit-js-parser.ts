@@ -102,7 +102,7 @@ const patchedVersionFromVia = (vulnerability: Record<string, unknown>): string |
 	if (!Array.isArray(vulnerability.via)) return undefined;
 	let patched: string | undefined;
 	for (const via of vulnerability.via) {
-		if (!isRecord(via)) continue;
+		if (!isRecord(via)) return undefined;
 		const bound = /<\s*(\d+\.\d+\.\d+)\s*$/.exec(readString(via, "range") ?? "");
 		if (!bound) return undefined;
 		if (!patched || cmpSemver(bound[1], patched) > 0) patched = bound[1];
