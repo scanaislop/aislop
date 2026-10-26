@@ -70,7 +70,8 @@ const buildStopHookGroup = () => {
 
 // Files where a change outside the agent's edit cycle should refresh aislop's baseline.
 // FileChanged matchers accept pipe-separated literal filenames only — no globs.
-const FILE_CHANGED_MATCHER = ".aislop/config.yml|.aislop/rules.yml|package.json";
+const FILE_CHANGED_MATCHER =
+	".aislop/config.yml|.aislop/config.yaml|.aislop/rules.yml|.aislop/rules.yaml|package.json";
 
 const buildFileChangedHookGroup = () => {
 	const hashBody = JSON.stringify({
