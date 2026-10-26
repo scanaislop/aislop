@@ -397,6 +397,77 @@ describe("hardcoded config literals", () => {
 		expect(matches[0].line).toBe(1);
 	});
 
+	it("does not treat a vendor api. host or a .dev TLD as an environment signal", async () => {
+		const filePath = writeFile(
+			"vendor-hosts.ts",
+			[
+				'const A = "https://api.vendor.com/v1/items/";',
+				'const B = "https://u.expo.dev/abc";',
+				'const C = "https://www.vendor.com/v1/items/";',
+			].join("\n"),
+		);
+		const diagnostics = await detectHardcodedConfigLiterals(makeContext([filePath]));
+		expect(diagnostics.filter((d) => d.rule === "ai-slop/hardcoded-url")).toEqual([]);
+	});
+
+	it("does not flag social profiles, store listings or public legal pages", async () => {
+		const filePath = writeFile(
+			"links.ts",
+			[
+				"export const social = [",
+				"  { network: 'instagram', url: 'https://www.instagram.com/exampleapp' },",
+				"  { network: 'linkedin', url: 'https://linkedin.com/company/exampleapp' },",
+				"];",
+				"export const legal = { privacy: 'https://example.app/privacy', terms: 'https://acme.io/legal/terms' };",
+				"export const store = { url: 'https://apps.apple.com/app/id123', android: 'https://play.google.com/store/apps/details?id=x' };",
+				"export const API_BASE_URL = 'https://staging.acme.io/privacy';",
+			].join("\n"),
+		);
+		const diagnostics = await detectHardcodedConfigLiterals(makeContext([filePath]));
+		const lines = diagnostics.filter((d) => d.rule === "ai-slop/hardcoded-url").map((d) => d.line);
+		expect(lines).toEqual([7]);
+	});
+
+	it("keeps config-named and environment-host URLs flagged", async () => {
+		const filePath = writeFile(
+			"service-config.ts",
+			[
+				'export const API_ENDPOINT = "https://api.acme-corp.io/v2";',
+				'export const apiBase = "https://api.acme-corp.io/v2";',
+				'export const x = "https://acme.io/api/v1";',
+				'export const a = fetch("http://orders-internal:8080/x");',
+				'export const b = fetch("https://myapp-staging/x");',
+				'export const c = "https://acme.dev.example.com/x";',
+			].join("\n"),
+		);
+		const diagnostics = await detectHardcodedConfigLiterals(makeContext([filePath]));
+		const lines = diagnostics
+			.filter((d) => d.rule === "ai-slop/hardcoded-url")
+			.map((d) => d.line)
+			.sort((l, r) => l - r);
+		expect(lines).toEqual([1, 2, 3, 4, 5, 6]);
+	});
+
+	it("does not flag generic URL names or public TLDs such as .dev and .app", async () => {
+		const filePath = writeFile(
+			"public-hosts.ts",
+			[
+				'export const firebaseUrl = "https://acme.firebaseio.com";',
+				'export const REGISTRY_URL = "https://registry.example-npm.org/pkg";',
+				'export const page = fetch("https://acme.pages.dev/x");',
+				'export const site = fetch("https://acme.vercel.app/x");',
+			].join("\n"),
+		);
+		const diagnostics = await detectHardcodedConfigLiterals(makeContext([filePath]));
+		expect(diagnostics.filter((d) => d.rule === "ai-slop/hardcoded-url")).toEqual([]);
+	});
+
+	it("still flags dev./staging. subdomains", async () => {
+		const filePath = writeFile("staging-host.ts", 'const A = "https://staging.vendor.com/v1";');
+		const diagnostics = await detectHardcodedConfigLiterals(makeContext([filePath]));
+		expect(diagnostics.filter((d) => d.rule === "ai-slop/hardcoded-url")).toHaveLength(1);
+	});
+
 	it("does not flag URLs that are already env-backed", async () => {
 		const filePath = writeFile(
 			"client-env.ts",
@@ -978,6 +1049,38 @@ describe("unsafe type assertions", () => {
 		const diagnostics = await detectDeadPatterns(makeContext([filePath]));
 		const asAny = diagnostics.filter((d) => d.rule === "ai-slop/unsafe-type-assertion");
 		expect(asAny.length).toBe(1);
+	});
+
+	it("ignores the words in multi-line and trailing comments", async () => {
+		const filePath = writeFile(
+			"other-comments.ts",
+			[
+				"/*",
+				"  values typed as any here.",
+				"*/",
+				"export const c = 1; // typed as any upstream",
+			].join("\n"),
+		);
+		const diagnostics = await detectDeadPatterns(makeContext([filePath]));
+		expect(diagnostics.filter((d) => d.rule === "ai-slop/unsafe-type-assertion")).toEqual([]);
+	});
+
+	it("still flags code that follows a leading block comment", async () => {
+		const filePath = writeFile(
+			"after-comment.ts",
+			"/* eslint-disable-next-line */ export const d = y as any;",
+		);
+		const diagnostics = await detectDeadPatterns(makeContext([filePath]));
+		expect(diagnostics.filter((d) => d.rule === "ai-slop/unsafe-type-assertion")).toHaveLength(1);
+	});
+
+	it("ignores the words in a single-line block comment", async () => {
+		const filePath = writeFile(
+			"block-comment.ts",
+			"/** The platform types these values as any; only a string counts. */\nexport const x = 1;",
+		);
+		const diagnostics = await detectDeadPatterns(makeContext([filePath]));
+		expect(diagnostics.filter((d) => d.rule === "ai-slop/unsafe-type-assertion")).toEqual([]);
 	});
 
 	it("detects double assertion 'as unknown as'", async () => {

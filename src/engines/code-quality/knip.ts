@@ -22,6 +22,7 @@ interface KnipFileIssue {
 	exports?: KnipIssueItem[];
 	types?: KnipIssueItem[];
 	duplicates?: KnipIssueItem[];
+	files?: KnipIssueItem[];
 }
 
 interface KnipJsonOutput {
@@ -201,38 +202,82 @@ const findBundledKnipBin = (): string | null => {
 	}
 };
 
-const packageDeclaresKnip = (directory: string): boolean => {
-	const pkgPath = path.join(directory, "package.json");
-	if (!fs.existsSync(pkgPath)) return false;
+// Config file names Knip itself looks for (https://knip.dev/overview/configuration).
+const KNIP_CONFIG_FILES = [
+	"knip.json",
+	"knip.jsonc",
+	".knip.json",
+	".knip.jsonc",
+	"knip.ts",
+	"knip.js",
+	"knip.config.ts",
+	"knip.config.js",
+];
 
+const readPackageJson = (directory: string): Record<string, unknown> | null => {
+	const pkgPath = path.join(directory, "package.json");
+	if (!fs.existsSync(pkgPath)) return null;
 	try {
-		const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
-		return Boolean(
-			pkg.dependencies?.knip ||
-				pkg.devDependencies?.knip ||
-				pkg.peerDependencies?.knip ||
-				pkg.optionalDependencies?.knip,
-		);
+		return JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as Record<string, unknown>;
 	} catch {
-		return false;
+		return null;
 	}
 };
 
+const declaresKnip = (pkg: Record<string, unknown>): boolean =>
+	["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"].some((field) => {
+		const deps = pkg[field] as Record<string, unknown> | undefined;
+		return Boolean(deps?.knip);
+	});
+
+// A project opts into Knip by declaring it as a dependency or by configuring it (a knip
+// config file or a "knip" key in package.json, as `npx knip` users do). Without either,
+// Knip has no entry points to work from and reports whole test or example folders as unused.
+export const projectUsesKnip = (directory: string): boolean => {
+	const pkg = readPackageJson(directory);
+	if (pkg && (declaresKnip(pkg) || pkg.knip !== undefined)) return true;
+	return KNIP_CONFIG_FILES.some((name) => fs.existsSync(path.join(directory, name)));
+};
+
+// Runs aislop's bundled Knip, never a binary from the scanned project.
 export const findKnipRuntime = (
 	rootDirectory: string,
 	monorepoRoot: string | null,
 ): { binPath: string; cwd: string } | null => {
-	const monorepoDeclaresKnip = monorepoRoot ? packageDeclaresKnip(monorepoRoot) : false;
-	const packageDeclaresKnipDependency = packageDeclaresKnip(rootDirectory);
-	if (!monorepoDeclaresKnip && !packageDeclaresKnipDependency) {
-		return null;
-	}
+	const monorepoUsesKnip = monorepoRoot ? projectUsesKnip(monorepoRoot) : false;
+	if (!monorepoUsesKnip && !projectUsesKnip(rootDirectory)) return null;
 
 	const binPath = findBundledKnipBin();
 	if (!binPath) return null;
 
-	const cwd = monorepoRoot && monorepoDeclaresKnip ? monorepoRoot : rootDirectory;
+	const cwd = monorepoRoot && monorepoUsesKnip ? monorepoRoot : rootDirectory;
 	return { binPath, cwd };
+};
+
+const KNIP_SETUP_HELP =
+	"Unused files, exports and dependencies were not checked. Add a knip config file (for example knip.json) or add knip to devDependencies to enable the check.";
+
+const knipSkipped = (reason: string, help: string): Diagnostic => ({
+	filePath: "package.json",
+	engine: "code-quality",
+	rule: "knip/skipped",
+	severity: "info",
+	message: `Unused code check skipped: ${reason}`,
+	help,
+	line: 0,
+	column: 0,
+	category: "Dead Code",
+	fixable: false,
+});
+
+const KNIP_FAILURE_HELP =
+	"Knip did not finish, so unused files, exports and dependencies were not checked. Run `npx knip` to see the error.";
+
+const knipFailureReason = (error: unknown): string => {
+	const message = error instanceof Error ? error.message : String(error);
+	if (/timed out/i.test(message)) return "Knip timed out";
+	if (error instanceof SyntaxError) return "Knip output could not be read";
+	return "Knip failed to run";
 };
 
 export const runKnipDependencyCheck = async (rootDirectory: string): Promise<Diagnostic[]> => {
@@ -304,9 +349,16 @@ export const fixUnusedFiles = async (
 };
 
 export const runKnip = async (rootDirectory: string): Promise<Diagnostic[]> => {
+	// Knip needs a package.json; without one there is no JS project to check.
+	if (!readPackageJson(rootDirectory)) return [];
 	const monorepoRoot = findMonorepoRoot(rootDirectory);
+	if (!projectUsesKnip(rootDirectory) && !(monorepoRoot && projectUsesKnip(monorepoRoot))) {
+		return [knipSkipped("Knip is not set up in this project", KNIP_SETUP_HELP)];
+	}
 	const knipRuntime = findKnipRuntime(rootDirectory, monorepoRoot);
-	if (!knipRuntime) return [];
+	if (!knipRuntime) {
+		return [knipSkipped("the bundled Knip was not found", "Reinstall aislop to restore Knip.")];
+	}
 
 	try {
 		const args = [knipRuntime.binPath, "--no-progress", "--reporter", "json", "--no-exit-code"];
@@ -315,11 +367,15 @@ export const runKnip = async (rootDirectory: string): Promise<Diagnostic[]> => {
 			timeout: 60000,
 			env: { FORCE_COLOR: "0" },
 		});
-		if (!result.stdout) return [];
+		if (!result.stdout) return [knipSkipped("Knip produced no output", KNIP_FAILURE_HELP)];
 		const parsed = JSON.parse(result.stdout) as KnipJsonOutput;
 
 		const diagnostics: Diagnostic[] = [];
-		const files = parsed.files ?? [];
+		// Knip 5 listed unused files at the top level; Knip 6 nests them under each issue.
+		const files = new Set(parsed.files ?? []);
+		for (const fileIssue of parsed.issues ?? []) {
+			if (getIssueItems(fileIssue, "files").length > 0) files.add(fileIssue.file);
+		}
 		for (const unusedFile of files) {
 			const filePath = getRelativePathWithinRoot(rootDirectory, knipRuntime.cwd, unusedFile);
 			if (!filePath) continue;
@@ -346,7 +402,7 @@ export const runKnip = async (rootDirectory: string): Promise<Diagnostic[]> => {
 		}
 
 		return diagnostics;
-	} catch {
-		return [];
+	} catch (error) {
+		return [knipSkipped(knipFailureReason(error), KNIP_FAILURE_HELP)];
 	}
 };

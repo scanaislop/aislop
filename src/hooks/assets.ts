@@ -14,8 +14,8 @@ A PostToolUse hook runs \`aislop hook claude\` after every Edit, Write, or Multi
 
 ## Rules
 
-- \`.aislop/config.yaml\` — thresholds and engine toggles. Treat as authoritative; don't edit without user consent.
-- \`.aislop/rules.yaml\` — project-specific architecture rules (may be absent). When a finding cites \`architecture/*\`, open this file and follow it.
+- \`.aislop/config.yml\` - thresholds and engine toggles. Treat as authoritative; don't edit without user consent.
+- \`.aislop/rules.yml\` - project-specific architecture rules (may be absent). When a finding cites \`architecture/*\`, open this file and follow it.
 - Custom rules can change between sessions. Trust what the scan returns, not a cached understanding of what the rules are.
 
 ## Principles

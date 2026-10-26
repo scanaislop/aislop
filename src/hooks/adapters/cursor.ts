@@ -1,6 +1,7 @@
 import path from "node:path";
 import { buildHookScanCompletedProps, track } from "../../telemetry/index.js";
 import { buildFeedback } from "../feedback.js";
+import { resolveAgentPaths, resolveHookRoot } from "../io/project-root.js";
 import { acquireHookLock } from "../io/scan-lock.js";
 import { resolveHookFiles, runScopedScan } from "../io/scoped-scan.js";
 
@@ -87,8 +88,9 @@ export const runCursorHook = async (
 
 	const raw = await getStdin();
 	const input = parseCursorStdin(raw);
-	const cwd = input.cwd && path.isAbsolute(input.cwd) ? input.cwd : process.cwd();
-	const files = resolveHookFiles(cwd, extractFiles(input));
+	const agentCwd = input.cwd && path.isAbsolute(input.cwd) ? input.cwd : process.cwd();
+	const cwd = resolveHookRoot(agentCwd);
+	const files = resolveHookFiles(cwd, resolveAgentPaths(agentCwd, extractFiles(input)));
 
 	if (files.length === 0) return 0;
 	const release = acquireHookLock(cwd);
