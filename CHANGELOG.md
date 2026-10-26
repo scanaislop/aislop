@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Added
+
+- **`quality.knip` setting.** `auto` (the default) runs Knip for projects that declare or configure it. `always` runs aislop's bundled Knip on every JavaScript or TypeScript project, and `off` never runs it and reports no `knip/skipped`. Knip loads the project's config files, so `always` runs code from the scanned repository ([#474](https://github.com/scanaislop/aislop/issues/474)).
+
 ### Fixed
 
 - **`ai-slop/unused-css` runs on real scans.** `scan`, `ci`, `fix` and agent hooks passed engines a file list already narrowed to source extensions, so stylesheets never reached the rule and it could not report anything outside direct API calls. Stylesheets in the scan's scope are now checked, and class references are read from the whole project, so a stylesheet changed on its own is not compared against only the other changed files. Classes a build step adds to generated markup (`astro-code`, Astro's `astro-<hash>` scoped classes, Shiki's `shiki`) are not reported. Upgrading can surface dead CSS that was always there.

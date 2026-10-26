@@ -168,8 +168,8 @@ export const runDependencyStep = async (deps: PipelineDeps): Promise<void> => {
 
 	await deps.runStep(
 		"Unused dependencies",
-		() => runKnipDependencyCheck(deps.resolvedDir),
-		() => fixUnusedDependencies(deps.resolvedDir),
+		() => runKnipDependencyCheck(deps.resolvedDir, deps.config.quality.knip),
+		() => fixUnusedDependencies(deps.resolvedDir, deps.config.quality.knip),
 	);
 };
 
@@ -180,13 +180,17 @@ export const runForceSteps = async (deps: PipelineDeps): Promise<void> => {
 		await deps.runStep(
 			"Remove unused files",
 			async () => {
-				const diagnostics = await runKnipUnusedFiles(deps.resolvedDir);
+				const diagnostics = await runKnipUnusedFiles(deps.resolvedDir, deps.config.quality.knip);
 				return diagnostics.filter((diagnostic) =>
 					isPathInFixScope(deps.context, diagnostic.filePath),
 				);
 			},
 			() =>
-				fixUnusedFiles(deps.resolvedDir, (filePath) => isPathInFixScope(deps.context, filePath)),
+				fixUnusedFiles(
+					deps.resolvedDir,
+					(filePath) => isPathInFixScope(deps.context, filePath),
+					deps.config.quality.knip,
+				),
 		);
 	}
 

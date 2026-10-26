@@ -17,6 +17,7 @@ export const DEFAULT_CONFIG: AislopConfig = {
 		maxFileLoc: 400,
 		maxNesting: 5,
 		maxParams: 6,
+		knip: "auto",
 	},
 	lint: {
 		typecheck: false,

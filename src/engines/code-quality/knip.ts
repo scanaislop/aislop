@@ -239,13 +239,18 @@ export const projectUsesKnip = (directory: string): boolean => {
 	return KNIP_CONFIG_FILES.some((name) => fs.existsSync(path.join(directory, name)));
 };
 
+// "auto" runs Knip for projects that use it; "always" runs it without that setup.
+export type KnipMode = "auto" | "always" | "off";
+
 // Runs aislop's bundled Knip, never a binary from the scanned project.
 export const findKnipRuntime = (
 	rootDirectory: string,
 	monorepoRoot: string | null,
+	mode: KnipMode = "auto",
 ): { binPath: string; cwd: string } | null => {
+	if (mode === "off") return null;
 	const monorepoUsesKnip = monorepoRoot ? projectUsesKnip(monorepoRoot) : false;
-	if (!monorepoUsesKnip && !projectUsesKnip(rootDirectory)) return null;
+	if (mode === "auto" && !monorepoUsesKnip && !projectUsesKnip(rootDirectory)) return null;
 
 	const binPath = findBundledKnipBin();
 	if (!binPath) return null;
@@ -255,7 +260,7 @@ export const findKnipRuntime = (
 };
 
 const KNIP_SETUP_HELP =
-	"Unused files, exports and dependencies were not checked. Add a knip config file (for example knip.json) or add knip to devDependencies to enable the check.";
+	"Unused files, exports and dependencies were not checked. Add a knip config file (for example knip.json) or add knip to devDependencies to enable the check, or set quality.knip: always to run it without that setup.";
 
 const knipSkipped = (reason: string, help: string): Diagnostic => ({
 	filePath: "package.json",
@@ -280,13 +285,19 @@ const knipFailureReason = (error: unknown): string => {
 	return "Knip failed to run";
 };
 
-export const runKnipDependencyCheck = async (rootDirectory: string): Promise<Diagnostic[]> => {
-	const all = await runKnip(rootDirectory);
+export const runKnipDependencyCheck = async (
+	rootDirectory: string,
+	mode: KnipMode = "auto",
+): Promise<Diagnostic[]> => {
+	const all = await runKnip(rootDirectory, mode);
 	return all.filter((d) => d.rule === "knip/dependencies" || d.rule === "knip/devDependencies");
 };
 
-export const fixUnusedDependencies = async (rootDirectory: string): Promise<void> => {
-	const diagnostics = await runKnipDependencyCheck(rootDirectory);
+export const fixUnusedDependencies = async (
+	rootDirectory: string,
+	mode: KnipMode = "auto",
+): Promise<void> => {
+	const diagnostics = await runKnipDependencyCheck(rootDirectory, mode);
 	if (diagnostics.length === 0) return;
 
 	const pkgPath = path.join(rootDirectory, "package.json");
@@ -329,16 +340,20 @@ export const fixUnusedDependencies = async (rootDirectory: string): Promise<void
 	}
 };
 
-export const runKnipUnusedFiles = async (rootDirectory: string): Promise<Diagnostic[]> => {
-	const all = await runKnip(rootDirectory);
+export const runKnipUnusedFiles = async (
+	rootDirectory: string,
+	mode: KnipMode = "auto",
+): Promise<Diagnostic[]> => {
+	const all = await runKnip(rootDirectory, mode);
 	return all.filter((d) => d.rule === "knip/files");
 };
 
 export const fixUnusedFiles = async (
 	rootDirectory: string,
 	allow: (filePath: string) => boolean = () => true,
+	mode: KnipMode = "auto",
 ): Promise<void> => {
-	const diagnostics = await runKnipUnusedFiles(rootDirectory);
+	const diagnostics = await runKnipUnusedFiles(rootDirectory, mode);
 	for (const d of diagnostics) {
 		if (!allow(d.filePath)) continue;
 		const absolutePath = getSafeUnusedFilePath(rootDirectory, d.filePath);
@@ -348,14 +363,19 @@ export const fixUnusedFiles = async (
 	}
 };
 
-export const runKnip = async (rootDirectory: string): Promise<Diagnostic[]> => {
+export const runKnip = async (
+	rootDirectory: string,
+	mode: KnipMode = "auto",
+): Promise<Diagnostic[]> => {
 	// Knip needs a package.json; without one there is no JS project to check.
-	if (!readPackageJson(rootDirectory)) return [];
+	if (mode === "off" || !readPackageJson(rootDirectory)) return [];
 	const monorepoRoot = findMonorepoRoot(rootDirectory);
-	if (!projectUsesKnip(rootDirectory) && !(monorepoRoot && projectUsesKnip(monorepoRoot))) {
+	const usesKnip =
+		projectUsesKnip(rootDirectory) || Boolean(monorepoRoot && projectUsesKnip(monorepoRoot));
+	if (mode === "auto" && !usesKnip) {
 		return [knipSkipped("Knip is not set up in this project", KNIP_SETUP_HELP)];
 	}
-	const knipRuntime = findKnipRuntime(rootDirectory, monorepoRoot);
+	const knipRuntime = findKnipRuntime(rootDirectory, monorepoRoot, mode);
 	if (!knipRuntime) {
 		return [knipSkipped("the bundled Knip was not found", "Reinstall aislop to restore Knip.")];
 	}

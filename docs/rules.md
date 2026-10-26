@@ -192,6 +192,8 @@ Measures structural complexity, finds dead code, and detects unused dependencies
 
 The knip rules run only for projects that use knip: knip is listed as a dependency, or the project has a knip config file (`knip.json`, `knip.jsonc`, `.knip.json`, `.knip.jsonc`, `knip.ts`, `knip.js`, `knip.config.ts`, `knip.config.js`) or a `"knip"` key in package.json. aislop always runs its own bundled knip, never a copy installed in the scanned project. Without that setup, knip cannot tell which files are entry points and reports test and example folders as unused.
 
+Set `quality.knip` in `.aislop/config.yml` to change this: `auto` (the default) is the behaviour above, `always` runs the bundled knip on every JavaScript or TypeScript project even without that setup, and `off` never runs knip and reports no `knip/skipped`. Knip loads the project's config files, so `always` runs code from the scanned repository.
+
 ## AI Slop
 
 The rules that make aislop unique. These catch the patterns AI assistants leave behind.
