@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { DEFAULT_CONFIG } from "../config/defaults.js";
-import { type AislopConfig, CONFIG_DIR, RULES_FILE } from "../config/index.js";
+import { type AislopConfig, CONFIG_DIR, RULES_FILE, resolveConfigFile } from "../config/index.js";
 import { loadArchitectureRules } from "../engines/architecture/rule-loader.js";
 import type { EngineName } from "../engines/types.js";
 import { getEngineLabel } from "../output/engine-info.js";
@@ -117,7 +117,7 @@ const planArchitecture = (ctx: PlanContext): ToolDecision => {
 	if (!ctx.config.engines.architecture) {
 		return { tool: "opt-in", status: "skipped", skipReason: "not configured" };
 	}
-	const rulesPath = path.join(ctx.rootDirectory, CONFIG_DIR, RULES_FILE);
+	const rulesPath = resolveConfigFile(path.join(ctx.rootDirectory, CONFIG_DIR), RULES_FILE);
 	if (!fs.existsSync(rulesPath)) {
 		return { tool: "opt-in", status: "skipped", skipReason: "no rules file" };
 	}

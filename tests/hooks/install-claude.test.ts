@@ -53,7 +53,7 @@ describe("installClaude global", () => {
 		const settings = JSON.parse(fs.readFileSync(paths.settings, "utf-8"));
 		expect(settings.hooks.FileChanged).toHaveLength(1);
 		expect(settings.hooks.FileChanged[0].matcher).toBe(
-			".aislop/config.yml|.aislop/rules.yml|package.json",
+			".aislop/config.yml|.aislop/config.yaml|.aislop/rules.yml|.aislop/rules.yaml|package.json",
 		);
 		expect(settings.hooks.FileChanged[0].hooks[0].command).toBe(
 			"aislop hook claude --on-file-changed",

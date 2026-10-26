@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { CONFIG_DIR, CONFIG_FILE, RULES_FILE } from "../../config/index.js";
+import { CONFIG_DIR, CONFIG_FILE, RULES_FILE, resolveConfigFile } from "../../config/index.js";
 
 // Files that mark a directory's .aislop/ as project state. A bare .aislop/ holding only a
 // stray session.jsonl or hook.lock (left behind by older hooks) does not make a project root.
@@ -18,7 +18,7 @@ const findGitRoot = (startDir: string): string | null => {
 };
 
 const hasProjectConfig = (dir: string): boolean =>
-	PROJECT_MARKERS.some((name) => fs.existsSync(path.join(dir, CONFIG_DIR, name)));
+	PROJECT_MARKERS.some((name) => fs.existsSync(resolveConfigFile(path.join(dir, CONFIG_DIR), name)));
 
 /**
  * Hook state (lock, baseline, session files) belongs at the project root, not the agent's
