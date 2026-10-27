@@ -1,5 +1,6 @@
 import type { Diagnostic, Engine, EngineContext, EngineResult } from "../types.js";
 import { runDependencyAudit } from "./audit.js";
+import { scanInvisibleUnicodeTags } from "./invisible-unicode.js";
 import { detectRiskyConstructs } from "./risky.js";
 import { scanSecrets } from "./secrets.js";
 
@@ -12,6 +13,7 @@ export const securityEngine: Engine = {
 		const promises: Promise<Diagnostic[]>[] = [
 			scanSecrets(context),
 			detectRiskyConstructs(context),
+			scanInvisibleUnicodeTags(context),
 		];
 
 		if (context.config.security.audit) {

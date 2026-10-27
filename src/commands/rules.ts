@@ -143,6 +143,7 @@ const BUILTIN_RULES: { engine: string; rules: string[] }[] = [
 			"security/shell-injection",
 			"security/unsafe-deserialization",
 			"security/unsafe-c-call",
+			"security/invisible-unicode-tags",
 			"security/dependency-audit-skipped",
 		],
 	},

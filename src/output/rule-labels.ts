@@ -86,6 +86,7 @@ const RULE_LABELS: Record<string, string> = {
 	"security/shell-injection": "Possible shell injection",
 	"security/unsafe-deserialization": "Unsafe deserialization",
 	"security/unsafe-c-call": "Memory-unsafe C call",
+	"security/invisible-unicode-tags": "Invisible Unicode tag character",
 	"dotnet/projects-skipped": "C# projects skipped by build-backed lint",
 	"cppcheck/chunks-skipped": "C/C++ files skipped by cppcheck",
 	"eslint/no-undef": "Undefined identifier",
@@ -179,6 +180,8 @@ const RULE_DESCRIPTIONS: Record<string, string> = {
 	"security/shell-injection": "Shell command is built from unsanitized input.",
 	"security/unsafe-deserialization": "Legacy .NET formatter can deserialize arbitrary types (RCE).",
 	"security/unsafe-c-call": "Unbounded C string/exec function with buffer-overflow or shell risk.",
+	"security/invisible-unicode-tags":
+		"Invisible Unicode tag characters (U+E0000-U+E007F) can hide text, including inside a prompt.",
 	"dotnet/projects-skipped":
 		"Build-backed C# lint only ran on restored projects; the rest were skipped.",
 	"cppcheck/chunks-skipped":

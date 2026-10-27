@@ -313,6 +313,7 @@ Finds secrets, risky constructs, and vulnerable dependencies.
 | `security/shell-injection` | User input in command execution (JS/TS/Python, C#, C/C++ `system`/`popen`) |
 | `security/unsafe-deserialization` | Legacy .NET formatters (`BinaryFormatter`, `SoapFormatter`, ...) that deserialize arbitrary types |
 | `security/unsafe-c-call` | Memory-unsafe C string functions (`gets`, `strcpy`, `strcat`, `sprintf`) |
+| `security/invisible-unicode-tags` | Unicode tag characters (U+E0000-U+E007F), including `\u{E00xx}` and `\U000E00xx` escapes, which can hide text inside a prompt |
 | `security/vulnerable-dependency` | npm/pip/cargo/go dependency audit |
 | `security/dependency-audit-skipped` | Dependency audit could not run because tooling or lockfile context was missing |
 

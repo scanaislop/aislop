@@ -64,6 +64,9 @@ export const CORE_RULE_SCORE_IMPACTS: Record<string, RuleScoreImpact> = {
 	"security/unsafe-c-call": strict(
 		"Unbounded C string and process calls can become buffer overflows or command execution.",
 	),
+	"security/invisible-unicode-tags": strict(
+		"Invisible Unicode tag characters can conceal text, including inside a prompt.",
+	),
 	"security/dependency-audit-skipped": advisory(
 		"An unavailable audit is visibility loss, not evidence of a vulnerability.",
 	),
