@@ -18,7 +18,9 @@ const findGitRoot = (startDir: string): string | null => {
 };
 
 const hasProjectConfig = (dir: string): boolean =>
-	PROJECT_MARKERS.some((name) => fs.existsSync(resolveConfigFile(path.join(dir, CONFIG_DIR), name)));
+	PROJECT_MARKERS.some((name) =>
+		fs.existsSync(resolveConfigFile(path.join(dir, CONFIG_DIR), name)),
+	);
 
 /**
  * Hook state (lock, baseline, session files) belongs at the project root, not the agent's
