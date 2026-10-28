@@ -161,7 +161,7 @@ export const hasAllowedSourceExtension = (
 
 const JVM_SOURCE_ROOT_RE = /(?:^|\/)src\/[^/]+\/(?:java|kotlin)\//;
 
-const directoryPathToCheck = (normalized: string): string => {
+export const directoryPathToCheck = (normalized: string): string => {
 	const root = JVM_SOURCE_ROOT_RE.exec(normalized);
 	return root ? normalized.slice(0, root.index + root[0].length) : normalized;
 };

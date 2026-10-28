@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **`quality.knip` setting.** `auto` (the default) runs Knip for projects that declare or configure it. `always` runs aislop's bundled Knip on every JavaScript or TypeScript project, and `off` never runs it and reports no `knip/skipped`. Knip loads the project's config files, so `always` runs code from the scanned repository ([#474](https://github.com/scanaislop/aislop/issues/474)).
 - **Java support.** Java projects get real engine coverage instead of detection only:
   - Strings, text blocks, chars, and comments are masked, so braces inside them no longer distort function lengths.
-  - Package directories under `src/<set>/java/` (and `kotlin/`) are no longer read as excluded folders, so `com/example/demo` or `org/springframework/samples` code is scanned instead of skipped.
+  - Package directories under `src/<set>/java/` (and `kotlin/`) are no longer read as excluded or non-production folders, so `com/example/demo` or `org/springframework/samples` code is scanned and gets the full ai-slop checks.
   - Formatting runs google-java-format, including the AOSP style, when the build configures it (Spotless `googleJavaFormat` or `fmt-maven-plugin`).
   - Linting runs PMD with a focused set of bug-finding rules, or the project's own PMD ruleset, plus Checkstyle when the project has a `checkstyle.xml`.
   - Security flags SQL and process commands built by string concatenation or `String.format`, and `ObjectInputStream` / `XMLDecoder` deserialization.

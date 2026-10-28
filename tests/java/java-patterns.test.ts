@@ -89,6 +89,18 @@ describe("Java print leftovers and print-only catches", () => {
 			await scan("src/test/java/app/ServiceTest.java", 'class ServiceTest { void t() { System.out.println("x"); } }'),
 		).toEqual([]);
 	});
+
+	it("checks packages named like non-production folders under a JVM source root", async () => {
+		expect(
+			await scan(
+				"src/main/java/com/example/demo/cli/Service.java",
+				'class Service { void run() { System.out.println("x"); } }',
+			),
+		).toEqual(["ai-slop/console-leftover:1"]);
+		expect(
+			await scan("examples/src/main/java/app/Sample.java", 'class Sample { void run() { System.out.println("x"); } }'),
+		).toEqual([]);
+	});
 });
 
 describe("Java broad throws", () => {
