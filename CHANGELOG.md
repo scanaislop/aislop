@@ -4,11 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 0.19.1 (2026-10-28)
+
+A patch release. Info notices such as `knip/skipped` no longer fail a baselined `aislop ci` run, and the README no longer lists Java as unsupported.
 
 ### Fixed
 
 - **Info notices no longer fail a baselined `ci` run.** With a CI baseline, any finding not in the baseline failed the gate, including info notices. 0.19.0 added `knip/skipped`, so projects with a baseline and no Knip setup started failing `aislop ci` after upgrading. Info notices are still reported but no longer count as new findings.
+- **README lists Java as supported.** The unsupported-languages paragraph still said 10 language targets and named Java.
 
 ## 0.19.0 (2026-10-28)
 
