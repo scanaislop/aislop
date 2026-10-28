@@ -399,7 +399,7 @@ Prefer the Marketplace Action? `@v1` runs the latest release. From v0.18.1, pinn
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: scanaislop/aislop@v0.19.0
+- uses: scanaislop/aislop@v0.19.1
 ```
 
 **GitHub code scanning (SARIF)**: emit a SARIF 2.1.0 report and upload it so findings appear in the Security tab:
