@@ -221,6 +221,16 @@ describe("baseline matching", () => {
 		]);
 	});
 
+	it("does not count info notices as new findings", () => {
+		const notice: Diagnostic = {
+			...diag("package.json", 0, "knip/skipped", "code-quality"),
+			severity: "info",
+		};
+		const result = match(buildBaseline([], root), [notice]);
+		expect(result.newFindings).toBe(0);
+		expect(result.diagnostics).toEqual([notice]);
+	});
+
 	it("normalizes absolute and backslash paths to project-relative posix", () => {
 		writeSource("src/a.ts", "} catch {}\n");
 		const baseline = buildBaseline([diag(path.join(root, "src", "a.ts"), 1)], root);
