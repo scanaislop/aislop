@@ -105,6 +105,17 @@ describe.skipIf(process.platform === "win32")("Java format engine", () => {
 		expect(fs.readFileSync(logFile, "utf-8").trim()).toBe("--aosp --replace src/Bad.java");
 	});
 
+	it("splits long path lists so each command line stays short", async () => {
+		const logFile = path.join(binDir, "calls.log");
+		fakeFormatter(logFile);
+		write("pom.xml", "<java><googleJavaFormat/></java>");
+		const deep = ["a", "b", "c"].map((part) => part.repeat(200)).join("/");
+		const files = Array.from({ length: 60 }, (_, i) => write(`${deep}/F${i}.java`, "class F {}\n"));
+
+		await runJavaFormat(context(files));
+		expect(fs.readFileSync(logFile, "utf-8").trim().split("\n").length).toBeGreaterThan(1);
+	});
+
 	it("does nothing when the project does not use google-java-format", async () => {
 		const logFile = path.join(binDir, "calls.log");
 		fakeFormatter(logFile);

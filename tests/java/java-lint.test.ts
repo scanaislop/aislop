@@ -132,4 +132,14 @@ describe.skipIf(process.platform === "win32")("Java lint engines", () => {
 			"src/A.java",
 		]);
 	});
+
+	it("splits long Checkstyle path lists so each command line stays short", async () => {
+		const logFile = fakeTool("checkstyle", "");
+		write("checkstyle.xml", '<module name="Checker"/>');
+		const deep = ["a", "b", "c"].map((part) => part.repeat(200)).join("/");
+		const files = Array.from({ length: 60 }, (_, i) => write(`${deep}/F${i}.java`, "class F {}"));
+
+		await runCheckstyle(context(files));
+		expect(fs.readFileSync(logFile, "utf-8").trim().split("\n").length).toBeGreaterThan(1);
+	});
 });

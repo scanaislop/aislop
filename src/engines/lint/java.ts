@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { relativePosix } from "../../utils/paths.js";
-import { runSubprocess } from "../../utils/subprocess.js";
+import { chunkFilePaths, runSubprocess } from "../../utils/subprocess.js";
 import { getJavaTargets } from "../java-targets.js";
 import type { Diagnostic, EngineContext } from "../types.js";
 
@@ -54,8 +54,6 @@ interface PmdViolation {
 interface PmdReport {
 	files?: Array<{ filename: string; violations?: PmdViolation[] }>;
 }
-
-const CHECKSTYLE_BATCH_SIZE = 200;
 
 const realRoot = (rootDirectory: string): string => {
 	try {
@@ -174,8 +172,7 @@ export const runCheckstyle = async (context: EngineContext): Promise<Diagnostic[
 	const targets = getJavaTargets(context);
 	if (!config || targets.length === 0) return [];
 	const diagnostics: Diagnostic[] = [];
-	for (let i = 0; i < targets.length; i += CHECKSTYLE_BATCH_SIZE) {
-		const batch = targets.slice(i, i + CHECKSTYLE_BATCH_SIZE);
+	for (const batch of chunkFilePaths(targets)) {
 		try {
 			const result = await runSubprocess("checkstyle", ["-c", config, ...batch], {
 				cwd: context.rootDirectory,

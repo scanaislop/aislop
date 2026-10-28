@@ -1,20 +1,11 @@
-import { runSubprocess } from "../../utils/subprocess.js";
+import { chunkFilePaths, runSubprocess } from "../../utils/subprocess.js";
 import { detectJavaFormatStyle, getJavaTargets } from "../java-targets.js";
 import type { Diagnostic, EngineContext } from "../types.js";
-
-const BATCH_SIZE = 200;
 
 const styleArgs = (context: EngineContext): string[] | null => {
 	const style = detectJavaFormatStyle(context.rootDirectory);
 	if (!style) return null;
 	return style === "aosp" ? ["--aosp"] : [];
-};
-
-const batches = (targets: string[]): string[][] => {
-	const result: string[][] = [];
-	for (let i = 0; i < targets.length; i += BATCH_SIZE)
-		result.push(targets.slice(i, i + BATCH_SIZE));
-	return result;
 };
 
 const unformattedDiagnostic = (filePath: string): Diagnostic => ({
@@ -36,7 +27,7 @@ export const runJavaFormat = async (context: EngineContext): Promise<Diagnostic[
 	if (!style || targets.length === 0) return [];
 	const known = new Set(targets);
 	const diagnostics: Diagnostic[] = [];
-	for (const batch of batches(targets)) {
+	for (const batch of chunkFilePaths(targets)) {
 		try {
 			const result = await runSubprocess("google-java-format", [...style, "--dry-run", ...batch], {
 				cwd: context.rootDirectory,
@@ -57,7 +48,7 @@ export const fixJavaFormat = async (context: EngineContext): Promise<void> => {
 	const style = styleArgs(context);
 	const targets = getJavaTargets(context);
 	if (!style || targets.length === 0) return;
-	for (const batch of batches(targets)) {
+	for (const batch of chunkFilePaths(targets)) {
 		const result = await runSubprocess("google-java-format", [...style, "--replace", ...batch], {
 			cwd: context.rootDirectory,
 			timeout: 120000,
