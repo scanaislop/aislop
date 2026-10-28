@@ -39,7 +39,7 @@ A minor release. Java projects now get real engine coverage, Knip can be set to 
 - **Secret detection reads config files on real scans.** The same narrowing kept `.yaml`, `.yml`, `.json` and `.toml` files out of `security/hardcoded-secret`. They are scanned again, with the scan's include and exclude settings.
 - **`.aislop/config.yaml` and `rules.yaml` are read.** aislop only looked for the `.yml` spelling, so a `config.yaml` was ignored without a warning and the scan used the defaults. Both spellings now load, and `.yml` wins when both exist. Agent hooks find the project root from either spelling, the Claude Code `FileChanged` hook watches both (run `aislop hook install` again to pick it up), and `aislop init` updates an existing `.yaml` file instead of writing a `.yml` beside it ([#471](https://github.com/scanaislop/aislop/issues/471)).
 - **No crash when the output reader closes early.** Piping into `head`, a `jq` that exits, or an agent hook that stops reading made the next write fail with `EPIPE`, which aislop printed as an uncaught exception and exited 1. aislop now drops the remaining output and exits with the command's own result.
-- **Dependency advisories.** `vite`, `zod`, `vitest`, `body-parser`, `fast-uri` and `ip-address` are raised to patched releases, and `ink` moves to 8.
+- **Dependency advisories.** `vite`, `zod`, `vitest`, `body-parser`, `fast-uri`, `ip-address` and `qs` are raised to patched releases, and `ink` moves to 8.
 
 ## 0.18.1 (2026-10-06)
 
