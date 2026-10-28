@@ -9,12 +9,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - **`quality.knip` setting.** `auto` (the default) runs Knip for projects that declare or configure it. `always` runs aislop's bundled Knip on every JavaScript or TypeScript project, and `off` never runs it and reports no `knip/skipped`. Knip loads the project's config files, so `always` runs code from the scanned repository ([#474](https://github.com/scanaislop/aislop/issues/474)).
+- **Java support.** Java projects get real engine coverage instead of detection only:
+  - Strings, text blocks, chars, and comments are masked, so braces inside them no longer distort function lengths.
+  - Package directories under `src/<set>/java/` (and `kotlin/`) are no longer read as excluded or non-production folders, so `com/example/demo` or `org/springframework/samples` code is scanned and gets the full ai-slop checks.
+  - Formatting runs google-java-format, including the AOSP style, when the build configures it (Spotless `googleJavaFormat` or `fmt-maven-plugin`).
+  - Linting runs PMD with a focused set of bug-finding rules, or the project's own PMD ruleset, plus Checkstyle when the project has a `checkstyle.xml`.
+  - Security flags SQL and process commands built by string concatenation or `String.format`, and `ObjectInputStream` / `XMLDecoder` deserialization.
+  - AI-slop rules cover unused and duplicate imports, `System.out` leftovers, catch blocks that only print, and the new `ai-slop/java-broad-throws`.
+  - `aislop doctor` shows the Java tools and how to install them.
 
 ### Fixed
 
 - **`ai-slop/unused-css` runs on real scans.** `scan`, `ci`, `fix` and agent hooks passed engines a file list already narrowed to source extensions, so stylesheets never reached the rule and it could not report anything outside direct API calls. Stylesheets in the scan's scope are now checked, and class references are read from the whole project, so a stylesheet changed on its own is not compared against only the other changed files. Classes a build step adds to generated markup (`astro-code`, Astro's `astro-<hash>` scoped classes, Shiki's `shiki`) are not reported. Upgrading can surface dead CSS that was always there.
 - **Secret detection reads config files on real scans.** The same narrowing kept `.yaml`, `.yml`, `.json` and `.toml` files out of `security/hardcoded-secret`. They are scanned again, with the scan's include and exclude settings.
 - **`.aislop/config.yaml` and `rules.yaml` are read.** aislop only looked for the `.yml` spelling, so a `config.yaml` was ignored without a warning and the scan used the defaults. Both spellings now load, and `.yml` wins when both exist. Agent hooks find the project root from either spelling, the Claude Code `FileChanged` hook watches both (run `aislop hook install` again to pick it up), and `aislop init` updates an existing `.yaml` file instead of writing a `.yml` beside it ([#471](https://github.com/scanaislop/aislop/issues/471)).
+- **No crash when the output reader closes early.** Piping into `head`, a `jq` that exits, or an agent hook that stops reading made the next write fail with `EPIPE`, which aislop printed as an uncaught exception and exited 1. aislop now drops the remaining output and exits with the command's own result.
 
 ## 0.18.1 (2026-10-06)
 

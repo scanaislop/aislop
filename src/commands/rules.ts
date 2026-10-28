@@ -121,6 +121,7 @@ const BUILTIN_RULES: { engine: string; rules: string[] }[] = [
 			"ai-slop/csharp-index-loop",
 			"ai-slop/csharp-if-ladder",
 			"ai-slop/csharp-string-concat-in-loop",
+			"ai-slop/java-broad-throws",
 			"ai-slop/cpp-not-implemented",
 			"ai-slop/cpp-using-namespace-std-in-header",
 			"ai-slop/cpp-c-style-cast",

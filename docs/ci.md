@@ -129,7 +129,7 @@ ci:
 
 The CI command exits 1 when the score drops below `failBelow`, or when any error-severity diagnostic is present.
 
-Format and lint checks for Python, Go, Rust, Ruby, PHP, C/C++, and C# (with `projectEvaluation`) need their tools (`ruff`, `golangci-lint`, `gofmt`, `clippy`, `cppcheck`, and so on) on `PATH`. When one is missing, those checks do not run and the score does not include them. Tools that only run under certain conditions, such as `clang-format` with a `.clang-format` file or `clang-tidy` with a `compile_commands.json`, are reported only when those conditions hold. The scan output names the missing tools, and `aislop doctor` shows how to install them (`aislop-tools` installs the bundled `ruff` and `golangci-lint`). To fail CI instead of scoring a partial scan, set:
+Format and lint checks for Python, Go, Rust, Ruby, PHP, Java, C/C++, and C# (with `projectEvaluation`) need their tools (`ruff`, `golangci-lint`, `gofmt`, `clippy`, `cppcheck`, and so on) on `PATH`. When one is missing, those checks do not run and the score does not include them. Tools that only run under certain conditions, such as `clang-format` with a `.clang-format` file, `clang-tidy` with a `compile_commands.json`, `google-java-format` when the build configures it, or `checkstyle` with a project `checkstyle.xml`, are reported only when those conditions hold. The scan output names the missing tools, and `aislop doctor` shows how to install them (`aislop-tools` installs the bundled `ruff` and `golangci-lint`). To fail CI instead of scoring a partial scan, set:
 
 ```yaml
 ci:
