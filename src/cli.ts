@@ -101,6 +101,10 @@ const program = new Command()
 		commaSeparatedParser,
 		[],
 	)
+	.option(
+		"--explain-scope",
+		"print the file scope a scan would use, then exit before detection engines",
+	)
 	.showSuggestionAfterError()
 	.action(async (directory: string, flags: ScanFlags) => {
 		if (hasNoUserArgs() && noFlagsPassed(flags) && process.stdin.isTTY) {
@@ -135,6 +139,10 @@ program
 		"comma-separated or repeatable list of paths and files to include",
 		commaSeparatedParser,
 		[],
+	)
+	.option(
+		"--explain-scope",
+		"print the file scope a scan would use, then exit before detection engines",
 	)
 	.action(async (directory = ".", _flags, command) => {
 		await runScan(directory, command.optsWithGlobals() as ScanFlags);
