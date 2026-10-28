@@ -1,6 +1,6 @@
 # Configuration
 
-Run `aislop init` to generate `.aislop/config.yml` with default values.
+Run `aislop init` to generate `.aislop/config.yml` with default values. aislop also reads `.aislop/config.yaml` and `.aislop/rules.yaml`; when both spellings exist, the `.yml` file wins.
 
 ## Default config
 
@@ -20,6 +20,7 @@ quality:
   maxFileLoc: 400
   maxNesting: 5
   maxParams: 6
+  knip: auto             # always | off, see docs/rules.md
 
 security:
   audit: true

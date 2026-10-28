@@ -30,6 +30,22 @@ const collectRuntimeNames = (manifest: Record<string, unknown>, into: Set<string
 	}
 };
 
+const collectDeclaredVersions = (
+	manifest: Record<string, unknown>,
+	into: Map<string, string[]>,
+): void => {
+	for (const field of [...RUNTIME_DEPENDENCY_FIELDS, "devDependencies"]) {
+		const section = manifest[field];
+		if (!section || typeof section !== "object") continue;
+		for (const [name, spec] of Object.entries(section)) {
+			if (typeof spec !== "string") continue;
+			const specs = into.get(name) ?? [];
+			if (!specs.includes(spec)) specs.push(spec);
+			into.set(name, specs);
+		}
+	}
+};
+
 const asStringArray = (value: unknown): string[] =>
 	Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
 
@@ -89,17 +105,21 @@ export const readRuntimeDependencies = (rootDir: string): JsAuditManifest | unde
 	if (!rootManifest) return undefined;
 
 	const names = new Set<string>();
+	const declaredVersions = new Map<string, string[]>();
 	collectRuntimeNames(rootManifest, names);
+	collectDeclaredVersions(rootManifest, declaredVersions);
 
 	const globs = [...npmWorkspaceGlobs(rootManifest), ...pnpmWorkspaceGlobs(rootDir)];
-	if (globs.length === 0) return { runtimeDependencies: names };
+	if (globs.length === 0) return { runtimeDependencies: names, declaredVersions };
 
 	for (const relativeDir of listPackageDirectories(rootDir).filter((dir) =>
 		matchesGlobList(dir, globs),
 	)) {
 		const memberManifest = readJsonFile(path.join(rootDir, relativeDir, "package.json"));
-		if (memberManifest) collectRuntimeNames(memberManifest, names);
+		if (!memberManifest) continue;
+		collectRuntimeNames(memberManifest, names);
+		collectDeclaredVersions(memberManifest, declaredVersions);
 	}
 
-	return { runtimeDependencies: names };
+	return { runtimeDependencies: names, declaredVersions };
 };

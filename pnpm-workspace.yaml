@@ -5,18 +5,18 @@ onlyBuiltDependencies:
 
 overrides:
   '@hono/node-server@<2.0.5': ^2.0.5
-  body-parser@<2.3.0: ^2.3.0
+  body-parser@<2.4.0: ^2.4.0
   defu@<=6.1.4: '>=6.1.5'
   esbuild@<0.28.1: '>=0.28.1'
-  fast-uri@<3.1.7: ^3.1.7
+  fast-uri@<3.1.9: ^3.1.9
   hono@<4.13.7: ^4.13.7
-  ip-address@<10.5.1: ^10.5.1
+  ip-address@<10.7.4: ^10.7.4
   js-yaml@<=4.1.1: '>=4.2.0'
   picomatch@<2.3.2: '>=2.3.2'
   picomatch@>=4.0.0 <4.0.4: '>=4.0.4'
   postcss@<=8.5.22: 8.5.26
   proxy-addr@<2.0.8: ^2.0.8
-  qs@>=6.11.1 <6.16.0: ^6.16.0
+  qs@>=6.7.0 <6.16.1: ^6.16.1
   smol-toml@<1.9.0: '>=1.9.0'
   source-map-js@<1.2.2: ^1.2.2
   vite@<7.3.5: '>=7.3.5'

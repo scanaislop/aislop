@@ -17,7 +17,7 @@ export const codeQualityEngine: Engine = {
 			canRunProjectLocalTools &&
 			(context.languages.includes("typescript") || context.languages.includes("javascript"))
 		) {
-			promises.push(runKnip(context.rootDirectory));
+			promises.push(runKnip(context.rootDirectory, context.config.quality.knip));
 		}
 
 		promises.push(checkComplexity(context));

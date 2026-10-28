@@ -5,6 +5,8 @@ import { hasClangFormatConfig, runClangFormat } from "./clang-format.js";
 import { runDotnetFormat } from "./dotnet-format.js";
 import { runGenericFormatter } from "./generic.js";
 import { runGofmt } from "./gofmt.js";
+import { detectJavaFormatStyle } from "../java-targets.js";
+import { runJavaFormat } from "./java-format.js";
 import { runRuffFormat } from "./ruff-format.js";
 
 const FORMAT_TOOL_REQUIREMENTS: readonly ToolRequirement[] = [
@@ -14,6 +16,11 @@ const FORMAT_TOOL_REQUIREMENTS: readonly ToolRequirement[] = [
 	{ language: "rust", tool: "rustfmt" },
 	{ language: "ruby", tool: "rubocop" },
 	{ language: "php", tool: "php-cs-fixer" },
+	{
+		language: "java",
+		tool: "google-java-format",
+		applies: (context) => detectJavaFormatStyle(context.rootDirectory) !== null,
+	},
 	{
 		language: "csharp",
 		tool: "dotnet",
@@ -57,6 +64,14 @@ export const formatEngine: Engine = {
 
 		if (languages.includes("php") && installedTools["php-cs-fixer"]) {
 			promises.push(runGenericFormatter(context, "php"));
+		}
+
+		if (
+			languages.includes("java") &&
+			installedTools["google-java-format"] &&
+			detectJavaFormatStyle(context.rootDirectory) !== null
+		) {
+			promises.push(runJavaFormat(context));
 		}
 
 		if (

@@ -25,6 +25,7 @@ import { renderRootHelp } from "./ui/home.js";
 import { log } from "./ui/logger.js";
 import { suggestClosest } from "./ui/suggest.js";
 import { maybeNotifyUpdate } from "./update-notifier.js";
+import { ignoreBrokenPipes } from "./utils/broken-pipe.js";
 import { killActiveChildren } from "./utils/subprocess.js";
 import { APP_VERSION } from "./version.js";
 
@@ -45,6 +46,8 @@ const safeTelemetryConfig = () => {
 		return undefined;
 	}
 };
+
+ignoreBrokenPipes();
 
 const exitOnFatal = (error: unknown, stage: FailedStage): void => {
 	console.error(error);

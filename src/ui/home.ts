@@ -5,6 +5,7 @@ import { terminalLink } from "./link.js";
 import { renderHintLine } from "./logger.js";
 import { style, theme } from "./theme.js";
 import { padEnd } from "./width.js";
+import { siteUrl } from "./site-url.js";
 
 export { renderCommandReference } from "./command-reference.js";
 
@@ -198,7 +199,7 @@ export const renderHome = (input: HomeRenderInput = {}): string => {
 	const version = input.version ?? APP_VERSION;
 	let out = renderHeader({ version, command: "--bare", context: [] });
 	out += `${renderCommandGroups().trimEnd()}\n`;
-	out += `\n ${style(theme, "dim", "Team platform")}\n   ${style(theme, "muted", "Gate every PR and share one standard across your team")}  ${style(theme, "accent", terminalLink("https://scanaislop.com"))}\n`;
+	out += `\n ${style(theme, "dim", "Team platform")}\n   ${style(theme, "muted", "Gate every PR and share one standard across your team")}  ${style(theme, "accent", terminalLink(siteUrl("/", "home-team-platform"), "https://scanaislop.com"))}\n`;
 	if (input.includeHelpDetails) {
 		out += `\n${renderHelpDetails().trimEnd()}\n`;
 		out += renderHintLine("Run aislop scan to scan your project");

@@ -30,8 +30,12 @@ const DOC_URL_CONTEXT_RE =
 	/\b(?:docs?|documentation|homepage|repository|bugs|license|readme|source|svgUrl|pageUrl|href|link|install)\b/i;
 const URL_CONFIG_CONTEXT_RE =
 	/\b(?:api|base[_-]?url|baseUrl|endpoint|host|origin|webhook|callback|redirect|server|service|domain|url)\b/i;
+// Identifier words (from API_ENDPOINT or apiBaseUrl) that mark a URL as service config. Generic
+// words such as url, host or origin are left out so REGISTRY_URL or SITE_ORIGIN stay quiet.
+const CONFIG_IDENTIFIER_WORDS = new Set(["api", "endpoint", "webhook", "callback"]);
+const IDENTIFIER_RE = /[A-Za-z_$][\w$]*/g;
 const ENVIRONMENT_HOST_RE =
-	/(?:^|[.-])(?:api|app|admin|auth|staging|stage|prod|dev|sandbox|webhook|internal)(?:[.-]|$)|^(?:localhost|127\.0\.0\.1|0\.0\.0\.0)$/i;
+	/(?:^|[.-])(?:app|admin|auth|staging|stage|prod|dev|sandbox|webhook|internal)(?:[.-]|$)|^(?:localhost|127\.0\.0\.1|0\.0\.0\.0)$/i;
 const ID_CONTEXT_RE =
 	/(?:^|[^A-Za-z0-9])(?:api[_-]?key|client[_-]?id|project[_-]?id|org(?:anization)?[_-]?id|workspace[_-]?id|tenant[_-]?id|price[_-]?id|product[_-]?id|customer[_-]?id|subscription[_-]?id|account[_-]?id|app[_-]?id|key|token|secret)(?:$|[^A-Za-z0-9])/i;
 const MIGRATION_PATH_RE = /(?:^|[\\/])(?:migrations?|db[\\/]migrate)[\\/]/i;
@@ -60,9 +64,42 @@ const VENDOR_API_DOMAINS = [
 	"twimg.com",
 	"t.co",
 	"api.telegram.org",
+	"expo.dev",
 ];
 const isVendorApiHost = (host: string): boolean =>
 	VENDOR_API_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`));
+// Social profiles and store listings are content links, identical in every environment.
+const PUBLIC_LINK_DOMAINS = [
+	"instagram.com",
+	"facebook.com",
+	"linkedin.com",
+	"youtube.com",
+	"youtu.be",
+	"tiktok.com",
+	"threads.net",
+	"bsky.app",
+	"reddit.com",
+	"medium.com",
+	"pinterest.com",
+	"mastodon.social",
+	"t.me",
+	"wa.me",
+	"apps.apple.com",
+	"play.google.com",
+	"chromewebstore.google.com",
+	"marketplace.visualstudio.com",
+];
+const isPublicLinkHost = (host: string): boolean =>
+	PUBLIC_LINK_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`));
+const LEGAL_PAGE_PATH_RE =
+	/^\/(?:legal\/)?(?:privacy(?:-policy)?|terms(?:-of-(?:service|use))?|tos|cookies?(?:-policy)?|imprint|impressum|eula|legal)\/?$/i;
+const isLegalPageUrl = (urlText: string): boolean => {
+	try {
+		return LEGAL_PAGE_PATH_RE.test(new URL(urlText).pathname);
+	} catch {
+		return false;
+	}
+};
 const PLACEHOLDER_ID_RE = /^(?:changeme|replace[_-]?me|your[_-]|example|placeholder|todo)/i;
 const PROVIDER_ID_RE =
 	/^(?:price|prod|cus|sub|acct|org|app|tenant|workspace|project|client|key|tok|token|sk|pk)_[A-Za-z0-9][A-Za-z0-9_-]{7,}$/i;
@@ -124,6 +161,36 @@ const safeUrlHost = (urlText: string): string | null => {
 const isEnvBackedLine = (line: string): boolean => ENV_REFERENCE_RE.test(line);
 const TEMPLATE_INTERPOLATION_START = "$" + "{";
 
+// The TLD is not an environment hint: u.expo.dev or acme.vercel.app are public endpoints.
+// Dotless hosts (orders-internal, myapp-staging) are tested whole.
+const isEnvironmentHost = (host: string): boolean => {
+	const lastDot = host.lastIndexOf(".");
+	return ENVIRONMENT_HOST_RE.test(lastDot > 0 ? host.slice(0, lastDot) : host);
+};
+
+const splitIdentifierWords = (identifier: string): string[] =>
+	identifier
+		.replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+		.toLowerCase()
+		.split(/[_$]+/)
+		.filter(Boolean);
+
+// The URL's own host (api.vendor.com) is not context; the rest of the line, path included, is.
+const hasUrlConfigContext = (line: string, urlText: string, host: string): boolean => {
+	const hostAt = urlText.indexOf(host);
+	const urlWithoutHost =
+		hostAt >= 0 ? urlText.slice(0, hostAt) + urlText.slice(hostAt + host.length) : urlText;
+	const context = line.replace(urlText, urlWithoutHost);
+	if (URL_CONFIG_CONTEXT_RE.test(context)) return true;
+	const outsideUrl = line.replace(urlText, " ");
+	for (const identifier of outsideUrl.match(IDENTIFIER_RE) ?? []) {
+		if (splitIdentifierWords(identifier).some((word) => CONFIG_IDENTIFIER_WORDS.has(word))) {
+			return true;
+		}
+	}
+	return false;
+};
+
 const shouldFlagUrlLiteral = (line: string, urlText: string): boolean => {
 	if (isEnvBackedLine(line)) return false;
 	if (urlText.includes(TEMPLATE_INTERPOLATION_START) && /\bnew\s+URL\s*\(/.test(line)) return false;
@@ -132,8 +199,10 @@ const shouldFlagUrlLiteral = (line: string, urlText: string): boolean => {
 	if (PLACEHOLDER_HOSTS.has(host)) return false;
 	if (LOOPBACK_HOSTS.has(host)) return false;
 	if (isVendorApiHost(host)) return false;
-	if (DOC_URL_CONTEXT_RE.test(line) && !ENVIRONMENT_HOST_RE.test(host)) return false;
-	return URL_CONFIG_CONTEXT_RE.test(line) || ENVIRONMENT_HOST_RE.test(host);
+	const environmentHost = isEnvironmentHost(host);
+	if (!environmentHost && (isPublicLinkHost(host) || isLegalPageUrl(urlText))) return false;
+	if (DOC_URL_CONTEXT_RE.test(line) && !environmentHost) return false;
+	return hasUrlConfigContext(line, urlText, host) || environmentHost;
 };
 
 const ENV_VAR_NAME_RE = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+$/;

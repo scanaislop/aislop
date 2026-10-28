@@ -1,5 +1,9 @@
-import path from "node:path";
-import { type AislopConfig, findConfigDir, RULES_FILE } from "../config/index.js";
+import {
+	type AislopConfig,
+	findConfigDir,
+	RULES_FILE,
+	resolveConfigFile,
+} from "../config/index.js";
 import type { EngineConfig, EngineResult } from "../engines/types.js";
 import { applyRuleSeverities } from "../scoring/rule-severity.js";
 import { detectSourceLanguages, discoverProject, type Language } from "../utils/discover.js";
@@ -50,7 +54,7 @@ export const runScanEngines = async (
 ): Promise<{ results: EngineResult[]; suppressedCount: number }> => {
 	const { resolvedDir, scanScope, projectInfo } = prepared;
 	const configDir = findConfigDir(resolvedDir);
-	const rulesPath = configDir ? path.join(configDir, RULES_FILE) : undefined;
+	const rulesPath = configDir ? resolveConfigFile(configDir, RULES_FILE) : undefined;
 	const engineConfig: EngineConfig = {
 		overrides: config.overrides,
 		rules: config.rules,
@@ -70,7 +74,10 @@ export const runScanEngines = async (
 			dependencyAuditLanguages: prepared.dependencyAuditLanguages,
 			dependencyAuditScope: scanScope.dependencyAuditScope,
 			files: scanScope.files,
+			candidateFiles: scanScope.candidateFiles,
+			projectCandidateFiles: scanScope.projectCandidateFiles,
 			excludePatterns: prepared.excludePatterns,
+			includePatterns: config.include,
 			testFiles: scanScope.testFiles,
 			projectFiles: scanScope.projectFiles,
 			installedTools: projectInfo.installedTools,

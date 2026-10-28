@@ -1,7 +1,13 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../../src/ui/prompts.js", async (importOriginal) => ({
+	...(await importOriginal<typeof import("../../src/ui/prompts.js")>()),
+	select: vi.fn(async () => "overwrite"),
+}));
+
 import { initCommand, writeGithubWorkflow } from "../../src/commands/init.js";
 
 let tmpDir: string;
@@ -54,5 +60,18 @@ describe("init --strict", () => {
 		expect(config).toContain("failBelow: 85");
 		expect(fs.existsSync(path.join(tmpDir, ".aislop/rules.yml"))).toBe(true);
 		expect(fs.existsSync(path.join(tmpDir, ".github/workflows/aislop.yml"))).toBe(true);
+	});
+
+	it("overwrites an existing .yaml config instead of adding a .yml next to it", async () => {
+		fs.mkdirSync(path.join(tmpDir, ".aislop"));
+		fs.writeFileSync(path.join(tmpDir, ".aislop/config.yaml"), "version: 1\n");
+		fs.writeFileSync(path.join(tmpDir, ".aislop/rules.yaml"), "rules: []\n");
+
+		await initCommand(tmpDir, { strict: true, printBrand: false });
+
+		expect(fs.existsSync(path.join(tmpDir, ".aislop/config.yml"))).toBe(false);
+		expect(fs.existsSync(path.join(tmpDir, ".aislop/rules.yml"))).toBe(false);
+		expect(fs.readFileSync(path.join(tmpDir, ".aislop/config.yaml"), "utf-8")).toContain("failBelow: 85");
+		expect(fs.readFileSync(path.join(tmpDir, ".aislop/rules.yaml"), "utf-8")).toBe("rules: []\n");
 	});
 });

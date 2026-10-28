@@ -32,6 +32,19 @@ const CS_INTERP = '(?:\\$@?|@\\$)"';
 const CS_CONCAT = '@?"[^"]*"\\s*\\+';
 const CS_CMD_SINK = "(?:\\bProcess\\.Start\\s*\\(|\\.Arguments\\s*=)";
 
+const JAVA_SQL_SINK =
+	"(?:executeQuery|executeUpdate|executeLargeUpdate|execute|addBatch|prepareStatement|prepareCall|createQuery|createNativeQuery|nativeQuery)";
+const JAVA_CONCAT = '"[^"]*"\\s*\\+';
+const JAVA_FORMAT = "String\\.format\\s*\\(";
+
+const javaRisk = (pattern: RegExp, name: string, message: string, help: string): RiskyPattern => ({
+	pattern,
+	extensions: [".java"],
+	name,
+	message,
+	help,
+});
+
 const csharpRisk = (
 	pattern: RegExp,
 	name: string,
@@ -145,6 +158,27 @@ export const RISKY_PATTERNS: RiskyPattern[] = [
 		message: "Unsafe deserializer can execute arbitrary code on untrusted input",
 		help: "Use System.Text.Json or DataContractSerializer with a known, restricted set of types",
 	},
+	javaRisk(
+		new RegExp(`\\.${JAVA_SQL_SINK}\\s*\\(\\s*(?:${JAVA_CONCAT}|${JAVA_FORMAT})`, "g"),
+		"sql-injection",
+		"Possible SQL injection: query built by string concatenation or String.format",
+		"Use a PreparedStatement with ? parameters, or named parameters in JPA queries",
+	),
+	javaRisk(
+		new RegExp(
+			`(?:\\.exec\\s*\\(|new\\s+ProcessBuilder\\s*\\()\\s*(?:${JAVA_CONCAT}|${JAVA_FORMAT})`,
+			"g",
+		),
+		"shell-injection",
+		"Possible command injection: process command built from concatenated strings",
+		"Pass the program and each argument as separate strings to ProcessBuilder, never one built command",
+	),
+	javaRisk(
+		/\bnew\s+(?:[\w.]+\.)?(?:ObjectInputStream|XMLDecoder)\s*\(/g,
+		"unsafe-deserialization",
+		"Java deserialization of untrusted data can execute arbitrary code",
+		"Use a data format such as JSON with explicit types, or an ObjectInputFilter allowlist",
+	),
 	{
 		// Negative lookbehind skips member access (`.system`, `->system`) but keeps
 		// the qualified `std::system`, which is the same dangerous call.

@@ -93,13 +93,17 @@ describe("aislop_why tool", () => {
 		const result = handleAislopWhy({ rule_id: "ai-slop/narrative-comment" });
 		expect(result.id).toBe("ai-slop/narrative-comment");
 		expect(result.engine).toBe("ai-slop");
-		expect(result.docs).toBe("https://scanaislop.com/patterns#narrative-comment");
+		expect(result.docs).toBe(
+			"https://scanaislop.com/patterns?utm_source=aislop&utm_medium=mcp&utm_content=rule-docs#narrative-comment",
+		);
 		expect(result.hint).toContain("aislop rules");
 	});
 
 	it("falls back to /patterns root for an id without a slug", () => {
 		const result = handleAislopWhy({ rule_id: "complexity" });
-		expect(result.docs).toBe("https://scanaislop.com/patterns");
+		expect(result.docs).toBe(
+			"https://scanaislop.com/patterns?utm_source=aislop&utm_medium=mcp&utm_content=rule-docs",
+		);
 	});
 
 	it("preserves engine name from any rule prefix (security, complexity, arch)", () => {

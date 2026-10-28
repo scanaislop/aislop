@@ -49,6 +49,12 @@ export interface EngineContext {
 	files?: string[];
 	testFiles?: string[];
 	projectFiles?: string[];
+	// The scoped and whole-project file lists before the source-extension filter.
+	// `files` and `projectFiles` only hold source code, so detectors that read
+	// stylesheets or config files select their own extensions from these.
+	candidateFiles?: string[];
+	projectCandidateFiles?: string[];
+	includePatterns?: string[];
 	// Raw user exclude entries (config `exclude` + `.aislopignore`). The
 	// file-scanning engines already start from the excluded file list; this lets
 	// the build-backed C# engines - which shell out to tools that scan whole
@@ -67,6 +73,7 @@ export interface EngineConfig {
 		maxFileLoc: number;
 		maxNesting: number;
 		maxParams: number;
+		knip?: "auto" | "always" | "off";
 	};
 	security: {
 		audit: boolean;

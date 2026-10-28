@@ -4,7 +4,42 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 0.19.0 (2026-10-28)
+
+A minor release. Java projects now get real engine coverage, Knip can be set to run always or never, and a round of false positives and missed findings is fixed across `hardcoded-url`, `unsafe-type-assertion`, `no-undef`, `unused-css`, secret detection and dependency advice.
+
+### Added
+
+- **`quality.knip` setting.** `auto` (the default) runs Knip for projects that declare or configure it. `always` runs aislop's bundled Knip on every JavaScript or TypeScript project, and `off` never runs it and reports no `knip/skipped`. Knip loads the project's config files, so `always` runs code from the scanned repository ([#474](https://github.com/scanaislop/aislop/issues/474)).
+- **Java support.** Java projects get real engine coverage instead of detection only:
+  - Strings, text blocks, chars, and comments are masked, so braces inside them no longer distort function lengths.
+  - Package directories under `src/<set>/java/` (and `kotlin/`) are no longer read as excluded or non-production folders, so `com/example/demo` or `org/springframework/samples` code is scanned and gets the full ai-slop checks.
+  - Formatting runs google-java-format, including the AOSP style, when the build configures it (Spotless `googleJavaFormat` or `fmt-maven-plugin`).
+  - Linting runs PMD with a focused set of bug-finding rules, or the project's own PMD ruleset, plus Checkstyle when the project has a `checkstyle.xml`.
+  - Security flags SQL and process commands built by string concatenation or `String.format`, and `ObjectInputStream` / `XMLDecoder` deserialization.
+  - AI-slop rules cover unused and duplicate imports, `System.out` leftovers, catch blocks that only print, and the new `ai-slop/java-broad-throws`.
+  - `aislop doctor` shows the Java tools and how to install them.
+- **`knip/skipped` notice.** When Knip is not set up, times out or fails, an info finding says so (advisory, like `security/dependency-audit-skipped`) instead of the check disappearing while the scan still scores 100 ([#474](https://github.com/scanaislop/aislop/issues/474)).
+
+### Changed
+
+- **Knip runs when a project declares or configures it.** A knip config file or a `"knip"` key in `package.json` now counts, so `npx knip` users are covered. aislop always runs its own bundled Knip, never a copy from the scanned project ([#474](https://github.com/scanaislop/aislop/issues/474)).
+- **Links to scanaislop.com carry utm parameters.** The visible link text is unchanged.
+
+### Fixed
+
+- **`ai-slop/hardcoded-url` false positives.** A URL's own host no longer counts as config context and the TLD is never an environment signal, so vendor `api.` hosts and `.dev`/`.app` domains stay quiet. Social profiles, app store listings and legal pages (`/privacy`, `/terms`) are treated as public content links. Config-like names (`API_ENDPOINT`, `apiBase`) and internal hosts (`orders-internal`, `myapp-staging`) are still flagged ([#479](https://github.com/scanaislop/aislop/issues/479), [#482](https://github.com/scanaislop/aislop/issues/482), [#493](https://github.com/scanaislop/aislop/issues/493)).
+- **`ai-slop/unsafe-type-assertion` ignores comments.** Comments are masked before matching, so a cast written inside a comment is no longer reported ([#475](https://github.com/scanaislop/aislop/issues/475)).
+- **`eslint/no-undef` respects `/* global */` directives**, matching ESLint ([#478](https://github.com/scanaislop/aislop/issues/478)).
+- **Knip unused files are reported again.** Knip 6 moved them under `issues[].files`, so `knip/files` was never reported ([#474](https://github.com/scanaislop/aislop/issues/474)).
+- **Agent hooks write state at the project root.** Lock, baseline and session files resolve to the project root instead of the agent's working directory, so stray nested `.aislop/` folders are no longer created and the home directory's `.aislop` is never used ([#472](https://github.com/scanaislop/aislop/issues/472)).
+- **Dependency advice no longer suggests downgrades as upgrades.** When `npm audit` only offers a semver-major fix below the declared version, `security/vulnerable-dependency` says no safe direct fix exists and, when the advisory has an upper bound, suggests an override to the first patched version ([#485](https://github.com/scanaislop/aislop/issues/485)).
+- **`complexity/too-many-params` counts a destructured parameter once.** Regression test for a report against 0.12.0; the fix shipped in 0.14.1 ([#476](https://github.com/scanaislop/aislop/issues/476)).
+- **`ai-slop/unused-css` runs on real scans.** `scan`, `ci`, `fix` and agent hooks passed engines a file list already narrowed to source extensions, so stylesheets never reached the rule and it could not report anything outside direct API calls. Stylesheets in the scan's scope are now checked, and class references are read from the whole project, so a stylesheet changed on its own is not compared against only the other changed files. Classes a build step adds to generated markup (`astro-code`, Astro's `astro-<hash>` scoped classes, Shiki's `shiki`) are not reported. Upgrading can surface dead CSS that was always there.
+- **Secret detection reads config files on real scans.** The same narrowing kept `.yaml`, `.yml`, `.json` and `.toml` files out of `security/hardcoded-secret`. They are scanned again, with the scan's include and exclude settings.
+- **`.aislop/config.yaml` and `rules.yaml` are read.** aislop only looked for the `.yml` spelling, so a `config.yaml` was ignored without a warning and the scan used the defaults. Both spellings now load, and `.yml` wins when both exist. Agent hooks find the project root from either spelling, the Claude Code `FileChanged` hook watches both (run `aislop hook install` again to pick it up), and `aislop init` updates an existing `.yaml` file instead of writing a `.yml` beside it ([#471](https://github.com/scanaislop/aislop/issues/471)).
+- **No crash when the output reader closes early.** Piping into `head`, a `jq` that exits, or an agent hook that stops reading made the next write fail with `EPIPE`, which aislop printed as an uncaught exception and exited 1. aislop now drops the remaining output and exits with the command's own result.
+- **Dependency advisories.** `vite`, `zod`, `vitest`, `body-parser`, `fast-uri`, `ip-address` and `qs` are raised to patched releases, and `ink` moves to 8.
 
 ## 0.18.1 (2026-10-06)
 

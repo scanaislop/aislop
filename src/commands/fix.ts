@@ -1,7 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
-import { type AislopConfig, findConfigDir, RULES_FILE } from "../config/index.js";
+import {
+	type AislopConfig,
+	findConfigDir,
+	RULES_FILE,
+	resolveConfigFile,
+} from "../config/index.js";
 import { applyFileOverrides } from "../config/overrides.js";
 import { runEngines } from "../engines/orchestrator.js";
 import type { Diagnostic, EngineConfig, EngineResult } from "../engines/types.js";
@@ -277,7 +282,7 @@ const runFixBody = async (
 	const totalResolved = steps.reduce((sum, s) => sum + s.resolvedIssues, 0);
 
 	const configDir = findConfigDir(resolvedDir);
-	const rulesPath = configDir ? path.join(configDir, RULES_FILE) : undefined;
+	const rulesPath = configDir ? resolveConfigFile(configDir, RULES_FILE) : undefined;
 	const engineConfig: EngineConfig = {
 		overrides: config.overrides,
 		rules: config.rules,
@@ -302,6 +307,9 @@ const runFixBody = async (
 						files: context.files,
 						testFiles: context.testFiles,
 						projectFiles: context.projectFiles,
+						candidateFiles: context.candidateFiles,
+						projectCandidateFiles: context.projectCandidateFiles,
+						includePatterns: context.includePatterns,
 						dependencyAuditFiles: context.dependencyAuditFiles,
 						dependencyAuditScope: context.dependencyAuditScope,
 					}

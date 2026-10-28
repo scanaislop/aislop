@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import { findConfigDir, loadConfig, RULES_FILE } from "../config/index.js";
+import { findConfigDir, loadConfig, RULES_FILE, resolveConfigFile } from "../config/index.js";
 import { runEngines } from "../engines/orchestrator.js";
 import type { Diagnostic, EngineContext, EngineName } from "../engines/types.js";
 import { readBaseline } from "../hooks/quality-gate/baseline.js";
@@ -10,6 +10,7 @@ import { assessDiagnostic, summarizeFindingAssessments } from "../output/finding
 import { calculateScore } from "../scoring/index.js";
 import { discoverProject } from "../utils/discover.js";
 import { toPosix } from "../utils/paths.js";
+import { siteUrl } from "../ui/site-url.js";
 
 const MAX_FINDINGS = 25;
 
@@ -34,7 +35,7 @@ const buildEngineContext = (
 	config: ReturnType<typeof loadConfig>,
 ): EngineContext => {
 	const configDir = findConfigDir(rootDirectory);
-	const rulesPath = configDir ? path.join(configDir, RULES_FILE) : undefined;
+	const rulesPath = configDir ? resolveConfigFile(configDir, RULES_FILE) : undefined;
 	return {
 		rootDirectory,
 		languages: project.languages,
@@ -238,7 +239,7 @@ export const aislopWhyTool = {
 export const handleAislopWhy = (input: z.infer<typeof aislopWhyInputSchema>) => {
 	const ruleId = input.rule_id.trim();
 	const [engine, slug] = ruleId.split("/");
-	const docs = slug ? `https://scanaislop.com/patterns#${slug}` : "https://scanaislop.com/patterns";
+	const docs = siteUrl(slug ? `/patterns#${slug}` : "/patterns", "rule-docs", "mcp");
 	return {
 		id: ruleId,
 		engine: engine ?? "unknown",

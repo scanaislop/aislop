@@ -35,7 +35,7 @@ describe("file policy matching", () => {
 		});
 		const policy = resolveFilePolicy(config, "src/users.ts");
 		expect(policy).toEqual({
-			quality: { maxFunctionLoc: 42, maxFileLoc: 700, maxNesting: 3, maxParams: 4 },
+			quality: { maxFunctionLoc: 42, maxFileLoc: 700, maxNesting: 3, maxParams: 4, knip: "auto" },
 			rules: { "ai-slop/narrative-comment": "off" },
 		});
 	});

@@ -8,7 +8,7 @@ import {
 	GITHUB_WORKFLOW_DIR,
 	GITHUB_WORKFLOW_FILE,
 } from "../config/defaults.js";
-import { CONFIG_DIR, CONFIG_FILE, RULES_FILE } from "../config/index.js";
+import { CONFIG_DIR, CONFIG_FILE, RULES_FILE, resolveConfigFile } from "../config/index.js";
 import { renderHeader } from "../ui/header.js";
 import { detectInvocation } from "../ui/invocation.js";
 import { renderHintLine } from "../ui/logger.js";
@@ -213,13 +213,15 @@ export const initCommand = async (directory: string, options: InitOptions = {}):
 	);
 
 	const configDir = path.join(resolvedDir, CONFIG_DIR);
-	const configPath = path.join(configDir, CONFIG_FILE);
-	const rulesPath = path.join(configDir, RULES_FILE);
+	const configPath = resolveConfigFile(configDir, CONFIG_FILE);
+	const rulesPath = resolveConfigFile(configDir, RULES_FILE);
+	const configName = `${CONFIG_DIR}/${path.basename(configPath)}`;
+	const rulesName = `${CONFIG_DIR}/${path.basename(rulesPath)}`;
 	const invocation = detectInvocation();
 
 	if (fs.existsSync(configPath)) {
 		const overwrite = await select<"keep" | "overwrite">({
-			message: `${CONFIG_DIR}/${CONFIG_FILE} already exists. What now?`,
+			message: `${configName} already exists. What now?`,
 			options: [
 				{ value: "keep", label: "Keep existing config" },
 				{ value: "overwrite", label: "Overwrite with new answers" },
@@ -232,7 +234,7 @@ export const initCommand = async (directory: string, options: InitOptions = {}):
 					steps: [
 						{
 							status: "skipped",
-							label: `Kept existing ${CONFIG_DIR}/${CONFIG_FILE}`,
+							label: `Kept existing ${configName}`,
 						},
 					],
 					nextCommand: `${invocation} scan`,
@@ -248,16 +250,16 @@ export const initCommand = async (directory: string, options: InitOptions = {}):
 
 	writeAislopConfig(configDir, configPath, choices);
 
-	const steps: RailStep[] = [{ status: "done", label: `Wrote ${CONFIG_DIR}/${CONFIG_FILE}` }];
+	const steps: RailStep[] = [{ status: "done", label: `Wrote ${configName}` }];
 
 	if (choices.engines.includes("architecture")) {
 		if (!fs.existsSync(rulesPath)) {
 			fs.writeFileSync(rulesPath, DEFAULT_RULES_YAML);
-			steps.push({ status: "done", label: `Wrote ${CONFIG_DIR}/${RULES_FILE}` });
+			steps.push({ status: "done", label: `Wrote ${rulesName}` });
 		} else {
 			steps.push({
 				status: "skipped",
-				label: `${CONFIG_DIR}/${RULES_FILE} already exists`,
+				label: `${rulesName} already exists`,
 			});
 		}
 	}

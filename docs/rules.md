@@ -188,6 +188,11 @@ Measures structural complexity, finds dead code, and detects unused dependencies
 | `knip/unresolved` | Imports that cannot be resolved |
 | `knip/binaries` | Binaries used but not declared in package.json |
 | `knip/duplicates` | Duplicate exports reported by knip |
+| `knip/skipped` | Info: the knip checks above did not run, either because the project has not set knip up (no knip dependency, knip config file or `"knip"` key in package.json) or because knip failed or timed out |
+
+The knip rules run only for projects that use knip: knip is listed as a dependency, or the project has a knip config file (`knip.json`, `knip.jsonc`, `.knip.json`, `.knip.jsonc`, `knip.ts`, `knip.js`, `knip.config.ts`, `knip.config.js`) or a `"knip"` key in package.json. aislop always runs its own bundled knip, never a copy installed in the scanned project. Without that setup, knip cannot tell which files are entry points and reports test and example folders as unused.
+
+Set `quality.knip` in `.aislop/config.yml` to change this: `auto` (the default) is the behaviour above, `always` runs the bundled knip on every JavaScript or TypeScript project even without that setup, and `off` never runs knip and reports no `knip/skipped`. Knip loads the project's config files, so `always` runs code from the scanned repository.
 
 ## AI Slop
 
@@ -242,6 +247,7 @@ The rules that make aislop unique. These catch the patterns AI assistants leave 
 | `ai-slop/csharp-null-forgiving` | warning | C# null-forgiving `!` operator silencing nullable warnings instead of handling null |
 | `ai-slop/csharp-console-leftover` | warning | C# `Console.*` / `Debug.*` / `Trace.*` output left in library code |
 | `ai-slop/csharp-broad-catch` | warning | C# `catch (Exception)` that catches everything (non-empty, non-rethrow) instead of the specific type(s) it can handle |
+| `ai-slop/java-broad-throws` | warning | Java method declaring `throws Exception` / `throws Throwable` instead of the specific checked exceptions (`main`, `close`, `call`, and tests are exempt) |
 | `ai-slop/csharp-linq-count` | warning | C# `.Count() > 0` / `.Count() == 0` enumerating a whole sequence where `.Any()` short-circuits |
 | `ai-slop/csharp-index-loop` | warning | C# index `for` loop over `.Length`/`.Count` that reads more clearly as `foreach` |
 | `ai-slop/csharp-if-ladder` | warning | C# chain of 4+ if/else-if branches comparing one value against constants (a `switch` in disguise) |
