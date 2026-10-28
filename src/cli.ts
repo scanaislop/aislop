@@ -8,6 +8,7 @@ import { commaSeparatedParser, noFlagsPassed, runScan, type ScanFlags } from "./
 import { ciCommand } from "./commands/ci.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { fixCommand } from "./commands/fix.js";
+import { collectCheckOption } from "./commands/fix-checks.js";
 import { initCommand } from "./commands/init.js";
 import { interactiveCommand } from "./commands/interactive.js";
 import { loadConfig } from "./config/index.js";
@@ -153,12 +154,27 @@ const fixProgram = program
 	.addOption(new Option("--changes", "only fix changed files (git diff)").conflicts("staged"))
 	.addOption(new Option("--staged", "only fix staged files").conflicts("changes"))
 	.option("--base <ref>", "diff base for --changes, e.g. origin/main (default HEAD)")
-	.option("-p, --prompt", "print a prompt for your coding agent to fix remaining issues");
+	.option("-p, --prompt", "print a prompt for your coding agent to fix remaining issues")
+	.option(
+		"--check <command>",
+		"opt-in project check run after fixes; repeat to add commands (config checks run first)",
+		collectCheckOption,
+		[],
+	)
+	.option(
+		"--check-timeout <ms>",
+		"per-command timeout in milliseconds for project checks (default 120000)",
+	);
 
 for (const a of FIX_AGENT_FLAGS) fixProgram.option(`--${a.flag}`, a.help);
 
 fixProgram.action(async (directory = ".", _flags, command) => {
-	const flags = command.optsWithGlobals() as Record<string, boolean | undefined>;
+	const flags = command.optsWithGlobals() as Record<
+		string,
+		boolean | string | string[] | undefined
+	>;
+	const checkTimeoutRaw = flags.checkTimeout;
+	const checkList = flags.check;
 	const { exitCode } = await fixCommand(directory, loadConfig(directory), {
 		verbose: Boolean(flags.verbose),
 		force: Boolean(flags.force),
@@ -168,7 +184,9 @@ fixProgram.action(async (directory = ".", _flags, command) => {
 		staged: Boolean(flags.staged),
 		base: typeof flags.base === "string" ? flags.base : undefined,
 		prompt: Boolean(flags.prompt),
-		agent: matchFixAgent(flags),
+		agent: matchFixAgent(flags as Record<string, boolean | undefined>),
+		checks: Array.isArray(checkList) ? checkList : undefined,
+		checkTimeoutMs: typeof checkTimeoutRaw === "string" ? Number(checkTimeoutRaw) : undefined,
 	});
 	if (exitCode !== 0) {
 		await flushTelemetry();

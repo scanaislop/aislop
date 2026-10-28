@@ -20,6 +20,7 @@ import { theme as defaultTheme, style } from "../ui/theme.js";
 import { detectSourceLanguages, discoverProject } from "../utils/discover.js";
 import { readAislopIgnorePatterns } from "../utils/source-files.js";
 import { APP_VERSION } from "../version.js";
+import { enforceProjectChecks, isProjectCheckError, resolveProjectChecks } from "./fix-checks.js";
 import { launchAgent, printPrompt } from "./fix-code.js";
 import { createEngineContext } from "./fix-context.js";
 import {
@@ -33,6 +34,7 @@ import {
 } from "./fix-pipeline.js";
 import { buildFixPlan, skippedFixSteps } from "./fix-plan.js";
 import { NO_CHANGES_APPLIED } from "./fix-render.js";
+import { captureWorktree } from "./fix-rollback.js";
 import { collectFixFileScope, fixScopeError } from "./fix-scope.js";
 import {
 	describePreviewStep,
@@ -61,6 +63,10 @@ interface FixOptions {
 	prompt?: boolean;
 	showHeader?: boolean;
 	printBrand?: boolean;
+	/** Extra project checks, appended after config `fix.checks` in flag order. */
+	checks?: string[];
+	/** Overrides `fix.checkTimeoutMs` for this run. */
+	checkTimeoutMs?: number;
 }
 
 export const buildPostFixVerificationEngines = (
@@ -158,6 +164,7 @@ const finishDryRun = (input: {
 	projectInfo: Awaited<ReturnType<typeof discoverProject>>;
 	config: AislopConfig;
 	options: FixOptions;
+	checks: readonly string[];
 }): { exitCode: number; fixSteps: number; fixResolved: number } => {
 	const plan = buildFixPlan(input.projectInfo, input.config, {
 		force: Boolean(input.options.force),
@@ -174,6 +181,12 @@ const finishDryRun = (input: {
 	if (input.steps.length === 0 && skippedFixSteps(plan).length === 0) {
 		input.rail.complete({ status: "skipped", label: "No applicable auto-fixers found" });
 	}
+	if (input.checks.length > 0) {
+		input.rail.complete({
+			status: "skipped",
+			label: "Project checks skipped during dry-run",
+		});
+	}
 	input.rail.finish({ footer: "Preview · no changes applied" });
 	process.stdout.write(`\n${renderHintLine(NO_CHANGES_APPLIED)}`);
 	return {
@@ -189,6 +202,12 @@ const runFixBody = async (
 	options: FixOptions,
 	projectInfo: Awaited<ReturnType<typeof discoverProject>>,
 ) => {
+	const resolvedChecks = resolveProjectChecks(config, options);
+	if (isProjectCheckError(resolvedChecks)) {
+		log.error(resolvedChecks.error);
+		return { exitCode: 1 };
+	}
+
 	const startTime = performance.now();
 	const showHeader = options.showHeader !== false;
 	const projectName = projectInfo.projectName ?? "project";
@@ -267,6 +286,9 @@ const runFixBody = async (
 		skipStep,
 	};
 
+	const snapshot =
+		!dryRun && resolvedChecks.commands.length > 0 ? captureWorktree(resolvedDir) : null;
+
 	await runFixPipeline(pipelineDeps, safe);
 
 	if (dryRun) {
@@ -276,10 +298,24 @@ const runFixBody = async (
 			projectInfo: scopedProjectInfo,
 			config,
 			options,
+			checks: resolvedChecks.commands,
 		});
 	}
 
 	const totalResolved = steps.reduce((sum, s) => sum + s.resolvedIssues, 0);
+
+	if (snapshot) {
+		const stopped = await enforceProjectChecks({
+			root: resolvedDir,
+			commands: resolvedChecks.commands,
+			timeoutMs: resolvedChecks.timeoutMs,
+			snapshot,
+			rail,
+			fixSteps: steps.length,
+			fixResolved: totalResolved,
+		});
+		if (stopped) return stopped;
+	}
 
 	const configDir = findConfigDir(resolvedDir);
 	const rulesPath = configDir ? resolveConfigFile(configDir, RULES_FILE) : undefined;

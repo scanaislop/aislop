@@ -212,7 +212,11 @@ aislop fix -d              # detailed fix progress
 aislop fix --safe          # only reversible fixes (imports, comment removal, safe formatters)
 aislop fix -f              # aggressive: deps, unused files
 aislop fix -p              # print an agent handoff prompt
+aislop fix --check "pnpm test"   # opt-in check; a failure rolls back the fix
 ```
+
+`--check` is repeatable. Commands from `fix.checks` in `.aislop/config.yml` run first, then each `--check` flag, in the order given. aislop never discovers package scripts. A failed or timed-out check names that command, restores only the files this fix changed, and exits non-zero. See [Configuration](docs/configuration.md#post-fix-project-checks).
+
 
 `--safe` restricts the run to fixes that cannot change behaviour — unused-import removal, import merging, narrative-comment removal, and formatter runs that do not execute project-controlled configuration. Anything that deletes code, rewrites behaviour/attributes, or can load executable formatter configuration (console/dead-code removal, lint autofixes, Ruby/PHP formatter config, unused-declaration and dependency pruning) is skipped, so a `--safe` run is genuinely "apply and commit".
 
