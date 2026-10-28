@@ -155,7 +155,7 @@ exclude:
 
 Or via CLI: `aislop scan --exclude "**/*.test.ts,dist"`
 
-**Unsupported languages**: aislop only analyses the 10 language targets above. If a repo is mostly something else (Swift, Kotlin, Java, …), scoring a handful of incidental files would misrepresent it, so aislop **withholds the score** and says so rather than printing a number off code it never read. `--json` returns `score: null`, `scoreable: false`, and a `coverage` breakdown.
+**Unsupported languages**: aislop only analyses the 11 language targets above. If a repo is mostly something else (Swift, Kotlin, Scala, …), scoring a handful of incidental files would misrepresent it, so aislop **withholds the score** and says so rather than printing a number off code it never read. `--json` returns `score: null`, `scoreable: false`, and a `coverage` breakdown.
 
 **Per-rule severity**: Override the severity of any rule by id, or turn it off:
 
@@ -399,7 +399,7 @@ Prefer the Marketplace Action? `@v1` runs the latest release. From v0.18.1, pinn
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: scanaislop/aislop@v0.19.0
+- uses: scanaislop/aislop@v0.19.1
 ```
 
 **GitHub code scanning (SARIF)**: emit a SARIF 2.1.0 report and upload it so findings appear in the Security tab:

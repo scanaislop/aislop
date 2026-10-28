@@ -155,7 +155,7 @@ export const matchBaseline = (input: MatchInput): BaselineMatch => {
 	return {
 		diagnostics,
 		accepted,
-		newFindings: diagnostics.length - accepted,
+		newFindings: diagnostics.filter((d) => !d.baselined && d.severity !== "info").length,
 		stale,
 		staleCount: stale.reduce((sum, entry) => sum + entry.count, 0),
 	};
