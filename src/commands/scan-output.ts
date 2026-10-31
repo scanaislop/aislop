@@ -1,6 +1,5 @@
 import os from "node:os";
 import type { AislopConfig } from "../config/index.js";
-import { recordFullScanActivity } from "../engagement/full-scan-activity.js";
 import type { EngineResult } from "../engines/types.js";
 import { detectAislopHooks } from "../hooks/install/registry.js";
 import { renderDiagnostics } from "../output/terminal.js";
@@ -9,10 +8,12 @@ import { isCiEnv } from "../telemetry/env.js";
 import { detectInvocation } from "../ui/invocation.js";
 import { renderMissingTools } from "../ui/summary.js";
 import type { Coverage } from "../utils/discover.js";
+import { detectGithubSlug } from "../utils/github-slug.js";
+import { appendHistory } from "../utils/history.js";
 import { renderBaselineSummary, type ScanBaselineSummary } from "./scan-baseline.js";
 import { renderCoverageNotice } from "./scan-coverage.js";
 import { buildHookNudge } from "./scan-hook-nudge.js";
-import { isFullProjectScan, isHistoryComparableScan, type ScanOptions } from "./scan-options.js";
+import { isHistoryComparableScan, isMachineOutput, type ScanOptions } from "./scan-options.js";
 import type { PreparedScan } from "./scan-pipeline.js";
 import { buildScanRender } from "./scan-render.js";
 
@@ -29,6 +30,23 @@ export interface ScanOutputInput {
 	includeHeader: boolean;
 	counts: { errorCount: number; warningCount: number };
 }
+
+interface ShareHintContext {
+	isTty: boolean;
+	isCi: boolean;
+	share: boolean;
+	machineOutput: boolean;
+	command: ScanOptions["command"];
+	printBrand: boolean;
+}
+
+export const shouldShowShareHint = (ctx: ShareHintContext): boolean =>
+	ctx.isTty &&
+	!ctx.isCi &&
+	!ctx.share &&
+	!ctx.machineOutput &&
+	ctx.command !== "ci" &&
+	ctx.printBrand;
 
 const writeHookNudge = (resolvedDir: string): void => {
 	const nudge = buildHookNudge({
@@ -88,20 +106,23 @@ export const writeHumanOutput = (input: ScanOutputInput): void => {
 	}
 	const { options, config, scoreResult } = input;
 	const { resolvedDir, projectInfo, scanScope } = input.prepared;
-	const showPilotInvitation =
-		isHistoryComparableScan(options) && !isCiEnv()
-			? recordFullScanActivity(
-					{
-						directory: resolvedDir,
-						score: scoreResult.score,
-						errors: input.counts.errorCount,
-						warnings: input.counts.warningCount,
-						files: scanScope.scoreFileCount,
-					},
-					isFullProjectScan(options) && options.printBrand !== false,
-					config.telemetry,
-				)
-			: false;
+	if (isHistoryComparableScan(options) && !isCiEnv()) {
+		appendHistory({
+			directory: resolvedDir,
+			score: scoreResult.score,
+			errors: input.counts.errorCount,
+			warnings: input.counts.warningCount,
+			files: scanScope.scoreFileCount,
+		});
+	}
+	const showShareHint = shouldShowShareHint({
+		isTty: Boolean(process.stdout.isTTY),
+		isCi: isCiEnv(),
+		share: Boolean(options.share),
+		machineOutput: isMachineOutput(options),
+		command: options.command,
+		printBrand: options.printBrand !== false,
+	});
 
 	process.stdout.write(
 		buildScanRender({
@@ -116,7 +137,8 @@ export const writeHumanOutput = (input: ScanOutputInput): void => {
 			verbose: options.verbose,
 			includeHeader: input.includeHeader,
 			printBrand: options.printBrand,
-			showPilotInvitation,
+			showShareHint,
+			share: options.share ? { slug: detectGithubSlug(resolvedDir) } : undefined,
 			baseline: input.baselineSummary,
 		}),
 	);

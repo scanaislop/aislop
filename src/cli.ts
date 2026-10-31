@@ -124,6 +124,7 @@ program
 	.option("--json", "output JSON")
 	.option("--sarif", "output SARIF 2.1.0 (for GitHub code scanning)")
 	.option("--format <format>", "output format: json or sarif")
+	.option("--share", "print a public report link and README badge for this GitHub repo")
 	.option(
 		"--exclude <patterns>",
 		"comma-separated or repeatable list of paths and files to exclude",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderCleanRun, renderSummary, renderTeamCta } from "../../src/ui/summary.js";
+import { renderCleanRun, renderSummary } from "../../src/ui/summary.js";
 import { createSymbols } from "../../src/ui/symbols.js";
 import { createTheme } from "../../src/ui/theme.js";
 import { ANSI_ESCAPE, stripAnsi as strip } from "../helpers/ansi.js";
@@ -235,12 +235,5 @@ describe("summary", () => {
 	it("renders a clean-run one-liner when score is 100 and no issues", () => {
 		const out = strip(renderCleanRun({ elapsedMs: 2300 }, opts));
 		expect(out).toContain("✓ Clean run  ·  no issues  ·  2.3s");
-	});
-
-	it("renders the team CTA with a visible https URL", () => {
-		const out = strip(renderTeamCta(opts));
-		expect(out).toContain(
-			"Get a 14-day team baseline at https://scanaislop.com/contact?intent=team-baseline",
-		);
 	});
 });
