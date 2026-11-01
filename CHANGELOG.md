@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.20.0 (2026-11-01)
+
+A minor release. `aislop scan --share` prints a public report link and README badge for GitHub repos, and the scan summary points to it instead of the team invitation.
+
+### Added
+
+- **`aislop scan --share`.** For a project with a GitHub `origin` remote, prints the public report link `https://scanaislop.com/<owner>/<repo>` and the README badge markdown. The report works for public repos only. The link is built from the local remote: nothing is uploaded and no network call is made. `ssh://git@github.com/...` remotes are now recognised as well.
+
+### Changed
+
+- **Scan summary hint.** Interactive scans end with `Share this report: aislop scan --share`. The hint is left out of JSON and SARIF output, piped output, CI runs, `aislop ci`, and runs that already pass `--share`.
+
+### Removed
+
+- **Team invitation after the third scan.** The "Using aislop with a team?" line and the local counter behind it are gone. Existing counter files are ignored.
+
 ## 0.19.1 (2026-10-28)
 
 A patch release. Info notices such as `knip/skipped` no longer fail a baselined `aislop ci` run, and the README no longer lists Java as unsupported.

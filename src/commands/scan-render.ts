@@ -1,10 +1,10 @@
-import { renderBaselineSummary, type ScanBaselineSummary } from "./scan-baseline.js";
 import { collectMissingTools } from "../engines/missing-tools.js";
 import type { Diagnostic, EngineResult } from "../engines/types.js";
 import { summarizeFindingAssessments } from "../output/finding-assessment.js";
 import { renderDiagnostics } from "../output/terminal.js";
 import { renderHeader } from "../ui/header.js";
 import { detectInvocation } from "../ui/invocation.js";
+import { renderShareBlock, renderShareHint, type ShareInput } from "../ui/share.js";
 import {
 	type BreakdownSummary,
 	type NextStep,
@@ -12,11 +12,11 @@ import {
 	renderMissingTools,
 	renderStarCta,
 	renderSummary,
-	renderTeamCta,
 } from "../ui/summary.js";
 import { createSymbols } from "../ui/symbols.js";
 import { createTheme } from "../ui/theme.js";
 import { APP_VERSION } from "../version.js";
+import { renderBaselineSummary, type ScanBaselineSummary } from "./scan-baseline.js";
 
 const BREAKDOWN_TOP_N = 10;
 
@@ -117,7 +117,8 @@ interface BuildScanRenderInput {
 	verbose: boolean;
 	includeHeader?: boolean;
 	printBrand?: boolean;
-	showPilotInvitation?: boolean;
+	showShareHint?: boolean;
+	share?: ShareInput;
 	baseline?: ScanBaselineSummary;
 }
 
@@ -149,14 +150,12 @@ export const buildScanRender = (input: BuildScanRenderInput): string => {
 		(d) => d.rule === "security/vulnerable-dependency",
 	);
 
-	const cta =
-		input.printBrand === false
-			? ""
-			: input.showPilotInvitation === true
-				? renderTeamCta(deps)
-				: errors + warnings === 0
-					? renderStarCta(deps)
-					: "";
+	const shareNotice = input.share
+		? renderShareBlock(input.share, deps)
+		: input.showShareHint === true
+			? renderShareHint(invocation, deps)
+			: "";
+	const cta = input.printBrand === false || errors + warnings > 0 ? "" : renderStarCta(deps);
 
 	const baselineNotice = input.baseline
 		? renderBaselineSummary(input.baseline, invocation, deps)
@@ -170,7 +169,7 @@ export const buildScanRender = (input: BuildScanRenderInput): string => {
 		return `${header}${renderCleanRun(
 			{ score: input.score.score, label: input.score.label, elapsedMs: input.elapsedMs },
 			deps,
-		)}${missingTools}${baselineNotice}${cta}`;
+		)}${missingTools}${baselineNotice}${shareNotice}${cta}`;
 	}
 
 	const diagBlock =
@@ -200,5 +199,5 @@ export const buildScanRender = (input: BuildScanRenderInput): string => {
 		deps,
 	);
 
-	return `${header}${diagBlock}${summary}${missingTools}${baselineNotice}${cta}`;
+	return `${header}${diagBlock}${summary}${missingTools}${baselineNotice}${shareNotice}${cta}`;
 };

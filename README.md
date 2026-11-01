@@ -143,7 +143,10 @@ aislop scan --sarif               # SARIF 2.1.0 output (GitHub code scanning)
 aislop scan --format json         # alternate JSON form
 aislop scan --include "src/**"    # only matching paths
 aislop scan --exclude "dist,gen"  # skip extra paths
+aislop scan --share               # print a public report link and badge
 ```
+
+**Share**: `--share` reads the `origin` remote and, for a GitHub repo, prints the public report link `https://scanaislop.com/<owner>/<repo>` and the README badge markdown. The report works for public repos only. Anyone with the link can see the score for the default branch. Nothing is uploaded and no network call is made; the page scans the public repo itself.
 
 **Exclude files**: `node_modules`, `.git`, `dist`, `build`, `coverage` excluded by default. Add more in `.aislop/config.yml`:
 
@@ -399,7 +402,7 @@ Prefer the Marketplace Action? `@v1` runs the latest release. From v0.18.1, pinn
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: scanaislop/aislop@v0.19.1
+- uses: scanaislop/aislop@v0.20.0
 ```
 
 **GitHub code scanning (SARIF)**: emit a SARIF 2.1.0 report and upload it so findings appear in the Security tab:

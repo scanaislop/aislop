@@ -14,7 +14,7 @@ export interface HistoryRecord {
 	cliVersion: string;
 }
 
-export const isHistoryDisabled = (env: NodeJS.ProcessEnv = process.env): boolean =>
+const isHistoryDisabled = (env: NodeJS.ProcessEnv = process.env): boolean =>
 	env.AISLOP_NO_HISTORY === "1";
 
 const historyPath = (directory: string): string =>

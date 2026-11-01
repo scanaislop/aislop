@@ -5,7 +5,6 @@ import { terminalLink } from "./link.js";
 import { symbols as defaultSymbols, type Symbols } from "./symbols.js";
 import { theme as defaultTheme, style, type Theme, type Token } from "./theme.js";
 import { padEnd } from "./width.js";
-import { siteUrl } from "./site-url.js";
 
 export interface NextStep {
 	emphasis: "primary" | "muted";
@@ -207,15 +206,6 @@ export const renderStarCta = (deps: SummaryDeps = {}): string => {
 	const t = deps.theme ?? defaultTheme;
 	const repository = terminalLink("https://github.com/scanaislop/aislop");
 	return `\n ${style(t, "muted", `★ Found this useful? Star us at ${repository}`)}\n`;
-};
-
-export const renderTeamCta = (deps: SummaryDeps = {}): string => {
-	const t = deps.theme ?? defaultTheme;
-	const href = terminalLink(
-		siteUrl("/contact?intent=team-baseline", "team-baseline-cta"),
-		"https://scanaislop.com/contact?intent=team-baseline",
-	);
-	return `\n ${style(t, "muted", `→ Using aislop with a team? Get a 14-day team baseline at ${href}`)}\n`;
 };
 
 export const renderMissingTools = (

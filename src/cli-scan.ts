@@ -10,6 +10,7 @@ export interface ScanFlags {
 	json?: boolean;
 	sarif?: boolean;
 	format?: string;
+	share?: boolean;
 	exclude?: string[];
 	include?: string[];
 }
@@ -41,6 +42,7 @@ export const runScan = async (directory: string, flags: ScanFlags): Promise<void
 		verbose: Boolean(flags.verbose),
 		json: !sarif && wantsJson(flags),
 		sarif,
+		share: Boolean(flags.share),
 		exclude: flags.exclude,
 		include: flags.include,
 	});

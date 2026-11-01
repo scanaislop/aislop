@@ -41,7 +41,7 @@ describe("scan render", () => {
 				elapsedMs: 2300,
 				thresholds: { good: 85, ok: 65 },
 				verbose: false,
-				showPilotInvitation: true,
+				showShareHint: true,
 			}),
 		);
 		expect(out).toContain("aislop");
@@ -58,11 +58,11 @@ describe("scan render", () => {
 		);
 		expect(out).toMatch(/Auto-fix\s+aislop fix\s+auto-fix 1 issue/);
 		expect(out).not.toContain("aislop fix --claude");
-		expect(out).toContain("14-day team baseline");
-		expect(out).toContain("https://scanaislop.com/contact?intent=team-baseline");
+		expect(out).toContain("Share this report: aislop scan --share");
+		expect(out).not.toContain("team baseline");
 	});
 
-	it("omits the pilot invitation when the scan is not eligible", () => {
+	it("omits the share hint when not requested", () => {
 		const out = strip(
 			buildScanRender({
 				projectName: "my-app",
@@ -74,11 +74,32 @@ describe("scan render", () => {
 				elapsedMs: 1000,
 				thresholds: { good: 85, ok: 65 },
 				verbose: false,
-				showPilotInvitation: false,
+				showShareHint: false,
 			}),
 		);
 
-		expect(out).not.toContain("14-day team baseline");
+		expect(out).not.toContain("Share this report");
+	});
+
+	it("prints the share block instead of the hint when --share is set", () => {
+		const out = strip(
+			buildScanRender({
+				projectName: "my-app",
+				language: "typescript",
+				fileCount: 142,
+				results: [engineResult({ diagnostics: [diag()] })],
+				diagnostics: [diag()],
+				score: { score: 89, label: "Healthy" },
+				elapsedMs: 1000,
+				thresholds: { good: 85, ok: 65 },
+				verbose: false,
+				showShareHint: true,
+				share: { slug: { owner: "acme", repo: "app" } },
+			}),
+		);
+
+		expect(out).toContain("https://scanaislop.com/acme/app?utm_source=aislop");
+		expect(out).not.toContain("Share this report");
 	});
 
 	it("renders clean-run one-liner when score is 100 and 0 issues", () => {
