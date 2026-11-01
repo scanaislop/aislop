@@ -27,6 +27,7 @@ Also available on npm, Yarn, Bun, Homebrew, and PyPI:
 ```bash
 npm install -g aislop                # npm
 yarn dlx aislop scan                 # Yarn (no install)
+bunx aislop scan                     # Bun (no install)
 bun add -g aislop                    # Bun
 brew install scanaislop/tap/aislop   # Homebrew
 pipx install aislop                  # Python
@@ -73,6 +74,7 @@ The same CLI is published to npm, Homebrew, and PyPI. Pick whichever fits your s
 ```bash
 # Run without installing
 npx aislop@latest scan
+bunx aislop@latest scan   # Bun
 
 # npm
 npm install --save-dev aislop
