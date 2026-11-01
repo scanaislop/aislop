@@ -18,7 +18,7 @@ export const renderShareBlock = (input: ShareInput, deps: { theme?: Theme } = {}
 	const label = (text: string): string => style(t, "muted", text.padEnd(6));
 	const report = `   ${label("Report")}  ${siteUrl(`/${owner}/${repo}`, "share")}`;
 	const badge = `   ${label("Badge")}  [![aislop](${badgeUrl})](${pageUrl})`;
-	const note = `   ${style(t, "muted", "Anyone with the link can see the score for the default branch.")}`;
+	const note = `   ${style(t, "muted", "Public repos only. Anyone with the link can see the score for the default branch.")}`;
 	return `\n ${renderDisplaySection("Share", { theme: t })}\n${report}\n${note}\n${badge}\n`;
 };
 

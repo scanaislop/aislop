@@ -69,7 +69,7 @@ npx aislop@latest scan
 | `--format <format>` | Output format: `json` or `sarif` |
 | `--include <patterns>` | Only scan matching comma-separated or repeated paths |
 | `--exclude <patterns>` | Exclude comma-separated or repeated paths |
-| `--share` | Print the public report link (`https://scanaislop.com/<owner>/<repo>`) and README badge for a GitHub `origin` remote. No upload or network call |
+| `--share` | Print the public report link (`https://scanaislop.com/<owner>/<repo>`) and README badge for a GitHub `origin` remote (public repos only). No upload or network call |
 
 ### ci
 

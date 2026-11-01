@@ -146,7 +146,7 @@ aislop scan --exclude "dist,gen"  # skip extra paths
 aislop scan --share               # print a public report link and badge
 ```
 
-**Share**: `--share` reads the `origin` remote and, for a GitHub repo, prints the public report link `https://scanaislop.com/<owner>/<repo>` and the README badge markdown. Anyone with the link can see the score for the default branch. Nothing is uploaded and no network call is made; the page scans the public repo itself.
+**Share**: `--share` reads the `origin` remote and, for a GitHub repo, prints the public report link `https://scanaislop.com/<owner>/<repo>` and the README badge markdown. The report works for public repos only. Anyone with the link can see the score for the default branch. Nothing is uploaded and no network call is made; the page scans the public repo itself.
 
 **Exclude files**: `node_modules`, `.git`, `dist`, `build`, `coverage` excluded by default. Add more in `.aislop/config.yml`:
 

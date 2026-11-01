@@ -9,7 +9,7 @@ describe("renderShareBlock", () => {
 		expect(out).toContain(
 			"https://scanaislop.com/acme/app?utm_source=aislop&utm_medium=cli&utm_content=share",
 		);
-		expect(out).toContain("Anyone with the link can see the score for the default branch");
+		expect(out).toContain("Public repos only. Anyone with the link can see the score for the default branch");
 		expect(out).toContain(
 			"[![aislop](https://badges.scanaislop.com/score/acme/app.svg)](https://scanaislop.com/acme/app)",
 		);
