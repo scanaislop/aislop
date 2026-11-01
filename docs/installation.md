@@ -5,6 +5,7 @@ The same CLI is published to npm, Homebrew, and PyPI. Pick whichever fits your s
 | Channel | Command | Notes |
 |---|---|---|
 | npm / npx | `npx aislop@latest scan` | No install; optional native tools are described below |
+| Bun / bunx | `bunx aislop@latest scan` | No install; Bun-only projects use `bun audit` for the dependency audit |
 | Homebrew | `brew install scanaislop/tap/aislop` | macOS / Linux; pulls Node as a dependency |
 | Python / pipx | `pipx install aislop` | Isolated env; needs Node on `PATH` |
 
@@ -12,6 +13,9 @@ The same CLI is published to npm, Homebrew, and PyPI. Pick whichever fits your s
 
 ```bash
 npx aislop scan
+
+# Bun
+bunx aislop scan
 ```
 
 ## Install as a dev dependency
@@ -25,12 +29,16 @@ yarn add --dev aislop
 
 # pnpm
 pnpm add -D aislop
+
+# bun
+bun add -d aislop
 ```
 
 ## Global install
 
 ```bash
 npm install -g aislop
+# or: bun add -g aislop
 aislop scan
 ```
 
