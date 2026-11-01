@@ -7,6 +7,7 @@ export interface ScanOptions {
 	verbose: boolean;
 	json: boolean;
 	sarif?: boolean;
+	share?: boolean;
 	showHeader?: boolean;
 	printBrand?: boolean;
 	exclude?: string[];
@@ -21,9 +22,6 @@ export const isMachineOutput = (options: ScanOptions): boolean =>
 
 export const isHistoryComparableScan = (options: ScanOptions): boolean =>
 	!options.staged && !options.changes && options.command !== "ci";
-
-export const isFullProjectScan = (options: ScanOptions): boolean =>
-	isHistoryComparableScan(options) && !options.include?.length && !options.exclude?.length;
 
 export const resolveScanScopeMode = (options: ScanOptions): ScanScopeMode => {
 	if (options.staged) return { kind: "staged" };

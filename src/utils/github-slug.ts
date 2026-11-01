@@ -2,7 +2,7 @@ import { execSync } from "node:child_process";
 import path from "node:path";
 
 const GITHUB_REMOTE_RE =
-	/^(?:git@github\.com:|https:\/\/(?:[^@]+@)?github\.com\/)([^/]+)\/([^/\s]+?)(?:\.git)?\s*$/;
+	/^(?:git@github\.com:|ssh:\/\/git@github\.com\/|https:\/\/(?:[^@]+@)?github\.com\/)([^/]+)\/([^/\s]+?)(?:\.git)?\s*$/;
 
 export interface GithubSlug {
 	owner: string;
