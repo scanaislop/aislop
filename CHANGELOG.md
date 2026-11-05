@@ -753,7 +753,7 @@ A follow-up round after 0.6.0 went live: hook UX gaps surfaced on first contact,
 
 ### Changed
 
-- **`README.md` covers hooks.** New "Install as a native hook" section under Usage with adapter + rules-only installer lists, quality-gate flow, and a link to [`/docs/hooks`](https://scanaislop.com/docs/hooks). Quick-start and "Why aislop" blocks mention hooks. Sample-output version banner bumped to 0.6.1.
+- **`README.md` covers hooks.** New "Install as a native hook" section under Usage with adapter + rules-only installer lists, quality-gate flow, and a link to [`/docs/hooks`](https://scanaislop.com/docs/hooks/). Quick-start and "Why aislop" blocks mention hooks. Sample-output version banner bumped to 0.6.1.
 - **Internal refactors** driven by the new rules:
   - `src/commands/doctor.ts`: extracted `systemToolDecision()` + `firstMatching()` + `FORMAT_SPECS` / `LINT_SPECS` / `AUDIT_SPECS` data tables, replacing six repeated `if (languages.includes(X)) return installedTools[Y] ? {...} : {...}` blocks.
   - `src/utils/source-masker.ts`: extracted `handleQuotesAndComments()` — the string/template/comment state machine was duplicated across the top-level and inside-interpolation branches.
