@@ -46,6 +46,8 @@ const FIX_FLAGS = [
 	"--staged",
 	"--base <ref>",
 	"-p, --prompt",
+	"--check <command>",
+	"--check-timeout <ms>",
 	...FIX_AGENT_FLAGS,
 ];
 
@@ -320,6 +322,10 @@ export const FLAG_GUIDE_ROWS: DisplayRow[] = [
 	{ label: "--json", value: "emit machine-readable scan output" },
 	{ label: "--sarif", value: "emit SARIF for code scanning" },
 	{ label: "--safe", value: "only apply reversible fixes" },
+	{
+		label: "--check",
+		value: "opt-in project check after fixes; config checks run first",
+	},
 	{
 		label: "--provider",
 		value: "choose auto, codex, claude, opencode, or pi for local agent runs",

@@ -122,7 +122,11 @@ describe("killActiveChildren", () => {
 			// The kill is asynchronous (taskkill on Windows, signal escalation
 			// elsewhere) - poll rather than asserting instantly.
 			const deadline = Date.now() + 5000;
-			while (grandchildPid !== undefined && isProcessAlive(grandchildPid) && Date.now() < deadline) {
+			while (
+				grandchildPid !== undefined &&
+				isProcessAlive(grandchildPid) &&
+				Date.now() < deadline
+			) {
 				await new Promise((resolve) => setTimeout(resolve, 100));
 			}
 			expect(grandchildPid !== undefined && isProcessAlive(grandchildPid)).toBe(false);
@@ -268,6 +272,21 @@ describe("chunkFilePaths", () => {
 		expect(chunks).toHaveLength(2);
 		expect(chunks[0]).toHaveLength(200);
 		expect(chunks[1]).toHaveLength(1);
+	});
+});
+
+describe("runSubprocess bounded output", () => {
+	it("returns only the tail once stdout passes maxOutputBytes", async () => {
+		const script = [
+			"process.stdout.write('PREFIX_SENTINEL');",
+			"process.stdout.write('x'.repeat(500));",
+			"process.stdout.write('END');",
+		].join("");
+		const result = await runSubprocess(process.execPath, ["-e", script], { maxOutputBytes: 32 });
+		expect(result.stdoutTruncated).toBe(true);
+		expect(result.stdout.length).toBeLessThanOrEqual(32);
+		expect(result.stdout.endsWith("END")).toBe(true);
+		expect(result.stdout).not.toContain("PREFIX_SENTINEL");
 	});
 });
 
