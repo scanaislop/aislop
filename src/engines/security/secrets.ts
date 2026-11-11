@@ -4,6 +4,7 @@ import { relativePosix } from "../../utils/paths.js";
 import { getSourceFilesWithExtras } from "../../utils/source-files.js";
 import { maskComments } from "../../utils/source-masker.js";
 import type { Diagnostic, EngineContext } from "../types.js";
+import { createLineCounter } from "./source-line.js";
 
 interface SecretPattern {
 	pattern: RegExp;
@@ -325,6 +326,7 @@ export const scanSecrets = async (context: EngineContext): Promise<Diagnostic[]>
 
 		for (const { pattern, name, keywordPrefixed } of SECRET_PATTERNS) {
 			const regex = new RegExp(pattern.source, pattern.flags);
+			const lineAt = createLineCounter(content);
 
 			for (const match of content.matchAll(regex)) {
 				const matchedText = match[1] ?? match[0];
@@ -339,7 +341,7 @@ export const scanSecrets = async (context: EngineContext): Promise<Diagnostic[]>
 				}
 				if (keywordPrefixed && isInsideStringLiteral(content, match.index)) continue;
 
-				const line = content.slice(0, match.index).split("\n").length;
+				const line = lineAt(match.index);
 
 				diagnostics.push({
 					filePath: relativePath,
