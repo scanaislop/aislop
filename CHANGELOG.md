@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- **Scala language support.** Scala sources (`.scala`, `.sc`) are now detected from extensions and sbt/Mill build files and receive real coverage: scalafmt formatting when the project has a `.scalafmt.conf`, AI-slop patterns (duplicate/unused imports, `println` leftovers, swallowed catches, and the new `ai-slop/scala-broad-catch`), security risky patterns (SQL injection via interpolation, shell injection, unsafe deserialization), and the generic complexity and comment checks.
+
 ## 0.20.0 (2026-11-01)
 
 A minor release. `aislop scan --share` prints a public report link and README badge for GitHub repos, and the scan summary points to it instead of the team invitation.
