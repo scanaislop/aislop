@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { detectSwallowedExceptions } from "../src/engines/ai-slop/exceptions.js";
 import { detectPythonPatterns } from "../src/engines/ai-slop/python-patterns.js";
 import type { EngineContext } from "../src/engines/types.js";
 
@@ -600,5 +601,107 @@ describe("python: SCBench-inspired verbosity patterns", () => {
 		const diagnostics = await detectPythonPatterns(buildContext());
 		expect(diagnostics.filter((d) => d.rule === "ai-slop/python-isinstance-ladder")).toEqual([]);
 		expect(diagnostics.filter((d) => d.rule === "ai-slop/python-repetitive-dispatch")).toEqual([]);
+	});
+});
+
+describe("Python issue #526", () => {
+	it("reports only the real executable statement", async () => {
+		writeFile(
+			"pkg/mod.py",
+			'def is_quote(line):\n    return line[:3] == \'"""\'\n\n\ndef report(value):\n    print("debug", value)\n    return value\n\n\ndef helper():\n    """Show it.\n\n    print(value)\n    """\n    return None\n',
+		);
+		const diagnostics = await detectPythonPatterns(buildContext());
+		expect(
+			diagnostics.filter((d) => d.rule === "ai-slop/python-print-debug").map((d) => d.line),
+		).toEqual([6]);
+	});
+});
+
+describe("Python issue #527", () => {
+	it("reports only the real executable statement", async () => {
+		writeFile(
+			"pkg/mod.py",
+			'TEMPLATE = """\ntry:\n    run()\nexcept:\n    pass\n"""\n\n\ndef doc():\n    """Example::\n\n        try:\n            run()\n        except:\n            pass\n    """\n    return TEMPLATE\n\n\ndef reraise():\n    try:\n        doc()\n    except:\n        cleanup()\n        raise\n\n\ndef cleanup():\n    return None\n',
+		);
+		const diagnostics = await detectPythonPatterns(buildContext());
+		expect(
+			diagnostics.filter((d) => d.rule === "ai-slop/python-bare-except").map((d) => d.line),
+		).toEqual([23]);
+	});
+});
+
+describe("Python quote boundaries", () => {
+	it.each([
+		["comment delimiter", '# """'],
+		["single quoted delimiter", 'marker = \'"""\''],
+		["double quoted delimiter", "marker = \"'''\""],
+		["escaped ordinary quote", "marker = 'it\\'s \"\"\" text'"],
+		["closed inline literal then comment", 'marker = """ok""" # """'],
+		["two triple literals", 'first = """ok"""; second = \'\'\'\nprint("template")\n\'\'\''],
+		["escaped triple close", 'template = """example \\"""\nprint("template")\n"""'],
+		["continued ordinary string", 'marker = \'\\\n"""\''],
+	])("keeps code visible after %s", async (_name, prefix) => {
+		const lines = [...prefix.split("\n"), "print('real')", '"""Example', "print('text')", '"""'];
+		writeFile("pkg/quotes.py", lines.join("\n"));
+		const diagnostics = await detectPythonPatterns(buildContext());
+		expect(
+			diagnostics.filter((d) => d.rule === "ai-slop/python-print-debug").map((d) => d.line),
+		).toEqual([prefix.split("\n").length + 1]);
+	});
+	it.each(["Exception", "BaseException"])("ignores %s handlers in strings", async (exception) => {
+		writeFile(
+			"pkg/template.py",
+			[
+				'TEMPLATE = """',
+				"try:",
+				"    run()",
+				`except ${exception}:`,
+				"    pass",
+				'"""',
+				"try:",
+				"    run()",
+				`except ${exception}:`,
+				"    pass",
+			].join("\n"),
+		);
+		const diagnostics = await detectPythonPatterns(buildContext());
+		expect(
+			diagnostics.filter((d) => d.rule === "ai-slop/python-broad-except").map((d) => d.line),
+		).toEqual([9]);
+	});
+});
+
+describe("Python swallowed exceptions in strings", () => {
+	it.each([
+		["except:", "pass"],
+		["except Exception:", "pass"],
+		["except:", "print(error)"],
+		["except Exception:", "print(error)"],
+	])("reports only the real %s with %s", async (handler, body) => {
+		writeFile(
+			"pkg/handlers.py",
+			[
+				`marker = '"""'`,
+				'TEMPLATE = """',
+				"try:",
+				"    run()",
+				handler,
+				`    ${body}`,
+				'"""',
+				"def doc():",
+				'    """Example',
+				"    try:",
+				"        run()",
+				`    ${handler}`,
+				`        ${body}`,
+				'    """',
+				"try:",
+				"    run()",
+				handler,
+				`    ${body}`,
+			].join("\n"),
+		);
+		const diagnostics = await detectSwallowedExceptions(buildContext());
+		expect(diagnostics.map((d) => d.line)).toEqual([17]);
 	});
 });
