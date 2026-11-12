@@ -306,7 +306,7 @@ describe("runProjectChecks", () => {
 });
 
 describe("fix rollback", () => {
-	it("does not invoke git", () => {
+	it("does not invoke git commands directly", () => {
 		const source = fs.readFileSync(
 			path.join(process.cwd(), "src/commands/fix-rollback.ts"),
 			"utf-8",
@@ -335,6 +335,7 @@ describe("fix rollback", () => {
 		const bytes = Buffer.from([0x00, 0x0d, 0x0a, 0xff, 0x41]);
 		writeFile(root, "src/gone.bin", bytes);
 		fs.chmodSync(path.join(root, "src/gone.bin"), 0o755);
+		const originalMode = fs.statSync(path.join(root, "src/gone.bin")).mode & 0o777;
 		const before = captureWorktree(root);
 		fs.unlinkSync(path.join(root, "src/gone.bin"));
 		const changes = diffFixChanges(root, before);
@@ -342,7 +343,7 @@ describe("fix rollback", () => {
 		restoreFixChanges(root, before, changes);
 		const abs = path.join(root, "src/gone.bin");
 		expect(fs.readFileSync(abs).equals(bytes)).toBe(true);
-		expect(fs.statSync(abs).mode & 0o777).toBe(0o755);
+		expect(fs.statSync(abs).mode & 0o777).toBe(originalMode);
 	});
 
 	it("keeps staged, unstaged, and untracked bytes intact", () => {
@@ -352,6 +353,7 @@ describe("fix rollback", () => {
 		writeFile(root, "unstaged.txt", "INDEX-BASE\n");
 		writeFile(root, "deleted.txt", Buffer.from([0x01, 0x02, 0x03]));
 		fs.chmodSync(path.join(root, "deleted.txt"), 0o755);
+		const deletedMode = fs.statSync(path.join(root, "deleted.txt")).mode & 0o777;
 		writeFile(root, "untouched.txt", "KEEP\n");
 		commitAll(root);
 		writeFile(root, "staged.txt", "USER-STAGED\n");
@@ -386,7 +388,7 @@ describe("fix rollback", () => {
 		expect(
 			fs.readFileSync(path.join(root, "deleted.txt")).equals(Buffer.from([0x01, 0x02, 0x03])),
 		).toBe(true);
-		expect(fs.statSync(path.join(root, "deleted.txt")).mode & 0o777).toBe(0o755);
+		expect(fs.statSync(path.join(root, "deleted.txt")).mode & 0o777).toBe(deletedMode);
 		expect(fs.existsSync(path.join(root, "nested"))).toBe(false);
 		expect(fs.readFileSync(path.join(root, "untouched.txt"), "utf-8")).toBe("KEEP\n");
 		expect(fs.statSync(path.join(root, "untouched.txt")).mtimeMs).toBe(untouchedMtime);
