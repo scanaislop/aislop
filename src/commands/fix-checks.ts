@@ -56,8 +56,7 @@ const normalizeCommands = (commands: readonly string[]): string[] => {
 	return normalized;
 };
 
-// Opt-in only. Order is every `fix.checks` entry, then each `--check` flag.
-// Package scripts are never read or executed here.
+// Explicitly enabled config commands precede --check flags.
 export const resolveProjectChecks = (
 	config: CheckConfigInput,
 	options: CheckOptionInput = {},

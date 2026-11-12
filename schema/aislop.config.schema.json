@@ -48,7 +48,8 @@
 				"maxFunctionLoc": 80,
 				"maxFileLoc": 400,
 				"maxNesting": 5,
-				"maxParams": 6
+				"maxParams": 6,
+				"knip": "auto"
 			},
 			"type": "object",
 			"properties": {
@@ -71,6 +72,15 @@
 					"default": 6,
 					"type": "number",
 					"exclusiveMinimum": 0
+				},
+				"knip": {
+					"default": "auto",
+					"type": "string",
+					"enum": [
+						"auto",
+						"always",
+						"off"
+					]
 				}
 			}
 		},
@@ -354,7 +364,7 @@
 			"properties": {
 				"checks": {
 					"default": [],
-					"description": "Opt-in shell commands run after fixes, in listed order. Package scripts are never discovered.",
+					"description": "Shell commands run after fixes only with explicit --run-checks, in listed order. Package scripts are never discovered.",
 					"type": "array",
 					"items": {
 						"type": "string"

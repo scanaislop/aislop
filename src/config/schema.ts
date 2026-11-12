@@ -115,7 +115,7 @@ const FixSchema = z.object({
 		.array(z.string())
 		.default(() => [])
 		.describe(
-			"Opt-in shell commands run after fixes, in listed order. Package scripts are never discovered.",
+			"Shell commands run after fixes only with explicit --run-checks, in listed order. Package scripts are never discovered.",
 		),
 	checkTimeoutMs: z
 		.number()

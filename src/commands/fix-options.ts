@@ -13,7 +13,7 @@ export interface FixOptions {
 	prompt?: boolean;
 	showHeader?: boolean;
 	printBrand?: boolean;
-	/** Extra project checks, appended after config `fix.checks` in flag order. */
+	/** Explicit project checks, appended after enabled config checks. */
 	checks?: string[];
 	/** Overrides `fix.checkTimeoutMs` for this run. */
 	checkTimeoutMs?: number;
