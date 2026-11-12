@@ -77,43 +77,39 @@ export const chunkFilePaths = (
 // This kills the whole tree instead. Windows has no process groups, so it
 // shells out to taskkill's /T (tree) flag; POSIX relies on the child having
 // been spawned detached (see below) so its pid doubles as a process-group id.
-const killProcessTree = (child: ChildProcess): void => {
-	if (process.platform === "win32") {
-		if (child.pid === undefined) {
-			child.kill("SIGTERM");
+const killProcessTree = (child: ChildProcess): Promise<void> => {
+	if (process.platform === "win32" && child.pid !== undefined) {
+		return new Promise((resolve) => {
+			// Keep the parent alive until taskkill has walked its descendants.
+			const taskkill = spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
+				stdio: "ignore",
+				windowsHide: true,
+			});
+			taskkill.once("error", () => {
+				child.kill("SIGKILL");
+				resolve();
+			});
+			taskkill.once("close", () => resolve());
+		});
+	}
+	const signal = (name: NodeJS.Signals): void => {
+		if (child.pid === undefined || process.platform === "win32") {
+			child.kill(name);
 			return;
 		}
-		// taskkill walks the tree by parent pid, so the parent must still be
-		// alive when it runs - calling child.kill() first would sever the
-		// walk and orphan the very workers this is meant to reap.
-		const taskkill = spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
-			stdio: "ignore",
-			windowsHide: true,
-		});
-		// A missing taskkill binary must not crash the process; the timeout
-		// rejection still fires regardless of whether this succeeds.
-		taskkill.once("error", () => {});
-		return;
-	}
-
-	if (child.pid === undefined) {
-		child.kill("SIGTERM");
-		setTimeout(() => child.kill("SIGKILL"), 1000).unref();
-		return;
-	}
-	const pid = child.pid;
-	try {
-		process.kill(-pid, "SIGTERM");
-	} catch {
-		child.kill("SIGTERM");
-	}
-	setTimeout(() => {
 		try {
-			process.kill(-pid, "SIGKILL");
+			process.kill(-child.pid, name);
 		} catch {
-			child.kill("SIGKILL");
+			child.kill(name);
 		}
-	}, 1000).unref();
+	};
+	signal("SIGTERM");
+	return new Promise((resolve) => {
+		setTimeout(() => {
+			signal("SIGKILL");
+			resolve();
+		}, 1000);
+	});
 };
 
 // Every in-flight child is tracked here so an interactive Ctrl-C can reap it.
@@ -127,7 +123,7 @@ const activeChildren = new Set<ChildProcess>();
 
 export const killActiveChildren = (): void => {
 	for (const child of activeChildren) {
-		killProcessTree(child);
+		void killProcessTree(child);
 	}
 	activeChildren.clear();
 };
@@ -225,10 +221,7 @@ export const runSubprocess = (
 
 		activeChildren.add(child);
 
-		// Runs exactly once, on whichever of 'close'/'error' fires first (a
-		// spawn failure can still emit 'close' afterward). Not gated behind
-		// `settled`: a timeout already rejected before the killed child's
-		// 'close' arrives, but the temp files must still be read and removed.
+		// Spawn failures can emit both error and close; release captures once.
 		let cleanedUp = false;
 		const cleanup = (): {
 			stdout: string;
@@ -262,6 +255,8 @@ export const runSubprocess = (
 		};
 
 		let settled = false;
+		let termination: Promise<void> | undefined;
+		let timedOut = false;
 		let timer: NodeJS.Timeout | undefined;
 
 		const finalize = (callback: () => void) => {
@@ -288,10 +283,8 @@ export const runSubprocess = (
 					// that completion resolve normally instead of misreporting
 					// a finished command as a timeout.
 					if (child.exitCode !== null || child.signalCode !== null) return;
-					killProcessTree(child);
-					finalize(() =>
-						reject(new Error(`Command timed out after ${options.timeout}ms: ${command}`)),
-					);
+					timedOut = true;
+					termination = killProcessTree(child);
 				});
 			}, options.timeout);
 			timer.unref();
@@ -307,8 +300,14 @@ export const runSubprocess = (
 				reject(wrapped);
 			});
 		});
-		child.once("close", (code) => {
+		const finishClose = (code: number | null): void => {
 			const captured = cleanup();
+			if (timedOut) {
+				finalize(() =>
+					reject(new Error(`Command timed out after ${options.timeout}ms: ${command}`)),
+				);
+				return;
+			}
 			finalize(() =>
 				resolve({
 					stdout: captured.stdout,
@@ -318,6 +317,10 @@ export const runSubprocess = (
 					stderrTruncated: captured.stderrTruncated,
 				}),
 			);
+		};
+		child.once("close", (code) => {
+			if (termination) void termination.then(() => finishClose(code));
+			else finishClose(code);
 		});
 	});
 };

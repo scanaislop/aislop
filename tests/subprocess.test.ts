@@ -316,3 +316,28 @@ describe("warnSubprocessFailure", () => {
 		spy.mockRestore();
 	});
 });
+
+describe("timeout completion", () => {
+	it.skipIf(process.platform === "win32")(
+		"waits for termination before reporting a timeout",
+		async () => {
+			const pidFile = path.join(tmpdir(), `aislop-timeout-close-${process.pid}-${Date.now()}.pid`);
+			const script = [
+				"process.on('SIGTERM', () => setTimeout(() => process.exit(0), 300));",
+				`require('node:fs').writeFileSync(${JSON.stringify(pidFile)}, String(process.pid));`,
+				"setInterval(() => {}, 1000);",
+			].join("\n");
+			let childPid: number | undefined;
+			try {
+				await expect(
+					runSubprocess(process.execPath, ["-e", script], { timeout: 2000 }),
+				).rejects.toThrow(/timed out/);
+				childPid = Number(readFileSync(pidFile, "utf8"));
+				expect(isProcessAlive(childPid)).toBe(false);
+			} finally {
+				if (childPid !== undefined && isProcessAlive(childPid)) process.kill(childPid, "SIGKILL");
+				rmSync(pidFile, { force: true });
+			}
+		},
+	);
+});

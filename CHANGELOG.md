@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Timeout rollback ordering.** Timed-out project checks finish terminating their process tree before rollback starts, preventing late writes and Windows working-directory locks.
+
 - **Rust literal masking (#412).** Braces in strings, character literals, raw strings, and nested comments no longer inflate function lengths. Lifetimes and labels remain visible as code.
 
 ## 0.20.1 (2026-11-11)
