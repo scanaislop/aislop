@@ -498,7 +498,7 @@ Six deterministic engines run in parallel:
 
 | Engine | What it checks | How |
 |---|---|---|
-| **Formatting** | Code style consistency | Biome, ruff, gofmt, cargo fmt, rubocop, php-cs-fixer, google-java-format, dotnet format, clang-format |
+| **Formatting** | Code style consistency | Biome, ruff, gofmt, cargo fmt, rubocop, php-cs-fixer, google-java-format, scalafmt, dotnet format, clang-format |
 | **Linting** | Language-specific issues | oxlint, ruff, golangci-lint, clippy, expo-doctor, PMD, Checkstyle, Roslynator, JetBrains InspectCode, cppcheck, clang-tidy |
 | **Code Quality** | Complexity and dead code | Function/file size limits, deep nesting, unused files/deps (knip), AST-based unused-declaration removal |
 | **AI Slop** | AI-authored code patterns | Narrative comments, trivial comments, dead patterns, unused imports, `as any`, `console.log` leftovers, TODO stubs, generic names |
