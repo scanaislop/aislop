@@ -13,11 +13,17 @@ const isInPrunedDirectory = (filePath: string, pruneDirectories: Set<string>): b
 	return pathSegments.some((segment) => pruneDirectories.has(segment.toLowerCase()));
 };
 
-export const enumerateProjectFilesFromDisk = (
+export interface ProjectTree {
+	readonly files: string[];
+	readonly prunedDirectories: string[];
+}
+
+export const enumerateProjectTree = (
 	rootDirectory: string,
 	pruneDirectories: Set<string>,
-): string[] => {
+): ProjectTree => {
 	const files: string[] = [];
+	const prunedDirectories: string[] = [];
 	const normalizedPruneDirectories = normalizePruneDirectories(pruneDirectories);
 	const walk = (directory: string): void => {
 		let entries: fs.Dirent[];
@@ -36,21 +42,25 @@ export const enumerateProjectFilesFromDisk = (
 				} catch {
 					continue;
 				}
-				if (
-					stats.isDirectory() &&
-					!stats.isSymbolicLink() &&
-					!normalizedPruneDirectories.has(entry.name.toLowerCase())
-				) {
-					walk(fullPath);
+				if (!stats.isDirectory() || stats.isSymbolicLink()) continue;
+				if (normalizedPruneDirectories.has(entry.name.toLowerCase())) {
+					prunedDirectories.push(path.relative(rootDirectory, fullPath).split(path.sep).join("/"));
+					continue;
 				}
+				walk(fullPath);
 			} else if (entry.isFile()) {
 				files.push(path.relative(rootDirectory, fullPath).split(path.sep).join("/"));
 			}
 		}
 	};
 	walk(rootDirectory);
-	return files;
+	return { files, prunedDirectories };
 };
+
+export const enumerateProjectFilesFromDisk = (
+	rootDirectory: string,
+	pruneDirectories: Set<string>,
+): string[] => enumerateProjectTree(rootDirectory, pruneDirectories).files;
 
 export const enumerateProjectFiles = (
 	rootDirectory: string,

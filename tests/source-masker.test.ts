@@ -344,7 +344,6 @@ describe("maskStringsAndComments understands Rust literals", () => {
 	});
 });
 
-
 describe("Rust Unicode character literals", () => {
 	it("masks astral characters without consuming following code", () => {
 		const source = "let emoji = '😀'; let brace = '{'; // }";

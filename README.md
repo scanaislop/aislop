@@ -160,6 +160,18 @@ exclude:
 
 Or via CLI: `aislop scan --exclude "**/*.test.ts,dist"`
 
+Use `aislop scan --explain-scope` to preview selection without running detection engines.
+Add `--verbose` for up to five relative example paths per group or `--json` for the
+versioned report (`schemaVersion: "1"`). JSON fields are `projectRoot` (home redacted),
+`scanMode`, `baseRef`, `languages`, `counts`, `samples`, `exclusions`, and
+`skippedDirectories`. Exclusions group files by built-in directory policy, generated
+filenames, `.gitignore`, `.aislopignore`, user excludes, and include filtering.
+`counts.excluded` counts files only; `skippedDirectories` separately reports pruned
+VCS and dependency stores with `count`, `examples`, and `truncated`. Declaration
+counts are a subset of production selection. Declaration and unsupported counts
+reflect project context even in changed-file mode. SARIF is not supported here.
+
+
 **Unsupported languages**: aislop only analyses the 11 language targets above. If a repo is mostly something else (Swift, Kotlin, Scala, …), scoring a handful of incidental files would misrepresent it, so aislop **withholds the score** and says so rather than printing a number off code it never read. `--json` returns `score: null`, `scoreable: false`, and a `coverage` breakdown.
 
 **Per-rule severity**: Override the severity of any rule by id, or turn it off:
