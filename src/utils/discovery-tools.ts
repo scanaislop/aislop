@@ -18,6 +18,7 @@ export const TOOLS_TO_CHECK = [
 	"phpcs",
 	"php-cs-fixer",
 	"google-java-format",
+	"scalafmt",
 	"pmd",
 	"checkstyle",
 	"dotnet",

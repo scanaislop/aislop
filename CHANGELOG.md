@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Scala language support (#539).** Scala sources and sbt/Mill builds are detected, with opt-in scalafmt, import/exception/console patterns, SQL/process/deserialization checks, and generic file-size and comment checks. Integrates j5ik2o's implementation with follow-up accuracy fixes.
+
 - **CLI rule ignores (#533).** `aislop scan --ignore <rule>` disables repeatable or comma-separated rule IDs for one invocation, including when file overrides enable them.
 
 - **Scope explanation (#319, #481).** `aislop scan --explain-scope` reports effective file selection as text or versioned JSON without running engines. Verbose output adds relative examples; excluded files and skipped directories are counted separately.

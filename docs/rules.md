@@ -202,7 +202,7 @@ The rules that make aislop unique. These catch the patterns AI assistants leave 
 |---|---|---|
 | `ai-slop/trivial-comment` | warning | Comments restating the code (`// Import React`, `// Return the value`) |
 | `ai-slop/narrative-comment` | warning | Decorative separators, phase/section headers, JSDoc preambles without meaningful tags (caught on top-level *and* interface/type members), cross-reference commentary, and longer prose blocks that carry an AI-narration signal (a restatement opener or step-by-step narration). Length alone is not flagged. |
-| `ai-slop/swallowed-exception` | error | Empty catch blocks, catch blocks that only log (JS/TS/Python/Go/Ruby/Java/C#) |
+| `ai-slop/swallowed-exception` | error | Empty catch blocks, catch blocks that only log (JS/TS/Python/Go/Ruby/Java/C#); Scala discarded catches are warnings |
 | `ai-slop/silent-recovery` | warning | Catch blocks that log without including the caught error and then continue; Python logging calls that attach the traceback are exempt (see notes below the table) |
 | `ai-slop/meta-comment` | warning | Comments about implementation phases, agent behavior, or generated-code process instead of the code itself |
 | `ai-slop/hidden-fallback` | warning | JS/TS fallback logic that turns missing counts, failed diagnostics, or impossible states into safe-looking values without surfacing the missing input or failure |
@@ -248,6 +248,7 @@ The rules that make aislop unique. These catch the patterns AI assistants leave 
 | `ai-slop/csharp-console-leftover` | warning | C# `Console.*` / `Debug.*` / `Trace.*` output left in library code |
 | `ai-slop/csharp-broad-catch` | warning | C# `catch (Exception)` that catches everything (non-empty, non-rethrow) instead of the specific type(s) it can handle |
 | `ai-slop/java-broad-throws` | warning | Java method declaring `throws Exception` / `throws Throwable` instead of the specific checked exceptions (`main`, `close`, `call`, and tests are exempt) |
+| `ai-slop/scala-broad-catch` | warning | Scala catch clause handling `Throwable` / `Exception` instead of the specific exception types it can recover from (clauses that rethrow are exempt) |
 | `ai-slop/csharp-linq-count` | warning | C# `.Count() > 0` / `.Count() == 0` enumerating a whole sequence where `.Any()` short-circuits |
 | `ai-slop/csharp-index-loop` | warning | C# index `for` loop over `.Length`/`.Count` that reads more clearly as `foreach` |
 | `ai-slop/csharp-if-ladder` | warning | C# chain of 4+ if/else-if branches comparing one value against constants (a `switch` in disguise) |
@@ -343,3 +344,8 @@ See [examples/architecture-rules.yml](../examples/architecture-rules.yml) for a 
 | PHP | php-cs-fixer | -- | complexity | Comments | Secrets |
 | C# | -- | jb inspectcode + Roslynator (optional, each independently togglable) | complexity | NotImplementedException, redundant XML-doc, async, exceptions, comments | Secrets |
 | C/C++ | clang-format (requires `.clang-format`) | cppcheck + clang-tidy (clang-tidy requires `compile_commands.json`) | complexity | Not-implemented stubs, using-namespace-std in headers, C-style casts, manual delete, iostream leftovers | Secrets |
+| Scala | scalafmt (requires `.scalafmt.conf`) | -- | File size | Imports, exceptions, console leftovers, broad catch, comments | Secrets, SQL/shell injection, deserialization |
+
+Scala detection is lexical. Catch checks cover braced clauses; Scala 3 indentation-only
+handlers and semantic unused-import analysis require compiler tooling. Wildcards,
+given imports, and unsupported import syntax are excluded from unused-import checks.

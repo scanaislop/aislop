@@ -24,7 +24,6 @@ const UNSUPPORTED_CODE_EXTENSIONS: Readonly<Record<string, string>> = {
 	".kts": "Kotlin",
 	".m": "Objective-C",
 	".mm": "Objective-C",
-	".scala": "Scala",
 	".dart": "Dart",
 	".ex": "Elixir",
 	".exs": "Elixir",

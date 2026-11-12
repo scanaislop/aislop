@@ -6,7 +6,7 @@
 
 The patterns Claude Code, Cursor, Codex, and OpenCode leave behind: narrative comments above self-explanatory code, swallowed exceptions, hidden fallbacks, `as any` casts, hallucinated imports, duplicated helpers, dead code, todo stubs, oversized functions. Tests pass. Lint passes. The code rots anyway.
 
-aislop catches them. 50+ rules across 11 language targets (TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, C#, C/C++). Scores every change 0–100. Sub-second. Deterministic: no LLM in the runtime path, same code in, same score out. MIT-licensed, free CLI.
+aislop catches them. 50+ rules across 12 language targets (TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, Scala, C#, C/C++). Scores every change 0–100. Sub-second. Deterministic: no LLM in the runtime path, same code in, same score out. MIT-licensed, free CLI.
 
 ## Quick start
 
@@ -37,7 +37,7 @@ See [Installation](#installation) for every option.
 
 ## Language support
 
-aislop supports TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, C#, and C/C++.
+aislop supports TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, Scala, C#, and C/C++.
 
 Coverage includes formatting, linting, complexity, AI-slop detection, and security checks. Some checks use optional system tools; see [Installation](docs/installation.md) and the [rules reference](docs/rules.md) for details.
 
@@ -176,7 +176,7 @@ counts are a subset of production selection. Declaration and unsupported counts
 reflect project context even in changed-file mode. SARIF is not supported here.
 
 
-**Unsupported languages**: aislop only analyses the 11 language targets above. If a repo is mostly something else (Swift, Kotlin, Scala, …), scoring a handful of incidental files would misrepresent it, so aislop **withholds the score** and says so rather than printing a number off code it never read. `--json` returns `score: null`, `scoreable: false`, and a `coverage` breakdown.
+**Unsupported languages**: aislop only analyses the 12 language targets above. If a repo is mostly something else (Swift, Kotlin, …), scoring a handful of incidental files would misrepresent it, so aislop **withholds the score** and says so rather than printing a number off code it never read. `--json` returns `score: null`, `scoreable: false`, and a `coverage` breakdown.
 
 **Per-rule severity**: Override the severity of any rule by id, or turn it off:
 
