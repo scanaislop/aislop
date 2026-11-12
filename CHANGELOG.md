@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.20.1 (2026-11-11)
+
+A patch release that fixes Python diagnostic false positives and reduces CPU work when security checks produce many findings.
+
+### Fixed
+
+- **Python string boundaries.** Triple-quoted examples, escaped quotes and comments no longer hide real print statements or trigger bare-handler and swallowed-exception findings inside strings. Real statements remain reported.
+- **Security diagnostic line lookup.** Secret and risky-code checks advance a newline cursor per pattern instead of repeatedly splitting source prefixes for each finding. Finding contents and line positions remain unchanged, with linear newline-counting work on large inputs.
+
 ## 0.20.0 (2026-11-01)
 
 A minor release. `aislop scan --share` prints a public report link and README badge for GitHub repos, and the scan summary points to it instead of the team invitation.
