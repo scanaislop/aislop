@@ -69,6 +69,7 @@ describe("Scala imports", () => {
 			[
 				"package app",
 				"import scala.collection.mutable._",
+				"import scala.collection.immutable.*",
 				"import scala.util.Try",
 				"",
 				"/** Works with [[Try]] results. */",

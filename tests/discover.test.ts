@@ -128,6 +128,18 @@ describe("discoverProject", () => {
 		expect(info.languages).toContain("java");
 	});
 
+	it("detects scala when build.sbt is present", async () => {
+		createFile(tmpDir, "build.sbt", "scalaVersion := \"3.3.3\"");
+		const info = await discoverProject(tmpDir);
+		expect(info.languages).toContain("scala");
+	});
+
+	it("detects scala when build.mill is present", async () => {
+		createFile(tmpDir, "build.mill", "package build");
+		const info = await discoverProject(tmpDir);
+		expect(info.languages).toContain("scala");
+	});
+
 	it("detects csharp from bare .cs source files with no manifest", async () => {
 		// The scan pipeline derives languages from enumerated source files via
 		// detectSourceLanguages, bypassing manifest detection - so .cs must be in
@@ -230,6 +242,13 @@ describe("discoverProject", () => {
 		createFile(tmpDir, "Main.java", "class Main {}\n");
 		const info = await discoverProject(tmpDir);
 		expect(info.languages).toContain("java");
+	});
+
+	it("detects scala from a .scala source file when no manifest is present", async () => {
+		gitInit(tmpDir);
+		createFile(tmpDir, "Main.scala", "object Main {}\n");
+		const info = await discoverProject(tmpDir);
+		expect(info.languages).toContain("scala");
 	});
 
 	it("detects php from a .php source file when no manifest is present", async () => {
