@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **Scope explanation (#319, #481).** `aislop scan --explain-scope` reports effective file selection as text or versioned JSON without running engines. Verbose output adds relative examples; excluded files and skipped directories are counted separately.
 
+- **Post-fix project checks (#322, #480).** Repeatable `--check` commands verify fixes and roll back fixer-owned changes on failure. Configured commands require explicit `--run-checks`; snapshots respect scope and exclusions, and partial restore failures are reported without deleting current files.
+
 ### Fixed
 
 - **Rust literal masking (#412).** Braces in strings, character literals, raw strings, and nested comments no longer inflate function lengths. Lifetimes and labels remain visible as code.
