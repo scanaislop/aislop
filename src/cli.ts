@@ -91,6 +91,12 @@ const program = new Command()
 	.option("--sarif", "output SARIF 2.1.0 (for GitHub code scanning)")
 	.option("--format <format>", "output format: json or sarif")
 	.option(
+		"--ignore <rules>",
+		"disable rule IDs for this scan (comma-separated or repeatable)",
+		commaSeparatedParser,
+		[],
+	)
+	.option(
 		"--exclude <patterns>",
 		"comma-separated or repeatable list of paths and files to exclude",
 		commaSeparatedParser,
@@ -129,6 +135,12 @@ program
 	.option("--json", "output JSON")
 	.option("--sarif", "output SARIF 2.1.0 (for GitHub code scanning)")
 	.option("--format <format>", "output format: json or sarif")
+	.option(
+		"--ignore <rules>",
+		"disable rule IDs for this scan (comma-separated or repeatable)",
+		commaSeparatedParser,
+		[],
+	)
 	.option("--share", "print a public report link and README badge for this GitHub repo")
 	.option(
 		"--exclude <patterns>",

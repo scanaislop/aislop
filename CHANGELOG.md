@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **CLI rule ignores (#533).** `aislop scan --ignore <rule>` disables repeatable or comma-separated rule IDs for one invocation, including when file overrides enable them.
+
 - **Scope explanation (#319, #481).** `aislop scan --explain-scope` reports effective file selection as text or versioned JSON without running engines. Verbose output adds relative examples; excluded files and skipped directories are counted separately.
 
 - **Post-fix project checks (#322, #480).** Repeatable `--check` commands verify fixes and roll back fixer-owned changes on failure. Configured commands require explicit `--run-checks`; snapshots respect scope and exclusions, and partial restore failures are reported without deleting current files.

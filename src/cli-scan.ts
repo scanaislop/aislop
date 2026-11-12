@@ -15,6 +15,7 @@ export interface ScanFlags {
 	exclude?: string[];
 	include?: string[];
 	explainScope?: boolean;
+	ignore?: string[];
 }
 
 export const commaSeparatedParser = (value: string, previous: string[] = []): string[] => {
@@ -31,8 +32,15 @@ const wantsJson = (flags: ScanFlags): boolean => Boolean(flags.json) || flags.fo
 
 export const runScan = async (directory: string, flags: ScanFlags): Promise<void> => {
 	const config = loadConfig(directory);
+	const ignoredRules: Record<string, "off"> = {};
+	for (const rule of flags.ignore ?? []) ignoredRules[rule] = "off";
 	const finalConfig = {
 		...config,
+		rules: { ...config.rules, ...ignoredRules },
+		overrides: config.overrides.map((override) => ({
+			...override,
+			rules: { ...override.rules, ...ignoredRules },
+		})),
 		exclude: [...(config.exclude ?? []), ...(flags.exclude ?? [])],
 		include: [...(config.include ?? []), ...(flags.include ?? [])],
 	};
@@ -77,4 +85,5 @@ export const noFlagsPassed = (flags: ScanFlags): boolean =>
 	!flags.format &&
 	!(flags.exclude && flags.exclude.length > 0) &&
 	!(flags.include && flags.include.length > 0) &&
+	!(flags.ignore && flags.ignore.length > 0) &&
 	!flags.explainScope;

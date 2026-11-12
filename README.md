@@ -145,6 +145,7 @@ aislop scan --sarif               # SARIF 2.1.0 output (GitHub code scanning)
 aislop scan --format json         # alternate JSON form
 aislop scan --include "src/**"    # only matching paths
 aislop scan --exclude "dist,gen"  # skip extra paths
+aislop scan --ignore ai-slop/python-print-debug # disable one rule for this run
 aislop scan --share               # print a public report link and badge
 ```
 
@@ -159,6 +160,9 @@ exclude:
 ```
 
 Or via CLI: `aislop scan --exclude "**/*.test.ts,dist"`
+
+`--ignore` accepts repeated flags or comma-separated rule IDs. CLI ignores override
+config and per-file rule severities for this invocation without changing config files.
 
 Use `aislop scan --explain-scope` to preview selection without running detection engines.
 Add `--verbose` for up to five relative example paths per group or `--json` for the
