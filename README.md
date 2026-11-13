@@ -6,7 +6,7 @@
 
 The patterns Claude Code, Cursor, Codex, and OpenCode leave behind: narrative comments above self-explanatory code, swallowed exceptions, hidden fallbacks, `as any` casts, hallucinated imports, duplicated helpers, dead code, todo stubs, oversized functions. Tests pass. Lint passes. The code rots anyway.
 
-aislop catches them. 50+ rules across 11 language targets (TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, C#, C/C++). Scores every change 0–100. Sub-second. Deterministic: no LLM in the runtime path, same code in, same score out. MIT-licensed, free CLI.
+aislop catches them. 50+ rules across 12 language targets (TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, Scala (beta), C#, C/C++). Scores every change 0–100. Sub-second. Deterministic: no LLM in the runtime path, same code in, same score out. MIT-licensed, free CLI.
 
 ## Quick start
 
@@ -37,7 +37,9 @@ See [Installation](#installation) for every option.
 
 ## Language support
 
-aislop supports TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, C#, and C/C++.
+aislop supports TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, Scala (beta), C#, and C/C++.
+
+**Scala support (beta):** Initial support is available, with coverage and accuracy still being refined. Scala 3 indentation-based syntax and real-world scalafmt integration remain ongoing work.
 
 Coverage includes formatting, linting, complexity, AI-slop detection, and security checks. Some checks use optional system tools; see [Installation](docs/installation.md) and the [rules reference](docs/rules.md) for details.
 
@@ -145,6 +147,7 @@ aislop scan --sarif               # SARIF 2.1.0 output (GitHub code scanning)
 aislop scan --format json         # alternate JSON form
 aislop scan --include "src/**"    # only matching paths
 aislop scan --exclude "dist,gen"  # skip extra paths
+aislop scan --ignore ai-slop/python-print-debug # disable one rule for this run
 aislop scan --share               # print a public report link and badge
 ```
 
@@ -160,7 +163,22 @@ exclude:
 
 Or via CLI: `aislop scan --exclude "**/*.test.ts,dist"`
 
-**Unsupported languages**: aislop only analyses the 11 language targets above. If a repo is mostly something else (Swift, Kotlin, Scala, …), scoring a handful of incidental files would misrepresent it, so aislop **withholds the score** and says so rather than printing a number off code it never read. `--json` returns `score: null`, `scoreable: false`, and a `coverage` breakdown.
+`--ignore` accepts repeated flags or comma-separated rule IDs. CLI ignores override
+config and per-file rule severities for this invocation without changing config files.
+
+Use `aislop scan --explain-scope` to preview selection without running detection engines.
+Add `--verbose` for up to five relative example paths per group or `--json` for the
+versioned report (`schemaVersion: "1"`). JSON fields are `projectRoot` (home redacted),
+`scanMode`, `baseRef`, `languages`, `counts`, `samples`, `exclusions`, and
+`skippedDirectories`. Exclusions group files by built-in directory policy, generated
+filenames, `.gitignore`, `.aislopignore`, user excludes, and include filtering.
+`counts.excluded` counts files only; `skippedDirectories` separately reports pruned
+VCS and dependency stores with `count`, `examples`, and `truncated`. Declaration
+counts are a subset of production selection. Declaration and unsupported counts
+reflect project context even in changed-file mode. SARIF is not supported here.
+
+
+**Unsupported languages**: aislop only analyses the 12 language targets above. If a repo is mostly something else (Swift, Kotlin, …), scoring a handful of incidental files would misrepresent it, so aislop **withholds the score** and says so rather than printing a number off code it never read. `--json` returns `score: null`, `scoreable: false`, and a `coverage` breakdown.
 
 **Per-rule severity**: Override the severity of any rule by id, or turn it off:
 
@@ -217,7 +235,11 @@ aislop fix -d              # detailed fix progress
 aislop fix --safe          # only reversible fixes (imports, comment removal, safe formatters)
 aislop fix -f              # aggressive: deps, unused files
 aislop fix -p              # print an agent handoff prompt
+aislop fix --check "pnpm test"   # opt-in check; a failure rolls back the fix
 ```
+
+`--check` is repeatable. Commands from `fix.checks` in `.aislop/config.yml` run only with explicit `--run-checks` and run first, then each `--check` flag, in the order given. aislop never discovers package scripts. A failed or timed-out check names that command, restores only the files this fix changed, and exits non-zero. See [Configuration](docs/configuration.md#post-fix-project-checks).
+
 
 `--safe` restricts the run to fixes that cannot change behaviour — unused-import removal, import merging, narrative-comment removal, and formatter runs that do not execute project-controlled configuration. Anything that deletes code, rewrites behaviour/attributes, or can load executable formatter configuration (console/dead-code removal, lint autofixes, Ruby/PHP formatter config, unused-declaration and dependency pruning) is skipped, so a `--safe` run is genuinely "apply and commit".
 
@@ -478,7 +500,7 @@ Six deterministic engines run in parallel:
 
 | Engine | What it checks | How |
 |---|---|---|
-| **Formatting** | Code style consistency | Biome, ruff, gofmt, cargo fmt, rubocop, php-cs-fixer, google-java-format, dotnet format, clang-format |
+| **Formatting** | Code style consistency | Biome, ruff, gofmt, cargo fmt, rubocop, php-cs-fixer, google-java-format, scalafmt, dotnet format, clang-format |
 | **Linting** | Language-specific issues | oxlint, ruff, golangci-lint, clippy, expo-doctor, PMD, Checkstyle, Roslynator, JetBrains InspectCode, cppcheck, clang-tidy |
 | **Code Quality** | Complexity and dead code | Function/file size limits, deep nesting, unused files/deps (knip), AST-based unused-declaration removal |
 | **AI Slop** | AI-authored code patterns | Narrative comments, trivial comments, dead patterns, unused imports, `as any`, `console.log` leftovers, TODO stubs, generic names |

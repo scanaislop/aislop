@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+## 0.21.0 (2026-11-13)
+
+A minor release with per-run rule ignores, scan-scope explanations, opt-in post-fix project checks, and initial Scala support in beta.
+
+### Added
+
+- **Scala language support, beta (#539).** Scala sources and sbt/Mill builds are detected, with opt-in scalafmt, import/exception/console patterns, SQL/process/deserialization checks, and generic file-size and comment checks. Integrates j5ik2o's implementation with follow-up accuracy fixes. Coverage and accuracy are still being refined; Scala 3 indentation-based syntax and real-world scalafmt integration remain ongoing work.
+
+- **CLI rule ignores (#533).** `aislop scan --ignore <rule>` disables repeatable or comma-separated rule IDs for one invocation, including when file overrides enable them.
+
+- **Scope explanation (#319, #481).** `aislop scan --explain-scope` reports effective file selection as text or versioned JSON without running engines. Verbose output adds relative examples; excluded files and skipped directories are counted separately.
+
+- **Post-fix project checks (#322, #480).** Repeatable `--check` commands verify fixes and roll back fixer-owned changes on failure. Configured commands require explicit `--run-checks`; snapshots respect scope and exclusions, and partial restore failures are reported without deleting current files.
+
+### Fixed
+
+- **Rollback coverage and Scala import advice.** Full-project checks also restore fixer changes outside scan include patterns. Duplicate Scala imports are checked within consecutive import groups, and unused-import advice is limited to Java imports because Scala imports can supply implicits without textual references.
+
+- **Timeout rollback ordering.** Timed-out project checks finish terminating their process tree before rollback starts, preventing late writes and Windows working-directory locks.
+
+- **Rust literal masking (#412).** Braces in strings, character literals, raw strings, and nested comments no longer inflate function lengths. Lifetimes and labels remain visible as code.
+
+- **Scala package discovery and interpolation.** JVM package paths under Scala source roots remain in scope, including packages named `example` or `samples`. Executable expressions inside interpolated strings remain visible to import and security checks while literal text stays masked.
+
+### Changed
+
+- **Dependency updates (#515-#519).** Update React to 19.3.1, oxlint to 1.92.0, MCP SDK to 1.32.2, tsdown to 0.23.7, and smol-toml to 1.9.1.
+
 ## 0.20.1 (2026-11-11)
 
 A patch release that fixes Python diagnostic false positives and reduces CPU work when security checks produce many findings.

@@ -1,7 +1,7 @@
 {
 	"name": "aislop",
-	"version": "0.20.1",
-	"description": "Catch the slop AI coding agents leave in your code: narrative comments, swallowed exceptions, as-any casts, dead code, oversized functions. 50+ rules across 10 language targets (TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, C#, C/C++). Sub-second, deterministic, no LLM at runtime. MIT-licensed.",
+	"version": "0.21.0",
+	"description": "Catch the slop AI coding agents leave in your code: narrative comments, swallowed exceptions, as-any casts, dead code, oversized functions. 50+ rules across 12 language targets (TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, Scala, C#, C/C++). Sub-second, deterministic, no LLM at runtime. MIT-licensed.",
 	"type": "module",
 	"bin": {
 		"aislop": "dist/cli.js",
@@ -72,6 +72,8 @@
 		"rust",
 		"ruby",
 		"php",
+		"java",
+		"scala",
 		"csharp",
 		"dotnet",
 		"cpp"
@@ -96,18 +98,18 @@
 	"dependencies": {
 		"@biomejs/biome": "^2.5.12",
 		"@clack/prompts": "^1.8.1",
-		"@modelcontextprotocol/sdk": "^1.32.1",
+		"@modelcontextprotocol/sdk": "^1.32.2",
 		"adm-zip": "^0.6.1",
 		"commander": "^14.0.3",
 		"expo-doctor": "^1.21.5",
 		"ink": "^8.0.0",
 		"ink-select-input": "^6.2.0",
 		"knip": "^6.38.0",
-		"oxlint": "^1.81.0",
+		"oxlint": "^1.92.0",
 		"picocolors": "^1.1.1",
 		"picomatch": "^4.0.7",
-		"react": "^19.3.0",
-		"smol-toml": "^1.9.0",
+		"react": "^19.3.1",
+		"smol-toml": "^1.9.1",
 		"tar": "^7.5.22",
 		"typescript": "^6.0.3",
 		"wcwidth": "^1.0.1",
@@ -119,7 +121,7 @@
 		"@types/picomatch": "^4.0.3",
 		"@types/react": "^19.3.0",
 		"ink-testing-library": "^4.0.0",
-		"tsdown": "^0.23.0",
+		"tsdown": "^0.23.7",
 		"vite": "^8.3.4",
 		"vitest": "^5.0.4"
 	}

@@ -15,11 +15,12 @@ import { withCommandLifecycle } from "../telemetry/index.js";
 import { renderDisplayRows } from "../ui/display.js";
 import { renderHeader } from "../ui/header.js";
 import { LiveRail } from "../ui/live-rail.js";
-import { log, renderHintLine } from "../ui/logger.js";
+import { log } from "../ui/logger.js";
 import { theme as defaultTheme, style } from "../ui/theme.js";
 import { detectSourceLanguages, discoverProject } from "../utils/discover.js";
 import { readAislopIgnorePatterns } from "../utils/source-files.js";
 import { APP_VERSION } from "../version.js";
+import { enforceProjectChecks, isProjectCheckError, resolveProjectChecks } from "./fix-checks.js";
 import { launchAgent, printPrompt } from "./fix-code.js";
 import { createEngineContext } from "./fix-context.js";
 import {
@@ -31,9 +32,10 @@ import {
 	runFormattingStep,
 	runLintSteps,
 } from "./fix-pipeline.js";
-import { buildFixPlan, skippedFixSteps } from "./fix-plan.js";
-import { NO_CHANGES_APPLIED } from "./fix-render.js";
-import { collectFixFileScope, fixScopeError } from "./fix-scope.js";
+import type { FixOptions } from "./fix-options.js";
+import { finishDryRun } from "./fix-preview.js";
+import { captureWorktree } from "./fix-rollback.js";
+import { collectFixFileScope, fixScopeError, rollbackFiles } from "./fix-scope.js";
 import {
 	describePreviewStep,
 	describeSkippedStep,
@@ -45,23 +47,6 @@ import {
 import { buildScanRender } from "./scan.js";
 
 export { buildFixRender } from "./fix-render.js";
-
-interface FixOptions {
-	verbose: boolean;
-	force?: boolean;
-	/** Restrict to reversible fixes only (imports, comment removal, safe formatter runs) */
-	safe?: boolean;
-	dryRun?: boolean;
-	changes?: boolean;
-	staged?: boolean;
-	base?: string;
-	/** Agent CLI to launch with remaining issues (e.g. "claude", "codex") */
-	agent?: string;
-	/** Print the prompt to stdout instead of launching an agent */
-	prompt?: boolean;
-	showHeader?: boolean;
-	printBrand?: boolean;
-}
 
 export const buildPostFixVerificationEngines = (
 	engines: AislopConfig["engines"],
@@ -152,43 +137,18 @@ const runFixPipeline = async (deps: PipelineDeps, safe: boolean): Promise<void> 
 	await runForceSteps(deps);
 };
 
-const finishDryRun = (input: {
-	rail: LiveRail;
-	steps: FixStepResult[];
-	projectInfo: Awaited<ReturnType<typeof discoverProject>>;
-	config: AislopConfig;
-	options: FixOptions;
-}): { exitCode: number; fixSteps: number; fixResolved: number } => {
-	const plan = buildFixPlan(input.projectInfo, input.config, {
-		force: Boolean(input.options.force),
-		safe: Boolean(input.options.safe),
-	});
-	const ran = new Set(input.steps.map((step) => step.name));
-	for (const step of skippedFixSteps(plan)) {
-		if (ran.has(step.name)) continue;
-		input.rail.complete({
-			status: "skipped",
-			label: describeSkippedStep(step.name, step.reason ?? "skipped"),
-		});
-	}
-	if (input.steps.length === 0 && skippedFixSteps(plan).length === 0) {
-		input.rail.complete({ status: "skipped", label: "No applicable auto-fixers found" });
-	}
-	input.rail.finish({ footer: "Preview · no changes applied" });
-	process.stdout.write(`\n${renderHintLine(NO_CHANGES_APPLIED)}`);
-	return {
-		exitCode: 0,
-		fixSteps: input.steps.length,
-		fixResolved: 0,
-	};
-};
-
 const runFixBody = async (
 	resolvedDir: string,
 	config: AislopConfig,
 	options: FixOptions,
 	projectInfo: Awaited<ReturnType<typeof discoverProject>>,
 ) => {
+	const resolvedChecks = resolveProjectChecks(config, options);
+	if (isProjectCheckError(resolvedChecks)) {
+		log.error(resolvedChecks.error);
+		return { exitCode: 1 };
+	}
+
 	const startTime = performance.now();
 	const showHeader = options.showHeader !== false;
 	const projectName = projectInfo.projectName ?? "project";
@@ -267,6 +227,17 @@ const runFixBody = async (
 		skipStep,
 	};
 
+	const snapshot =
+		!dryRun && resolvedChecks.commands.length > 0
+			? captureWorktree(resolvedDir, {
+					exclude: excludePatterns,
+					files: rollbackFiles(context),
+				})
+			: null;
+	if (!options.runChecks && config.fix.checks.length > 0) {
+		rail.complete({ status: "skipped", label: "Configured project checks require --run-checks" });
+	}
+
 	await runFixPipeline(pipelineDeps, safe);
 
 	if (dryRun) {
@@ -276,10 +247,24 @@ const runFixBody = async (
 			projectInfo: scopedProjectInfo,
 			config,
 			options,
+			checks: resolvedChecks.commands,
 		});
 	}
 
 	const totalResolved = steps.reduce((sum, s) => sum + s.resolvedIssues, 0);
+
+	if (snapshot) {
+		const stopped = await enforceProjectChecks({
+			root: resolvedDir,
+			commands: resolvedChecks.commands,
+			timeoutMs: resolvedChecks.timeoutMs,
+			snapshot,
+			rail,
+			fixSteps: steps.length,
+			fixResolved: totalResolved,
+		});
+		if (stopped) return stopped;
+	}
 
 	const configDir = findConfigDir(resolvedDir);
 	const rulesPath = configDir ? resolveConfigFile(configDir, RULES_FILE) : undefined;

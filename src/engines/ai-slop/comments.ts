@@ -103,7 +103,7 @@ const declStartForExt = (ext: string): RegExp[] => {
 const isCommentLineForExt = (line: string, ext: string): boolean => {
 	const trimmed = line.trim();
 	if (ext === ".rb") return trimmed.startsWith("#") && !trimmed.startsWith("#!");
-	if (ext === ".go" || ext === ".rs" || ext === ".java" || ext === ".php") {
+	if (ext === ".go" || ext === ".rs" || ext === ".java" || ext === ".scala" || ext === ".php") {
 		return trimmed.startsWith("//") || trimmed.startsWith("#");
 	}
 	return false;

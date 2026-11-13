@@ -63,6 +63,7 @@ const RULE_LABELS: Record<string, string> = {
 	"ai-slop/csharp-console-leftover": "Console/Debug/Trace output leftover",
 	"ai-slop/csharp-broad-catch": "Broad catch (Exception)",
 	"ai-slop/java-broad-throws": "Broad throws (Exception)",
+	"ai-slop/scala-broad-catch": "Broad catch (Throwable)",
 	"ai-slop/csharp-linq-count": "LINQ .Count() instead of .Any()",
 	"ai-slop/csharp-index-loop": "Index for-loop better as foreach",
 	"ai-slop/csharp-if-ladder": "if/else-if ladder better as switch",
@@ -199,6 +200,7 @@ const RULE_DESCRIPTIONS: Record<string, string> = {
 	"ruby-formatting": "Ruby file needs rubocop formatting.",
 	"php-formatting": "PHP file needs php-cs-fixer formatting.",
 	"java-formatting": "Java file needs google-java-format formatting.",
+	"scala-formatting": "Scala file needs scalafmt formatting.",
 	"csharp-formatting": "C# file needs dotnet format.",
 };
 

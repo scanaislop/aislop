@@ -19,6 +19,8 @@ const SOURCE_EXTENSIONS = new Set([
 	".rs",
 	".rb",
 	".java",
+	".scala",
+	".sc",
 	".php",
 ]);
 

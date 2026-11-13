@@ -14,6 +14,8 @@ const SOURCE_EXTENSIONS = new Set([
 	".rs",
 	".rb",
 	".java",
+	".scala",
+	".sc",
 	".php",
 	".cs",
 	".c",
@@ -159,7 +161,7 @@ export const hasAllowedSourceExtension = (
 ): boolean =>
 	SOURCE_EXTENSIONS.has(path.extname(filePath)) || extraExtensions.has(path.extname(filePath));
 
-const JVM_SOURCE_ROOT_RE = /(?:^|\/)src\/[^/]+\/(?:java|kotlin)\//;
+const JVM_SOURCE_ROOT_RE = /(?:^|\/)src\/[^/]+\/(?:java|kotlin|scala)\//;
 
 export const directoryPathToCheck = (normalized: string): string => {
 	const root = JVM_SOURCE_ROOT_RE.exec(normalized);
