@@ -36,6 +36,29 @@ const scan = async (relative: string, source: string): Promise<string[]> => {
 const MAIN = "src/main/scala/app/Service.scala";
 
 describe("Scala imports", () => {
+	it.each([
+		's"${Instant.now()}"',
+		's"$Instant"',
+		's"""${Instant.now()}"""',
+		'f"$Instant%s"',
+		'raw"$Instant"',
+		'custom"${Instant.now()}"',
+	])("retains imports used only in %s", async (expression) => {
+		const findings = await scan(
+			MAIN,
+			`import java.time.Instant\nobject Clock { val text = ${expression} }`,
+		);
+		expect(findings).toEqual([]);
+	});
+
+	it("still reports an import mentioned only in escaped or plain string text", async () => {
+		const findings = await scan(
+			MAIN,
+			'import java.time.Instant\nobject Clock { val plain = "${Instant.now()}"; val escaped = s"$$Instant" }',
+		);
+		expect(findings).toEqual(["ai-slop/unused-import:1"]);
+	});
+
 	it("flags unused and duplicate imports across plain, selector, and renamed forms", async () => {
 		const findings = await scan(
 			MAIN,
@@ -96,6 +119,14 @@ describe("Scala imports", () => {
 });
 
 describe("Scala console leftovers", () => {
+	it("checks production code inside example-named JVM packages", async () => {
+		const findings = await scan(
+			"src/main/scala/com/example/Service.scala",
+			'class Service { def run(): Unit = println("debug") }',
+		);
+		expect(findings).toEqual(["ai-slop/console-leftover:1"]);
+	});
+
 	it("flags println in production code", async () => {
 		const findings = await scan(
 			MAIN,

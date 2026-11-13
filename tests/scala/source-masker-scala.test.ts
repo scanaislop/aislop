@@ -60,3 +60,26 @@ describe("Scala literal boundaries", () => {
 		expect(maskComments(source, ".scala")).not.toContain("remove");
 	});
 });
+
+describe("Scala interpolation expressions", () => {
+	it("preserves nested executable code while masking literal text and comments", () => {
+		const source =
+			'val text = s"outer ${ { val inner = s"nested ${Instant.now()}"; /* } comment */ inner } } tail"';
+		const masked = maskStringsAndComments(source, ".scala");
+		expect(masked).toContain("Instant.now()");
+		expect(masked).toContain("val inner =");
+		expect(masked).not.toContain("outer");
+		expect(masked).not.toContain("nested");
+		expect(masked).not.toContain("comment");
+		expect(masked).not.toContain("tail");
+		expect(masked.length).toBe(source.length);
+	});
+
+	it("keeps comment-only masking faithful to interpolation literal text", () => {
+		const source = 'val text = s"https://host/${Instant.now() /* comment */}" // trailing';
+		const masked = maskComments(source, ".scala");
+		expect(masked).toContain('s"https://host/${Instant.now()');
+		expect(masked).not.toContain("comment");
+		expect(masked).not.toContain("trailing");
+	});
+});
