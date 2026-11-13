@@ -36,6 +36,40 @@ const scan = async (relative: string, source: string): Promise<string[]> => {
 const MAIN = "src/main/scala/app/Service.scala";
 
 describe("Scala imports", () => {
+	it("keeps imports in separate method and object scopes", async () => {
+		const findings = await scan(
+			MAIN,
+			[
+				"object First {",
+				"  def one() = {",
+				"    import scala.util.Try",
+				"    Try(1)",
+				"  }",
+				"  def two() = {",
+				"    import scala.util.Try",
+				"    Try(2)",
+				"  }",
+				"}",
+				"object Second:",
+				"  import scala.util.Try",
+				"  val value = Try(3)",
+			].join("\n"),
+		);
+		expect(findings).toEqual([]);
+	});
+
+	it.each([
+		"scala.concurrent.ExecutionContext.Implicits.global",
+		"app.Runtime.executionContext",
+		"app.Numeric.IntIsIntegral",
+	])("preserves potentially implicit named import %s", async (imported) => {
+		const findings = await scan(
+			MAIN,
+			`import scala.concurrent.Future\nimport ${imported}\nobject Work { val result = Future(42) }`,
+		);
+		expect(findings).toEqual([]);
+	});
+
 	it.each([
 		's"${Instant.now()}"',
 		's"$Instant"',
@@ -67,7 +101,7 @@ describe("Scala imports", () => {
 				"import java.util.List",
 				"import java.util.Map",
 				"import java.util.List",
-				"import scala.collection.mutable.{ArrayBuffer, HashSet}",
+				"import java.util.{ArrayList, HashSet}",
 				"import scala.concurrent.{Future => F}",
 				"",
 				"class Service {",

@@ -22,6 +22,8 @@ A minor release with per-run rule ignores, scan-scope explanations, opt-in post-
 
 ### Fixed
 
+- **Rollback coverage and Scala import advice.** Full-project checks also restore fixer changes outside scan include patterns. Duplicate Scala imports are checked within consecutive import groups, and unused-import advice is limited to Java imports because Scala imports can supply implicits without textual references.
+
 - **Timeout rollback ordering.** Timed-out project checks finish terminating their process tree before rollback starts, preventing late writes and Windows working-directory locks.
 
 - **Rust literal masking (#412).** Braces in strings, character literals, raw strings, and nested comments no longer inflate function lengths. Lifetimes and labels remain visible as code.

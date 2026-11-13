@@ -402,6 +402,24 @@ describe("fix rollback", () => {
 });
 
 describe("fix command project checks", () => {
+	it("restores unscoped fixer writes outside scan include patterns", async () => {
+		const root = makeFixRepo();
+		writeFile(root, "lib/helper.ts", FIXABLE);
+		const before = worktreeFingerprint(root);
+		let exitCode = -1;
+		await captureStdout(async () => {
+			const result = await fixCommand(
+				root,
+				{ ...quietFixConfig({ checks: ["node checks/fail.js"] }), include: ["src/**"] },
+				{ verbose: false, runChecks: true },
+			);
+			exitCode = result.exitCode;
+		});
+		expect(exitCode).not.toBe(0);
+		expect(fs.readFileSync(path.join(root, "lib/helper.ts"), "utf8")).toBe(FIXABLE);
+		expect(worktreeFingerprint(root)).toEqual(before);
+	});
+
 	it("skips configured commands unless explicitly enabled", async () => {
 		const root = makeFixRepo();
 		const output = await captureStdout(() =>
