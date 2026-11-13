@@ -11,7 +11,14 @@
 	"files": [
 		"dist",
 		"scripts",
-		"tools/jb"
+		"tools/jb",
+		"plugin.json",
+		"mcp_config.json",
+		"mcp.json",
+		"hooks.json",
+		"rules",
+		"skills",
+		"assets/logo.svg"
 	],
 	"exports": {
 		".": {
@@ -43,6 +50,7 @@
 		"dev": "tsdown --watch",
 		"build": "tsdown",
 		"typecheck": "tsc --noEmit",
+		"plugin:validate": "agy plugin validate --strict",
 		"gen:schema": "node --experimental-strip-types scripts/gen-config-schema.mjs",
 		"test": "pnpm build && vitest run",
 		"scan": "pnpm build && node dist/cli.js scan .",

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "aislop": {
+      "command": "node",
+      "args": [
+        "${PLUGIN_ROOT}/dist/mcp.js"
+      ]
+    }
+  }
+}

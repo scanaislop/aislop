@@ -83,7 +83,10 @@ const paths = {
 		resolveRooPaths(opts).rules,
 	],
 	kilocode: (opts: HookInstallOpts): string[] => [resolveKilocodePaths(opts).rules],
-	antigravity: (opts: HookInstallOpts): string[] => [resolveAntigravityPaths(opts).rules],
+	antigravity: (opts: HookInstallOpts): string[] => {
+		const p = resolveAntigravityPaths(opts);
+		return [p.hooks, p.rules];
+	},
 	copilot: (opts: HookInstallOpts): string[] => [resolveCopilotPaths(opts).rules],
 };
 
@@ -121,7 +124,7 @@ export const detectInstalledAgents = (opts: { home: string; cwd: string }): Agen
 	return hits;
 };
 
-const AISLOP_MARKERS = ["__aislop", "aislop:begin", "@AISLOP.md"];
+const AISLOP_MARKERS = ["__aislop", "aislop:begin", "@AISLOP.md", "hook antigravity"];
 
 const hasAislopHook = (target: string): boolean => {
 	try {

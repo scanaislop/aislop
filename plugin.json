@@ -1,0 +1,33 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "aislop",
+  "displayName": "aislop",
+  "version": "0.20.0",
+  "description": "Catch and fix the slop AI coding agents leave behind: narrative comments, swallowed exceptions, as-any casts, dead code, and oversized functions. 50+ deterministic rules across 10 languages.",
+  "author": {
+    "name": "vxxuz",
+    "url": "https://github.com/vxxuz"
+  },
+  "homepage": "https://scanaislop.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vxxuz/aislop.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "ai-slop",
+    "code-quality",
+    "linter",
+    "clean-code",
+    "static-analysis",
+    "mcp",
+    "antigravity"
+  ],
+  "category": "Developer Tools",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "Scan this repository for AI slop and code smells",
+    "Automatically fix detected AI slop in modified files",
+    "Explain rule why-no-as-any and how to remediate it"
+  ]
+}

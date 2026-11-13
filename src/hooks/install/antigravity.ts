@@ -4,6 +4,7 @@ import type { HookInstallOpts, HookInstallResult, HookUninstallResult } from "./
 
 export const resolveAntigravityPaths = (opts: HookInstallOpts) => ({
 	rules: path.join(opts.cwd, ".agents", "rules", "antigravity-aislop-rules.md"),
+	hooks: path.join(opts.cwd, "hooks.json"),
 });
 
 export const installAntigravity = (opts: HookInstallOpts): HookInstallResult => {

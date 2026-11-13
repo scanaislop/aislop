@@ -259,6 +259,12 @@ const registerCallbacks = (hook: Command): void => {
 		.action(async () => {
 			await hookRun("pi");
 		});
+	hook
+		.command("antigravity", { hidden: true })
+		.description("Internal: Antigravity PostToolUse callback (reads stdin)")
+		.action(async () => {
+			await hookRun("antigravity");
+		});
 };
 
 export const registerHookCommand = (program: Command): void => {

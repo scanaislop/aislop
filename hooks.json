@@ -1,0 +1,16 @@
+{
+	"aislop": {
+		"PostToolUse": [
+			{
+				"matcher": "write_file|edit_file",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node ./dist/cli.js hook antigravity",
+						"timeout": 30
+					}
+				]
+			}
+		]
+	}
+}
