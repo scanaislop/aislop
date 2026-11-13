@@ -6,9 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+## 0.21.0 (2026-11-13)
+
+A minor release with per-run rule ignores, scan-scope explanations, opt-in post-fix project checks, and initial Scala support in beta.
+
 ### Added
 
-- **Scala language support (#539).** Scala sources and sbt/Mill builds are detected, with opt-in scalafmt, import/exception/console patterns, SQL/process/deserialization checks, and generic file-size and comment checks. Integrates j5ik2o's implementation with follow-up accuracy fixes.
+- **Scala language support, beta (#539).** Scala sources and sbt/Mill builds are detected, with opt-in scalafmt, import/exception/console patterns, SQL/process/deserialization checks, and generic file-size and comment checks. Integrates j5ik2o's implementation with follow-up accuracy fixes. Coverage and accuracy are still being refined; Scala 3 indentation-based syntax and real-world scalafmt integration remain ongoing work.
 
 - **CLI rule ignores (#533).** `aislop scan --ignore <rule>` disables repeatable or comma-separated rule IDs for one invocation, including when file overrides enable them.
 
@@ -21,6 +25,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Timeout rollback ordering.** Timed-out project checks finish terminating their process tree before rollback starts, preventing late writes and Windows working-directory locks.
 
 - **Rust literal masking (#412).** Braces in strings, character literals, raw strings, and nested comments no longer inflate function lengths. Lifetimes and labels remain visible as code.
+
+- **Scala package discovery and interpolation.** JVM package paths under Scala source roots remain in scope, including packages named `example` or `samples`. Executable expressions inside interpolated strings remain visible to import and security checks while literal text stays masked.
+
+### Changed
+
+- **Dependency updates (#515-#519).** Update React to 19.3.1, oxlint to 1.92.0, MCP SDK to 1.32.2, tsdown to 0.23.7, and smol-toml to 1.9.1.
 
 ## 0.20.1 (2026-11-11)
 

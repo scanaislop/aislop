@@ -1,6 +1,6 @@
 {
 	"name": "aislop",
-	"version": "0.20.1",
+	"version": "0.21.0",
 	"description": "Catch the slop AI coding agents leave in your code: narrative comments, swallowed exceptions, as-any casts, dead code, oversized functions. 50+ rules across 12 language targets (TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, Scala, C#, C/C++). Sub-second, deterministic, no LLM at runtime. MIT-licensed.",
 	"type": "module",
 	"bin": {
