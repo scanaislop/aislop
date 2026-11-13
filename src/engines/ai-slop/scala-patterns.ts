@@ -52,9 +52,10 @@ const closingBrace = (masked: string, openIndex: number): number => {
 	return -1;
 };
 
-// Skip imports whose usage requires Scala's implicit/type resolution.
+// Scala imports can supply implicits without a textual reference. Only Java
+// imports can be checked for unused names without Scala compiler information.
 const importNames = (statement: string): string[] => {
-	if (/\bgiven\b/.test(statement)) return [];
+	if (!/^(?:java|javax|jakarta)\./.test(statement) || /\bgiven\b/.test(statement)) return [];
 	const selector = /\.\{([^}]*)\}\s*$/.exec(statement);
 	const entries = selector ? selector[1].split(",") : [statement];
 	return entries.flatMap((rawEntry) => {
@@ -77,7 +78,10 @@ const detectImports = (raw: string, masked: string, relPath: string): Diagnostic
 	const imports: Array<{ line: number; name: string; full: string }> = [];
 	for (let i = 0; i < maskedLines.length; i++) {
 		const match = IMPORT_RE.exec(maskedLines[i]);
-		if (!match) continue;
+		if (!match) {
+			if (maskedLines[i].trim()) seen.clear();
+			continue;
+		}
 		importLines.add(i);
 		const full = match[1];
 		if (seen.has(full)) {

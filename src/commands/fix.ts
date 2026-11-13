@@ -231,7 +231,6 @@ const runFixBody = async (
 		!dryRun && resolvedChecks.commands.length > 0
 			? captureWorktree(resolvedDir, {
 					exclude: excludePatterns,
-					include: config.include,
 					files: rollbackFiles(context),
 				})
 			: null;
