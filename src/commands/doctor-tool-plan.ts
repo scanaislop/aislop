@@ -92,6 +92,12 @@ const FORMAT_SPECS: LangToolSpec[] = [
 		"Install: brew install google-java-format | https://github.com/google/google-java-format/releases",
 	),
 	spec(
+		"scala",
+		"scalafmt",
+		"scalafmt",
+		"Install: brew install scalafmt | https://scalameta.org/scalafmt/docs/installation.html",
+	),
+	spec(
 		"csharp",
 		"dotnet",
 		"dotnet format whitespace",

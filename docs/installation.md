@@ -104,6 +104,7 @@ Some checks depend on tools already installed on your machine:
 - `rubocop` (Ruby)
 - `phpcs`, `php-cs-fixer` (PHP)
 - `pmd`, plus `google-java-format` and `checkstyle` when the project uses them (Java, needs a JRE)
+- `scalafmt` when the project has a `.scalafmt.conf` (Scala, needs a JRE)
 - `.NET SDK`, `roslynator`, `jb` (C#)
 - `cppcheck`, `clang-format`, `clang-tidy` (C/C++)
 

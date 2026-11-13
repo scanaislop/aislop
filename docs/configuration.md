@@ -195,6 +195,53 @@ engines:
 
 See [examples/architecture-rules.yml](../examples/architecture-rules.yml) for a sample rules file.
 
+## Post-fix project checks
+
+Project checks are off unless you pass `--check <command>` or `--run-checks`. Repository config alone never enables command execution. aislop does not read `package.json`
+scripts, and it does not run any other project command on its own. The default
+remains the built-in detector pass.
+
+```yaml
+fix:
+  checks:
+    - pnpm typecheck
+    - pnpm test
+  checkTimeoutMs: 120000   # per command, default 120000
+```
+
+A single string is accepted (`checks: pnpm test`) and treated as a one-item list.
+
+Commands run after fixes are written, in this order:
+
+1. With `--run-checks`, each `fix.checks` entry, from first to last.
+2. Each `--check <command>` flag, in the order it was given.
+
+The first failing or timed-out command stops the list. aislop prints the
+command name and exit status (or that it timed out), restores only the files
+this fix run modified, created, or deleted, and exits non-zero. Pre-existing
+staged, unstaged, and untracked changes are left byte-for-byte as they were.
+Rollback rewrites those fixer-owned paths directly. It does not run `git reset`,
+`git checkout`, `git restore`, or `git clean`.
+
+Check output shown in the terminal is truncated to the tail. That output is not
+sent in telemetry.
+
+`--dry-run` does not run project checks. Because `fix.checks` is an array, a
+child config that sets `checks` replaces the parent's list (see extending a
+shared config above).
+
+Rollback snapshots respect `.gitignore`, `.aislopignore`, configured include/exclude
+patterns, built-in output/dependency directories, and changed/staged file scope.
+A 128 MiB snapshot limit stops the run before fixes if the selection is too large;
+use `--changes` or `--staged` to narrow it. Restoration uses a temporary sibling
+file and atomic rename. A failed restore leaves the current file intact, continues
+restoring other paths, and reports each failed path with a non-zero exit. If replacement fails after the
+pre-fix contents were written, their recovery file is retained and its path is reported.
+The rollback journal is recorded before checks start: files changed or created
+only by a check are kept. Changes a check makes to a fixer-owned path are replaced
+by that path's pre-fix contents when rollback succeeds.
+
+
 ## Example configs
 
 See the [examples/](../examples/) directory for pre-built configs:

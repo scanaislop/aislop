@@ -122,7 +122,11 @@ describe("killActiveChildren", () => {
 			// The kill is asynchronous (taskkill on Windows, signal escalation
 			// elsewhere) - poll rather than asserting instantly.
 			const deadline = Date.now() + 5000;
-			while (grandchildPid !== undefined && isProcessAlive(grandchildPid) && Date.now() < deadline) {
+			while (
+				grandchildPid !== undefined &&
+				isProcessAlive(grandchildPid) &&
+				Date.now() < deadline
+			) {
 				await new Promise((resolve) => setTimeout(resolve, 100));
 			}
 			expect(grandchildPid !== undefined && isProcessAlive(grandchildPid)).toBe(false);
@@ -271,6 +275,21 @@ describe("chunkFilePaths", () => {
 	});
 });
 
+describe("runSubprocess bounded output", () => {
+	it("returns only the tail once stdout passes maxOutputBytes", async () => {
+		const script = [
+			"process.stdout.write('PREFIX_SENTINEL');",
+			"process.stdout.write('x'.repeat(500));",
+			"process.stdout.write('END');",
+		].join("");
+		const result = await runSubprocess(process.execPath, ["-e", script], { maxOutputBytes: 32 });
+		expect(result.stdoutTruncated).toBe(true);
+		expect(result.stdout.length).toBeLessThanOrEqual(32);
+		expect(result.stdout.endsWith("END")).toBe(true);
+		expect(result.stdout).not.toContain("PREFIX_SENTINEL");
+	});
+});
+
 describe("isMissingToolError", () => {
 	it("is true for an ENOENT spawn error", () => {
 		const error = Object.assign(new Error("spawn foo ENOENT"), { code: "ENOENT" });
@@ -296,4 +315,29 @@ describe("warnSubprocessFailure", () => {
 		expect(spy.mock.calls[0][0]).toContain("boom");
 		spy.mockRestore();
 	});
+});
+
+describe("timeout completion", () => {
+	it.skipIf(process.platform === "win32")(
+		"waits for termination before reporting a timeout",
+		async () => {
+			const pidFile = path.join(tmpdir(), `aislop-timeout-close-${process.pid}-${Date.now()}.pid`);
+			const script = [
+				"process.on('SIGTERM', () => setTimeout(() => process.exit(0), 300));",
+				`require('node:fs').writeFileSync(${JSON.stringify(pidFile)}, String(process.pid));`,
+				"setInterval(() => {}, 1000);",
+			].join("\n");
+			let childPid: number | undefined;
+			try {
+				await expect(
+					runSubprocess(process.execPath, ["-e", script], { timeout: 2000 }),
+				).rejects.toThrow(/timed out/);
+				childPid = Number(readFileSync(pidFile, "utf8"));
+				expect(isProcessAlive(childPid)).toBe(false);
+			} finally {
+				if (childPid !== undefined && isProcessAlive(childPid)) process.kill(childPid, "SIGKILL");
+				rmSync(pidFile, { force: true });
+			}
+		},
+	);
 });

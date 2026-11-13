@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- **Scala language support (#539).** Scala sources and sbt/Mill builds are detected, with opt-in scalafmt, import/exception/console patterns, SQL/process/deserialization checks, and generic file-size and comment checks. Integrates j5ik2o's implementation with follow-up accuracy fixes.
+
+- **CLI rule ignores (#533).** `aislop scan --ignore <rule>` disables repeatable or comma-separated rule IDs for one invocation, including when file overrides enable them.
+
+- **Scope explanation (#319, #481).** `aislop scan --explain-scope` reports effective file selection as text or versioned JSON without running engines. Verbose output adds relative examples; excluded files and skipped directories are counted separately.
+
+- **Post-fix project checks (#322, #480).** Repeatable `--check` commands verify fixes and roll back fixer-owned changes on failure. Configured commands require explicit `--run-checks`; snapshots respect scope and exclusions, and partial restore failures are reported without deleting current files.
+
+### Fixed
+
+- **Timeout rollback ordering.** Timed-out project checks finish terminating their process tree before rollback starts, preventing late writes and Windows working-directory locks.
+
+- **Rust literal masking (#412).** Braces in strings, character literals, raw strings, and nested comments no longer inflate function lengths. Lifetimes and labels remain visible as code.
+
 ## 0.20.1 (2026-11-11)
 
 A patch release that fixes Python diagnostic false positives and reduces CPU work when security checks produce many findings.

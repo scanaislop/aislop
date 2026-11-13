@@ -96,6 +96,9 @@ Use `--changes --base origin/<target>` to gate a pull request on only the files 
 | `--base <ref>` | Diff base for `--changes`, e.g. `origin/main` (default `HEAD`) |
 | `--staged` | Only fix staged files |
 | `-p, --prompt` | Print an agent-ready prompt for remaining issues |
+| `--run-checks` | Explicitly enable configured `fix.checks` commands for this invocation |
+| `--check <command>` | Opt-in shell command run after fixes. Repeat for more commands. Enabled config `fix.checks` run first, then these flags in the order given. A failure or timeout rolls back only files this fix changed and exits non-zero. |
+| `--check-timeout <ms>` | Per-command timeout for project checks, in milliseconds (default 120000) |
 
 Agent handoff flags: `--claude`, `--codex`, `--cursor`, `--windsurf`, `--vscode`, `--amp`, `--antigravity`, `--deep-agents`, `--gemini`, `--kimi`, `--opencode`, `--warp`, `--aider`, `--goose`, `--pi`, `--crush`.
 

@@ -8,6 +8,7 @@ export type Language =
 	| "go"
 	| "rust"
 	| "java"
+	| "scala"
 	| "ruby"
 	| "php"
 	| "csharp"
@@ -44,6 +45,8 @@ const PYTHON_SIGNALS = [
 
 const JAVA_SIGNALS = ["pom.xml", "build.gradle", "build.gradle.kts"];
 
+const SCALA_SIGNALS = ["build.sbt", "build.sc", "build.mill", "build.mill.scala"];
+
 // Source-file extensions map directly to a language. This lets us recognize a
 // project from its actual source files even when no manifest/build file is
 // present (e.g. a bare directory of .py files with no pyproject.toml). Without
@@ -62,6 +65,8 @@ const EXTENSION_LANGUAGES: Record<string, Language> = {
 	".rs": "rust",
 	".rb": "ruby",
 	".java": "java",
+	".scala": "scala",
+	".sc": "scala",
 	".php": "php",
 	".c": "cpp",
 	".cc": "cpp",
@@ -166,6 +171,13 @@ export const detectLanguages = (directory: string, sourceFiles: string[]): Langu
 	for (const signal of JAVA_SIGNALS) {
 		if (fs.existsSync(path.join(directory, signal))) {
 			languages.add("java");
+			break;
+		}
+	}
+
+	for (const signal of SCALA_SIGNALS) {
+		if (fs.existsSync(path.join(directory, signal))) {
+			languages.add("scala");
 			break;
 		}
 	}

@@ -1,5 +1,5 @@
 import { type ChildProcess, spawn } from "node:child_process";
-import { closeSync, mkdtempSync, openSync, readFileSync, rmSync } from "node:fs";
+import { closeSync, fstatSync, mkdtempSync, openSync, readSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -7,7 +7,35 @@ interface SubprocessResult {
 	stdout: string;
 	stderr: string;
 	exitCode: number | null;
+	stdoutTruncated?: boolean;
+	stderrTruncated?: boolean;
 }
+
+// Read captured tool output, keeping only the tail once it passes maxBytes.
+// Project checks print this text, so an unbounded log must not be retained.
+const readBoundedCapture = (
+	filePath: string,
+	maxBytes?: number,
+): { text: string; truncated: boolean } => {
+	const fd = openSync(filePath, "r");
+	try {
+		const size = fstatSync(fd).size;
+		const cap = maxBytes !== undefined && maxBytes > 0 ? maxBytes : undefined;
+		const truncated = cap !== undefined && size > cap;
+		const toRead = truncated && cap !== undefined ? cap : size;
+		const position = truncated && cap !== undefined ? size - cap : 0;
+		const buf = Buffer.alloc(toRead);
+		let offset = 0;
+		while (offset < toRead) {
+			const n = readSync(fd, buf, offset, toRead - offset, position + offset);
+			if (n === 0) break;
+			offset += n;
+		}
+		return { text: buf.subarray(0, offset).toString("utf-8").trim(), truncated };
+	} finally {
+		closeSync(fd);
+	}
+};
 
 // Windows caps a process's total command line around 32767 characters; other
 // platforms are more permissive but a conservative shared limit keeps one code
@@ -49,43 +77,39 @@ export const chunkFilePaths = (
 // This kills the whole tree instead. Windows has no process groups, so it
 // shells out to taskkill's /T (tree) flag; POSIX relies on the child having
 // been spawned detached (see below) so its pid doubles as a process-group id.
-const killProcessTree = (child: ChildProcess): void => {
-	if (process.platform === "win32") {
-		if (child.pid === undefined) {
-			child.kill("SIGTERM");
+const killProcessTree = (child: ChildProcess): Promise<void> => {
+	if (process.platform === "win32" && child.pid !== undefined) {
+		return new Promise((resolve) => {
+			// Keep the parent alive until taskkill has walked its descendants.
+			const taskkill = spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
+				stdio: "ignore",
+				windowsHide: true,
+			});
+			taskkill.once("error", () => {
+				child.kill("SIGKILL");
+				resolve();
+			});
+			taskkill.once("close", () => resolve());
+		});
+	}
+	const signal = (name: NodeJS.Signals): void => {
+		if (child.pid === undefined || process.platform === "win32") {
+			child.kill(name);
 			return;
 		}
-		// taskkill walks the tree by parent pid, so the parent must still be
-		// alive when it runs - calling child.kill() first would sever the
-		// walk and orphan the very workers this is meant to reap.
-		const taskkill = spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], {
-			stdio: "ignore",
-			windowsHide: true,
-		});
-		// A missing taskkill binary must not crash the process; the timeout
-		// rejection still fires regardless of whether this succeeds.
-		taskkill.once("error", () => {});
-		return;
-	}
-
-	if (child.pid === undefined) {
-		child.kill("SIGTERM");
-		setTimeout(() => child.kill("SIGKILL"), 1000).unref();
-		return;
-	}
-	const pid = child.pid;
-	try {
-		process.kill(-pid, "SIGTERM");
-	} catch {
-		child.kill("SIGTERM");
-	}
-	setTimeout(() => {
 		try {
-			process.kill(-pid, "SIGKILL");
+			process.kill(-child.pid, name);
 		} catch {
-			child.kill("SIGKILL");
+			child.kill(name);
 		}
-	}, 1000).unref();
+	};
+	signal("SIGTERM");
+	return new Promise((resolve) => {
+		setTimeout(() => {
+			signal("SIGKILL");
+			resolve();
+		}, 1000);
+	});
 };
 
 // Every in-flight child is tracked here so an interactive Ctrl-C can reap it.
@@ -99,7 +123,7 @@ const activeChildren = new Set<ChildProcess>();
 
 export const killActiveChildren = (): void => {
 	for (const child of activeChildren) {
-		killProcessTree(child);
+		void killProcessTree(child);
 	}
 	activeChildren.clear();
 };
@@ -169,6 +193,7 @@ export const runSubprocess = (
 		cwd?: string;
 		timeout?: number;
 		env?: Record<string, string>;
+		maxOutputBytes?: number;
 	} = {},
 ): Promise<SubprocessResult> => {
 	return new Promise((resolve, reject) => {
@@ -196,19 +221,23 @@ export const runSubprocess = (
 
 		activeChildren.add(child);
 
-		// Runs exactly once, on whichever of 'close'/'error' fires first (a
-		// spawn failure can still emit 'close' afterward). Not gated behind
-		// `settled`: a timeout already rejected before the killed child's
-		// 'close' arrives, but the temp files must still be read and removed.
+		// Spawn failures can emit both error and close; release captures once.
 		let cleanedUp = false;
-		const cleanup = (): { stdout: string; stderr: string } => {
-			if (cleanedUp) return { stdout: "", stderr: "" };
+		const cleanup = (): {
+			stdout: string;
+			stderr: string;
+			stdoutTruncated: boolean;
+			stderrTruncated: boolean;
+		} => {
+			if (cleanedUp) {
+				return { stdout: "", stderr: "", stdoutTruncated: false, stderrTruncated: false };
+			}
 			cleanedUp = true;
 			activeChildren.delete(child);
 			closeSync(capture.outFd);
 			closeSync(capture.errFd);
-			const stdout = readFileSync(capture.stdoutPath, "utf-8").trim();
-			const stderr = readFileSync(capture.stderrPath, "utf-8").trim();
+			const stdoutCapture = readBoundedCapture(capture.stdoutPath, options.maxOutputBytes);
+			const stderrCapture = readBoundedCapture(capture.stderrPath, options.maxOutputBytes);
 			// Best-effort: on Windows a just-killed child can still hold the
 			// file handle briefly, so removal can fail here - leaking an
 			// occasional temp file/dir into the OS tmpdir is acceptable.
@@ -217,10 +246,17 @@ export const runSubprocess = (
 			} catch {
 				// Best-effort: leaking an occasional temp dir is acceptable.
 			}
-			return { stdout, stderr };
+			return {
+				stdout: stdoutCapture.text,
+				stderr: stderrCapture.text,
+				stdoutTruncated: stdoutCapture.truncated,
+				stderrTruncated: stderrCapture.truncated,
+			};
 		};
 
 		let settled = false;
+		let termination: Promise<void> | undefined;
+		let timedOut = false;
 		let timer: NodeJS.Timeout | undefined;
 
 		const finalize = (callback: () => void) => {
@@ -247,10 +283,8 @@ export const runSubprocess = (
 					// that completion resolve normally instead of misreporting
 					// a finished command as a timeout.
 					if (child.exitCode !== null || child.signalCode !== null) return;
-					killProcessTree(child);
-					finalize(() =>
-						reject(new Error(`Command timed out after ${options.timeout}ms: ${command}`)),
-					);
+					timedOut = true;
+					termination = killProcessTree(child);
 				});
 			}, options.timeout);
 			timer.unref();
@@ -266,9 +300,27 @@ export const runSubprocess = (
 				reject(wrapped);
 			});
 		});
+		const finishClose = (code: number | null): void => {
+			const captured = cleanup();
+			if (timedOut) {
+				finalize(() =>
+					reject(new Error(`Command timed out after ${options.timeout}ms: ${command}`)),
+				);
+				return;
+			}
+			finalize(() =>
+				resolve({
+					stdout: captured.stdout,
+					stderr: captured.stderr,
+					exitCode: code,
+					stdoutTruncated: captured.stdoutTruncated,
+					stderrTruncated: captured.stderrTruncated,
+				}),
+			);
+		};
 		child.once("close", (code) => {
-			const { stdout, stderr } = cleanup();
-			finalize(() => resolve({ stdout, stderr, exitCode: code }));
+			if (termination) void termination.then(() => finishClose(code));
+			else finishClose(code);
 		});
 	});
 };

@@ -48,7 +48,8 @@
 				"maxFunctionLoc": 80,
 				"maxFileLoc": 400,
 				"maxNesting": 5,
-				"maxParams": 6
+				"maxParams": 6,
+				"knip": "auto"
 			},
 			"type": "object",
 			"properties": {
@@ -71,6 +72,15 @@
 					"default": 6,
 					"type": "number",
 					"exclusiveMinimum": 0
+				},
+				"knip": {
+					"default": "auto",
+					"type": "string",
+					"enum": [
+						"auto",
+						"always",
+						"off"
+					]
 				}
 			}
 		},
@@ -342,6 +352,29 @@
 				"enabled": {
 					"default": true,
 					"type": "boolean"
+				}
+			}
+		},
+		"fix": {
+			"default": {
+				"checks": [],
+				"checkTimeoutMs": 120000
+			},
+			"type": "object",
+			"properties": {
+				"checks": {
+					"default": [],
+					"description": "Shell commands run after fixes only with explicit --run-checks, in listed order. Package scripts are never discovered.",
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"checkTimeoutMs": {
+					"default": 120000,
+					"description": "Per-command timeout in milliseconds for fix.checks.",
+					"type": "number",
+					"exclusiveMinimum": 0
 				}
 			}
 		},
