@@ -6,7 +6,7 @@
 
 The patterns Claude Code, Cursor, Codex, and OpenCode leave behind: narrative comments above self-explanatory code, swallowed exceptions, hidden fallbacks, `as any` casts, hallucinated imports, duplicated helpers, dead code, todo stubs, oversized functions. Tests pass. Lint passes. The code rots anyway.
 
-aislop catches them. 50+ rules across 12 language targets (TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, Scala, C#, C/C++). Scores every change 0–100. Sub-second. Deterministic: no LLM in the runtime path, same code in, same score out. MIT-licensed, free CLI.
+aislop catches them. 50+ rules across 12 language targets (TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, Scala (beta), C#, C/C++). Scores every change 0–100. Sub-second. Deterministic: no LLM in the runtime path, same code in, same score out. MIT-licensed, free CLI.
 
 ## Quick start
 
@@ -37,7 +37,9 @@ See [Installation](#installation) for every option.
 
 ## Language support
 
-aislop supports TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, Scala, C#, and C/C++.
+aislop supports TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, Scala (beta), C#, and C/C++.
+
+**Scala support (beta):** Initial support is available, with coverage and accuracy still being refined. Scala 3 indentation-based syntax and real-world scalafmt integration remain ongoing work.
 
 Coverage includes formatting, linting, complexity, AI-slop detection, and security checks. Some checks use optional system tools; see [Installation](docs/installation.md) and the [rules reference](docs/rules.md) for details.
 
