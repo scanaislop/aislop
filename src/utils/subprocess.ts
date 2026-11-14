@@ -1,4 +1,4 @@
-import { type ChildProcess, spawn } from "node:child_process";
+import { type ChildProcess, type SpawnOptions, spawn } from "node:child_process";
 import { closeSync, fstatSync, mkdtempSync, openSync, readSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -186,15 +186,27 @@ export const warnSubprocessFailure = (tool: string, error: unknown): void => {
 	console.error(`aislop: ${tool} failed to run and was skipped: ${message}`);
 };
 
-export const runSubprocess = (
+interface SubprocessOptions {
+	cwd?: string;
+	timeout?: number;
+	env?: Record<string, string>;
+	maxOutputBytes?: number;
+}
+
+const processOptions = (capture: OutputCapture, options: SubprocessOptions): SpawnOptions => ({
+	shell: false,
+	cwd: options.cwd,
+	env: { ...process.env, ...options.env },
+	stdio: ["ignore", capture.outFd, capture.errFd],
+	windowsHide: true,
+	// POSIX process groups let timeouts terminate descendants; Windows uses taskkill.
+	detached: process.platform !== "win32",
+});
+
+const runCapturedSubprocess = (
 	command: string,
-	args: string[],
-	options: {
-		cwd?: string;
-		timeout?: number;
-		env?: Record<string, string>;
-		maxOutputBytes?: number;
-	} = {},
+	launch: (capture: OutputCapture) => ChildProcess,
+	options: SubprocessOptions,
 ): Promise<SubprocessResult> => {
 	return new Promise((resolve, reject) => {
 		let capture: OutputCapture;
@@ -207,18 +219,7 @@ export const runSubprocess = (
 			return;
 		}
 
-		const child = spawn(command, args, {
-			shell: false,
-			cwd: options.cwd,
-			env: { ...process.env, ...options.env },
-			stdio: ["ignore", capture.outFd, capture.errFd],
-			windowsHide: true,
-			// Makes the child a process-group leader on POSIX so a timeout can
-			// signal the whole group via a negative pid, not just this process.
-			// win32 ignores `detached` for grouping purposes; taskkill handles
-			// the tree there instead (see killProcessTree).
-			detached: process.platform !== "win32",
-		});
+		const child = launch(capture);
 
 		activeChildren.add(child);
 
@@ -325,6 +326,34 @@ export const runSubprocess = (
 		});
 	});
 };
+
+export const runSubprocess = (
+	command: string,
+	args: string[],
+	options: SubprocessOptions = {},
+): Promise<SubprocessResult> =>
+	runCapturedSubprocess(
+		command,
+		(capture) => spawn(command, args, processOptions(capture, options)),
+		options,
+	);
+
+export const runShellCommand = (
+	command: string,
+	options: SubprocessOptions = {},
+): Promise<SubprocessResult> =>
+	runCapturedSubprocess(
+		"project check",
+		(capture) =>
+			process.platform === "win32"
+				? spawn(
+						process.env.ComSpec ?? "cmd.exe",
+						["/d", "/c", command],
+						processOptions(capture, options),
+					)
+				: spawn("sh", ["-c", command], processOptions(capture, options)),
+		options,
+	);
 
 export const isToolInstalled = async (tool: string): Promise<boolean> => {
 	try {
