@@ -1,6 +1,6 @@
 import { DEFAULT_CHECK_TIMEOUT_MS } from "../config/schema.js";
 import type { RailStep } from "../ui/rail.js";
-import { runSubprocess } from "../utils/subprocess.js";
+import { runShellCommand } from "../utils/subprocess.js";
 import { diffFixChanges, restoreFixChanges, type WorktreeSnapshot } from "./fix-rollback.js";
 
 // Returned text is capped per stream. The tail is kept because compilers
@@ -73,13 +73,6 @@ export const resolveProjectChecks = (
 	return { commands, timeoutMs };
 };
 
-const shellCommand = (command: string): { bin: string; args: string[] } => {
-	if (process.platform === "win32") {
-		return { bin: process.env.ComSpec ?? "cmd.exe", args: ["/d", "/c", command] };
-	}
-	return { bin: "sh", args: ["-c", command] };
-};
-
 const isTimeoutError = (error: unknown): boolean =>
 	error instanceof Error && error.message.includes("timed out");
 
@@ -111,9 +104,8 @@ interface OneCheck {
 }
 
 const runOneCheck = async (cwd: string, command: string, timeoutMs: number): Promise<OneCheck> => {
-	const shell = shellCommand(command);
 	try {
-		const result = await runSubprocess(shell.bin, shell.args, {
+		const result = await runShellCommand(command, {
 			cwd,
 			timeout: timeoutMs,
 			maxOutputBytes: MAX_CHECK_OUTPUT_BYTES,

@@ -95,6 +95,18 @@ npx --yes --package=aislop@latest aislop-tools
 
 The command exits non-zero if a supported binary cannot be installed. Run `aislop doctor` afterwards to verify the tools available to each engine.
 
+## Optional Java tools
+
+With JDK 21 or newer on `PATH`, install pinned, checksum-verified google-java-format, PMD, and Checkstyle distributions:
+
+```bash
+aislop-tools --java
+# Or with npx:
+npx --yes --package=aislop@latest aislop-tools --java
+```
+
+Existing executable system installations take precedence. Java formatting still requires a build-file opt-in, and Checkstyle uses the project's configuration. Run `aislop doctor` to check availability.
+
 ## External tools
 
 Some checks depend on tools already installed on your machine:
@@ -103,7 +115,7 @@ Some checks depend on tools already installed on your machine:
 - `cargo`, `clippy` (Rust)
 - `rubocop` (Ruby)
 - `phpcs`, `php-cs-fixer` (PHP)
-- `pmd`, plus `google-java-format` and `checkstyle` when the project uses them (Java, needs a JRE)
+- `pmd`, plus `google-java-format` and `checkstyle` when the project uses them (Java). Install them with `aislop-tools --java` and JDK 21+, or use compatible system installations.
 - `scalafmt` when the project has a `.scalafmt.conf` (Scala, needs a JRE)
 - `.NET SDK`, `roslynator`, `jb` (C#)
 - `cppcheck`, `clang-format`, `clang-tidy` (C/C++)
