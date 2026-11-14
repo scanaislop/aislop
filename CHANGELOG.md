@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+## 0.22.0 (2026-11-14)
+
+Optional Java tool installation and more reliable Java and Scala analysis. Scala remains in beta.
+
+### Added
+
+- **Java tool installation.** `aislop-tools --java` downloads pinned, checksum-verified google-java-format, PMD, and Checkstyle distributions. Requires JDK 21+ and preserves executable system tools.
+- **Scala 3 catch checks.** Indentation-based catch clauses respect dedents and nested match expressions.
+
+### Fixed
+
+- Correctly handle scalafmt formatting results and file URLs, including paths with spaces.
+- Report Java tool and configuration failures clearly instead of returning zero findings.
+- Keep explicitly enabled project shell checks separate from analyzer argument execution.
+
 ## 0.21.0 (2026-11-13)
 
 A minor release with per-run rule ignores, scan-scope explanations, opt-in post-fix project checks, and initial Scala support in beta.
