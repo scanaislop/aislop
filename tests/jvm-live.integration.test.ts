@@ -13,7 +13,13 @@ describe.runIf(process.env.AISLOP_JVM_INTEGRATION === "1")("real JVM tools", () 
 	let root: string;
 	let context: EngineContext;
 	const libraryDirectory = process.env.AISLOP_SCALA_COMPILER_LIB;
-	const compilerClasspath = libraryDirectory ? path.join(libraryDirectory, "*") : "";
+	const compilerClasspath = libraryDirectory
+		? fs
+				.readdirSync(libraryDirectory)
+				.filter((name) => name.endsWith(".jar"))
+				.map((name) => path.join(libraryDirectory, name))
+				.join(path.delimiter)
+		: "";
 	let oldFormatterClasspath: string | undefined;
 	const config = JvmSecuritySchema.parse({ spotbugs: true });
 	it("starts the real Dependency-Check JVM entry point", async () => {
