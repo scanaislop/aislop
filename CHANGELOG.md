@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 Expanded Java and Scala project analysis, with explicit opt-in JVM tools and clearer coverage failures. Scala remains in beta.
 
-Validation: 2,621 unit/regression tests and nine opt-in real-tool checks pass; self-scan scores 100/100.
+Validation: 2,622 unit/regression tests and nine opt-in real-tool checks pass; self-scan scores 100/100.
 
 ### Added
 

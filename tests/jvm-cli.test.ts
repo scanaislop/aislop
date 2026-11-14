@@ -34,6 +34,39 @@ const engineConfig =
 	"engines:\n  format: false\n  lint: false\n  code-quality: false\n  ai-slop: false\n  architecture: false\n";
 
 describe("JVM CLI contracts", () => {
+	it("honors excluded JVM source paths without reattaching findings to the manifest", () => {
+		for (const file of [
+			"Safe.java",
+			"src/generated/Generated.java",
+			"src/external-code/Excluded.java",
+		]) {
+			fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
+			fs.writeFileSync(path.join(root, file), "class Safe {}");
+		}
+		fs.writeFileSync(
+			path.join(root, ".aislop/config.yml"),
+			`${engineConfig}exclude: [src/generated, src/external-code]\nsecurity:\n  audit: false\n  jvm:\n    spotbugsReports: [spotbugs.sarif]\n`,
+		);
+		fs.writeFileSync(
+			path.join(root, "spotbugs.sarif"),
+			JSON.stringify({
+				runs: [
+					{
+						tool: { driver: { name: "SpotBugs" } },
+						results: ["src/generated/Generated.java", "Excluded.java"].map((uri) => ({
+							ruleId: "NP_ALWAYS_NULL",
+							level: "error",
+							message: { text: "Excluded source finding" },
+							locations: [{ physicalLocation: { artifactLocation: { uri } } }],
+						})),
+					},
+				],
+			}),
+		);
+		const result = invoke("ci");
+		expect(result.status, result.stderr).toBe(0);
+		expect(JSON.parse(result.stdout).diagnostics).toEqual([]);
+	});
 	it("rejects a requested JVM run without JVM configuration", () => {
 		const result = invoke("scan", ["--jvm-security"]);
 		expect(result.status, result.stderr).toBe(1);

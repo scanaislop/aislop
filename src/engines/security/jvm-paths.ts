@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { isPathExcluded, normalizeExcludePatterns } from "../../utils/exclude.js";
 import { getSourceFiles } from "../../utils/source-files.js";
 import type { Diagnostic, EngineContext } from "../types.js";
 
@@ -99,7 +100,22 @@ export const jvmSource = (uri: string | undefined, context: EngineContext): stri
 	const root = roots.find((candidate) => inside(candidate, logical));
 	if (!root) return fallback;
 	const relative = path.relative(root, logical).split(path.sep).join("/");
-	const sources = context.projectFiles ?? getSourceFiles(context);
+	const excludes = normalizeExcludePatterns(context.excludePatterns ?? []);
+	if (isPathExcluded(relative, excludes)) return relative;
+	const sources = [
+		...new Set([
+			...(context.projectFiles ?? getSourceFiles(context)),
+			...(context.projectCandidateFiles ?? []).filter((source) =>
+				isPathExcluded(
+					path
+						.relative(context.rootDirectory, path.resolve(context.rootDirectory, source))
+						.split(path.sep)
+						.join("/"),
+					excludes,
+				),
+			),
+		]),
+	];
 	const matches = sources
 		.map((source) =>
 			path
