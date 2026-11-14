@@ -3,6 +3,9 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { buildBaseline } from "../../src/baseline/match.js";
+import { applyScanBaseline } from "../../src/commands/scan-baseline.js";
+import { formatEngine } from "../../src/engines/format/index.js";
 import { fixScalaFormat, runScalaFormat } from "../../src/engines/format/scala-format.js";
 import { getScalaTargets, hasScalafmtConfig } from "../../src/engines/scala-targets.js";
 import type { EngineContext } from "../../src/engines/types.js";
@@ -37,6 +40,29 @@ afterEach(() => {
 });
 
 describe("Scala formatter", () => {
+	it("marks formatter failures incomplete and cannot accept them through a baseline", async () => {
+		write(".scalafmt.conf", "version = 3.9.10\n");
+		const file = write("src/Broken.scala", "object Broken {\n");
+		vi.spyOn(subprocess, "runSubprocess").mockResolvedValue({
+			stdout: "",
+			stderr: "Parse error",
+			exitCode: 2,
+		});
+		const result = await formatEngine.run(context([file]));
+		expect(result.failed).toBe(true);
+		expect(result.diagnostics).toMatchObject([{ severity: "error", fixable: false }]);
+		const baselinePath = write(
+			".aislop/ci-baseline.json",
+			JSON.stringify(buildBaseline(result.diagnostics, root)),
+		);
+		const applied = applyScanBaseline({
+			baselinePath,
+			rootDirectory: root,
+			results: [result],
+			scopeFiles: null,
+		});
+		expect(applied?.summary).toMatchObject({ accepted: 0, new: 1 });
+	});
 	it("runs a caller-managed formatter classpath directly through Java", async () => {
 		write(".scalafmt.conf", "version = 3.9.10\n");
 		const file = write("source with spaces/Good.scala", "object Good\n");

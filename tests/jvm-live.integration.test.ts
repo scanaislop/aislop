@@ -2,7 +2,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { JvmSecuritySchema } from "../src/config/schema.js";
+import { baselineWriteCommand } from "../src/commands/baseline.js";
+import { JvmSecuritySchema, parseConfig } from "../src/config/schema.js";
+import { detectScalaPatterns } from "../src/engines/ai-slop/scala-patterns.js";
+import { formatEngine } from "../src/engines/format/index.js";
 import { fixScalaFormat, runScalaFormat } from "../src/engines/format/scala-format.js";
 import { runJvmSpotbugs } from "../src/engines/security/jvm-tools.js";
 import type { EngineContext } from "../src/engines/types.js";
@@ -131,21 +134,102 @@ describe.runIf(process.env.AISLOP_JVM_INTEGRATION === "1")("real JVM tools", () 
 		},
 		120000,
 	);
-	it("formats Scala 3 with the real scalafmt CLI and verifies a second scan is clean", async () => {
+	it.each(["scala.tools.nsc.Main", "dotty.tools.dotc.Main"])(
+		"compiles catch and literal regressions using %s",
+		async (compiler) => {
+			const file = path.join(root, "src/ControlBoundaries.scala");
+			fs.copyFileSync(new URL("./fixtures/jvm/ControlBoundaries.scala", import.meta.url), file);
+			const build = await runSubprocess(
+				"java",
+				[
+					"-cp",
+					compilerClasspath,
+					compiler,
+					"-classpath",
+					compilerClasspath,
+					"-d",
+					path.join(root, "target/classes"),
+					file,
+				],
+				{ timeout: 120000 },
+			);
+			expect(build.exitCode, build.stderr).toBe(0);
+			const diagnostics = await detectScalaPatterns({
+				...context,
+				files: [file],
+				languages: ["scala"],
+			});
+			expect(
+				diagnostics.filter((item) => item.rule === "ai-slop/swallowed-exception"),
+			).toHaveLength(3);
+			expect(diagnostics.filter((item) => item.rule === "ai-slop/scala-broad-catch")).toHaveLength(
+				1,
+			);
+			expect(diagnostics.filter((item) => item.rule === "ai-slop/console-leftover")).toHaveLength(
+				1,
+			);
+		},
+		120000,
+	);
+	it.each([
+		["scala213", "Format.scala", "object Format{def add(x:Int,y:Int)=x+y}\n"],
+		[
+			"scala3",
+			"Format.scala",
+			"object Format:\n  enum State:\n    case Ready,Waiting\n  opaque type UserId=String\n  given Ordering[UserId]=Ordering.String\n  extension (value:UserId) def render:String=value\n",
+		],
+		["scala213", "script.sc", "val values=List(1,2).map(_+1)\n"],
+	])(
+		"formats %s %s and keeps unselected sources unchanged",
+		async (dialect, name, source) => {
+			fs.writeFileSync(
+				path.join(root, ".scalafmt.conf"),
+				`version = "3.9.10"\nrunner.dialect = ${dialect}\n`,
+			);
+			fs.writeFileSync(path.join(root, "src", name), source);
+			const unselected = path.join(root, "src/Unselected.scala");
+			const untouched = "object Unselected{val value=1}\n";
+			fs.writeFileSync(unselected, untouched);
+			context.files = [`src/${name}`];
+			const diagnostics = await runScalaFormat(context);
+			expect(diagnostics).toEqual([
+				expect.objectContaining({ rule: "scala-formatting", fixable: true }),
+			]);
+			await fixScalaFormat(context);
+			expect(await runScalaFormat(context)).toEqual([]);
+			expect(fs.readFileSync(unselected, "utf8")).toBe(untouched);
+		},
+		120000,
+	);
+	it("refuses a baseline when the real formatter cannot parse Scala source", async () => {
+		const directory = path.join(root, "invalid-project");
+		fs.mkdirSync(directory);
+		fs.writeFileSync(path.join(directory, "Broken.scala"), "object Broken { def invalid(\n");
 		fs.writeFileSync(
-			path.join(root, ".scalafmt.conf"),
+			path.join(directory, ".scalafmt.conf"),
 			'version = "3.9.10"\nrunner.dialect = scala3\n',
 		);
-		fs.writeFileSync(
-			path.join(root, "src/Format.scala"),
-			"object Format{def add(x:Int,y:Int)=x+y}\n",
-		);
-		context.files = ["src/Format.scala"];
-		const diagnostics = await runScalaFormat(context);
-		expect(diagnostics).toEqual([
-			expect.objectContaining({ rule: "scala-formatting", fixable: true }),
-		]);
-		await fixScalaFormat(context);
-		expect(await runScalaFormat(context)).toEqual([]);
+		const result = await formatEngine.run({
+			...context,
+			rootDirectory: directory,
+			languages: ["scala"],
+			files: ["Broken.scala"],
+			installedTools: { scalafmt: true },
+		});
+		expect(result.failed).toBe(true);
+		expect(result.diagnostics).toMatchObject([{ severity: "error", fixable: false }]);
+		const config = parseConfig({
+			engines: {
+				format: true,
+				lint: false,
+				"code-quality": false,
+				"ai-slop": false,
+				security: false,
+				architecture: false,
+			},
+			telemetry: { enabled: false },
+		});
+		expect((await baselineWriteCommand(directory, config)).exitCode).toBe(1);
+		expect(fs.existsSync(path.join(directory, ".aislop/ci-baseline.json"))).toBe(false);
 	}, 120000);
 });

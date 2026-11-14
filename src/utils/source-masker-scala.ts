@@ -29,7 +29,12 @@ const scanString = (
 ): void => {
 	const { content, cursor } = state;
 	if (content.startsWith(frame.delimiter, cursor)) {
-		state.cursor += frame.delimiter.length;
+		let end = cursor + frame.delimiter.length;
+		if (frame.delimiter.length === 3) {
+			while (content[end] === '"') end++;
+			if (state.maskStrings) maskRange(state, cursor, end - 3);
+		}
+		state.cursor = end;
 		state.frames.pop();
 		return;
 	}

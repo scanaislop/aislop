@@ -1,6 +1,6 @@
 # Java and Scala project analysis
 
-Java source analysis includes google-java-format, PMD, Checkstyle, built-in patterns, complexity, and security checks. Scala source analysis includes scalafmt and built-in patterns, complexity, and security checks. Scala remains in beta while broader syntax and real-project coverage are refined.
+Java source analysis includes google-java-format, PMD, Checkstyle, built-in patterns, complexity, and security checks. Scala source analysis includes scalafmt, built-in patterns, file-size checks, and security checks. Scala remains in beta; see [Scala coverage and beta readiness](scala-support.md) for the remaining syntax, semantic, and real-project validation gaps.
 
 Both languages can additionally use SpotBugs with find-sec-bugs for compiled-code analysis and OWASP Dependency-Check for resolved dependency JARs. These checks require a trusted, built project. Aislop never runs Maven, Gradle, sbt, or project build scripts automatically.
 
