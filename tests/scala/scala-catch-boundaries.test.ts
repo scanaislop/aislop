@@ -114,6 +114,13 @@ describe("Scala catch clause boundaries", () => {
 			),
 		).toEqual([]);
 	});
+	it("does not call an explicit rethrow inside a logging argument discarded", async () => {
+		expect(
+			await scan(
+				"object Service { def load() = try work() catch { case error: java.io.IOException => println(throw error) } }",
+			),
+		).toEqual([]);
+	});
 	it("keeps a braced handler inside an indentation-based catch through its closing brace", async () => {
 		expect(
 			await scan(

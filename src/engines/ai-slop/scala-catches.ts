@@ -134,6 +134,7 @@ const unwrapBody = (body: string): string => {
 };
 
 export const isDiscardedScalaCatch = (body: string): boolean => {
+	if (/\bthrow\b/.test(body)) return false;
 	const content = unwrapBody(body);
 	if (!content) return true;
 	const statements: string[] = [];

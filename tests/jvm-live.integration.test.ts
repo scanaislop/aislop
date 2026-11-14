@@ -166,7 +166,7 @@ describe.runIf(process.env.AISLOP_JVM_INTEGRATION === "1")("real JVM tools", () 
 				1,
 			);
 			expect(diagnostics.filter((item) => item.rule === "ai-slop/console-leftover")).toHaveLength(
-				1,
+				2,
 			);
 		},
 		120000,

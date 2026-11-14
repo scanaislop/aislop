@@ -24,6 +24,10 @@ object ControlBoundaries {
     case _: Exception => { () }
   }
 
+  def rethrowLog(): Unit = try work() catch {
+    case error: IOException => println(throw error)
+  }
+
   def quoted(): Unit = {
     val text = """quoted""""; System.out.println(text)
   }
