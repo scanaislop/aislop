@@ -32,6 +32,9 @@ export const securityEngine: Engine = {
 			diagnostics,
 			elapsed: 0,
 			skipped: false,
+			...(diagnostics.some((item) => item.rule === "security/jvm-analysis-failed")
+				? { failed: true }
+				: {}),
 		};
 	},
 };

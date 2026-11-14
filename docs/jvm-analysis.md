@@ -62,7 +62,9 @@ security:
 
 Reports describe the build that produced them; regenerate reports after source or dependency changes. Report imports are read-only and do not require `--jvm-security` or installed analyzers. Reports must be inside the project, valid JSON, and at most 64 MiB. Use relative SARIF source paths for portable source mapping. Ambiguous or unavailable source locations are attached to the project manifest rather than guessed. Explicitly accepted SARIF suppressions and non-applicable results are omitted; identical findings are deduplicated. Incomplete analysis remains an error even when the report also contains valid findings.
 
-Incremental scans keep SpotBugs findings in the selected source scope. Dependency audits run when a dependency manifest, resolved JAR, or configured report is selected; `pom.xml`, Gradle files, `build.sbt`, sbt project definitions, and JAR files are recognized. Full scans audit all configured JVM dependency inputs.
+The report-only configuration above also works with `aislop baseline write`. Baselines cannot record incomplete JVM scans or accept analysis failures.
+
+Full and incremental scans keep SpotBugs findings in the selected source scope, including configured and command-line include/exclude patterns. Dependency audits run when a dependency manifest, resolved JAR, or configured report is selected; `pom.xml`, Gradle files, `build.sbt`, sbt project definitions, and JAR files are recognized. Full scans audit all configured JVM dependency inputs.
 
 ## Scala formatter on the JVM
 
