@@ -349,6 +349,8 @@ See [examples/architecture-rules.yml](../examples/architecture-rules.yml) for a 
 | C/C++ | clang-format (requires `.clang-format`) | cppcheck + clang-tidy (clang-tidy requires `compile_commands.json`) | complexity | Not-implemented stubs, using-namespace-std in headers, C-style casts, manual delete, iostream leftovers | Secrets |
 | Scala | scalafmt (requires `.scalafmt.conf`) | -- | File size | Imports, exceptions, console leftovers, broad catch, comments | Secrets, SQL/shell injection, deserialization |
 
-Scala detection is lexical. Catch checks cover braced clauses; Scala 3 indentation-only
-handlers and semantic unused-import analysis require compiler tooling. Wildcards,
-given imports, and unsupported import syntax are excluded from unused-import checks.
+Scala detection is lexical. Catch checks cover braced, indentation-based, and mixed
+handlers, including nested case boundaries and multiline guards. Unused-import checks
+are conservative and limited to explicit Java imports. Scala imports, wildcards,
+given imports, and unsupported syntax need compiler-aware analysis. See
+[Scala coverage and beta readiness](scala-support.md) for current limits and validation.

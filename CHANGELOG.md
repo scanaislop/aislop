@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Fixed
+
+- Scala catch analysis preserves nested case boundaries, supports balanced multiline guards and wrapped handler bodies, and detects discarded clauses even when sibling clauses recover.
+- Scala triple-quoted strings ending in literal quotes no longer hide executable code that follows on the same line.
+- Scalafmt failures mark formatting incomplete, preventing failed analysis from being recorded or accepted through baselines.
+- Clarified Scala beta coverage and expanded compiler-verified Scala 2/3 and real scalafmt integration fixtures, including scripts and selected-file fixes.
+
 ## 0.22.1 (2026-11-14)
 
 Expanded Java and Scala project analysis, with explicit opt-in JVM tools and clearer coverage failures. Scala remains in beta.
