@@ -547,6 +547,8 @@ Built on: [Biome](https://biomejs.dev/), [oxlint](https://oxc.rs/), [knip](https
 - [@heavykenny](https://github.com/heavykenny)
 - [@mtschoen](https://github.com/mtschoen)
 - [@myke-awoniran](https://github.com/myke-awoniran)
+- [@notlakshitha](https://github.com/notlakshitha)
+- [@onnimonni](https://github.com/onnimonni)
 - [@swjturay](https://github.com/swjturay)
 - [@yashrajoria](https://github.com/yashrajoria)
 <!-- CONTRIBUTORS-END -->
