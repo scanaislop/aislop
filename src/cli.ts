@@ -278,11 +278,18 @@ ciProgram.action(async (directory = ".", _flags, command) => {
 		base?: string;
 		human?: boolean;
 		jvmSecurity?: boolean;
+		include?: string[];
+		exclude?: string[];
 		sarif?: boolean;
 		format?: string;
 	};
 	const config = loadConfig(directory);
-	const { exitCode } = await ciCommand(directory, config, {
+	const scopedConfig = {
+		...config,
+		include: [...config.include, ...(flags.include ?? [])],
+		exclude: [...config.exclude, ...(flags.exclude ?? [])],
+	};
+	const { exitCode } = await ciCommand(directory, scopedConfig, {
 		changes: Boolean(flags.changes),
 		staged: Boolean(flags.staged),
 		base: flags.base,

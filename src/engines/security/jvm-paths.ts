@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { isPathExcluded, normalizeExcludePatterns } from "../../utils/exclude.js";
+import { compileIncludeMatcher } from "../../utils/source-file-selection.js";
 import { getSourceFiles } from "../../utils/source-files.js";
 import type { Diagnostic, EngineContext } from "../types.js";
 
@@ -84,7 +85,7 @@ export const readJvmReport = (file: string): unknown => {
 	return JSON.parse(fs.readFileSync(file, "utf8"));
 };
 
-export const jvmSource = (uri: string | undefined, context: EngineContext): string => {
+export const jvmSource = (uri: string | undefined, context: EngineContext): string | null => {
 	const fallback = jvmManifest(context.rootDirectory);
 	if (!uri) return fallback;
 	let file: string;
@@ -103,28 +104,24 @@ export const jvmSource = (uri: string | undefined, context: EngineContext): stri
 	const excludes = normalizeExcludePatterns(context.excludePatterns ?? []);
 	if (isPathExcluded(relative, excludes)) return relative;
 	const sources = [
-		...new Set([
-			...(context.projectFiles ?? getSourceFiles(context)),
-			...(context.projectCandidateFiles ?? []).filter((source) =>
-				isPathExcluded(
-					path
-						.relative(context.rootDirectory, path.resolve(context.rootDirectory, source))
-						.split(path.sep)
-						.join("/"),
-					excludes,
-				),
-			),
-		]),
+		...(context.projectCandidateFiles ?? []),
+		...(context.projectFiles ?? getSourceFiles(context)),
 	];
-	const matches = sources
-		.map((source) =>
-			path
-				.relative(context.rootDirectory, path.resolve(context.rootDirectory, source))
-				.split(path.sep)
-				.join("/"),
-		)
-		.filter((source) => source === relative || source.endsWith(`/${relative}`));
-	return matches.length === 1 ? matches[0] : fallback;
+	const matches = [
+		...new Set(
+			sources.map((source) =>
+				path
+					.relative(context.rootDirectory, path.resolve(context.rootDirectory, source))
+					.split(path.sep)
+					.join("/"),
+			),
+		),
+	].filter((source) => source === relative || source.endsWith(`/${relative}`));
+	if (matches.length !== 1) return fallback;
+	const include = compileIncludeMatcher(context.includePatterns ?? []);
+	return include.includePatterns.length > 0 && !include.matchesInclude(matches[0])
+		? null
+		: matches[0];
 };
 
 export const detectJvmBytecode = (root: string): string[] => {

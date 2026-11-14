@@ -54,6 +54,7 @@ export const parseSpotbugsReport = (report: unknown, context: EngineContext): Di
 			const message = result.message.text ?? result.message.markdown;
 			if (!message) throw new Error("SpotBugs result has no message");
 			const filePath = jvmSource(physical?.artifactLocation?.uri, context);
+			if (filePath === null) return [];
 			const mapped = filePath !== jvmManifest(context.rootDirectory);
 			return [
 				{
