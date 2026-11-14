@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Fixed
+
+- Recognize Homebrew formula and cask download URLs as package metadata while retaining application URL and provider ID checks.
+
 ## 0.22.0 (2026-11-14)
 
 Optional Java tool installation and more reliable Java and Scala analysis. Scala remains in beta.

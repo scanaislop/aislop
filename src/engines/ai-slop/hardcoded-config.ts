@@ -25,6 +25,11 @@ const SOURCE_EXTENSIONS = new Set([
 ]);
 
 const URL_LITERAL_RE = /(["'`])(https?:\/\/[^"'`\s<>]+)\1/g;
+const HOMEBREW_RECIPE_RE =
+	/^\s*(?:class\s+[A-Z][\w:]*\s*<\s*(?:::)?Formula(?=[\s;]|$)|cask\s+["'][^"'\r\n]+["']\s+do\b)/;
+const RUBY_REQUIRE_RE =
+	/^\s*require(?:_relative)?\s*(?:\(\s*)?(?:"[^"\r\n]+"|'[^'\r\n]+')\s*\)?\s*$/;
+const HOMEBREW_DOWNLOAD_PREFIX_RE = /^\s*(?:url|mirror)\s*(?:\(\s*)?["']$/;
 const ID_LITERAL_RE = /(["'])([A-Za-z][A-Za-z0-9_-]{15,})\1/g;
 const ENV_REFERENCE_RE =
 	/\b(?:process\.env|import\.meta\.env|Deno\.env|os\.environ|getenv|env\()\b/i;
@@ -228,6 +233,7 @@ const scanLineForConfigLiterals = (
 	ext: string,
 	lineNumber: number,
 	isDocstringLine: boolean,
+	isHomebrewRecipe: boolean,
 ): Diagnostic[] => {
 	const diagnostics: Diagnostic[] = [];
 	const trimmed = line.trim();
@@ -236,6 +242,9 @@ const scanLineForConfigLiterals = (
 	for (const urlMatch of line.matchAll(URL_LITERAL_RE)) {
 		const urlText = urlMatch[2];
 		if (commentStartsBefore(line, urlMatch.index, ext)) continue;
+		if (isHomebrewRecipe && HOMEBREW_DOWNLOAD_PREFIX_RE.test(line.slice(0, urlMatch.index + 1))) {
+			continue;
+		}
 		// A URL inside a docstring is documentation (a format example, a link in prose),
 		// not a deployment target baked into runtime code.
 		if (isDocstringLine) continue;
@@ -267,6 +276,11 @@ const scanFileForConfigLiterals = (
 	if (MIGRATION_PATH_RE.test(relativePath)) return [];
 
 	const lines = content.split("\n");
+	const firstStatement =
+		ext === ".rb"
+			? lines.find((line) => line.trim().length > 0 && !RUBY_REQUIRE_RE.test(line))
+			: undefined;
+	const isHomebrewRecipe = firstStatement !== undefined && HOMEBREW_RECIPE_RE.test(firstStatement);
 	// Docstrings (triple-quoted string expressions) are Python-specific; other
 	// languages have no equivalent "documentation, not code" string convention
 	// here. Only docstring-positioned literals are exempted: an assigned
@@ -279,6 +293,7 @@ const scanFileForConfigLiterals = (
 			ext,
 			index + 1,
 			docstringLines?.has(index) ?? false,
+			isHomebrewRecipe,
 		),
 	);
 };
