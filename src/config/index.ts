@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DEFAULT_CONFIG } from "./defaults.js";
 import { loadConfigChain } from "./extends.js";
-import { type AislopConfig, parseConfig } from "./schema.js";
+import { type AislopConfig, JvmConfigError, parseConfig } from "./schema.js";
 
 export const CONFIG_DIR = ".aislop";
 export const CONFIG_FILE = "config.yml";
@@ -43,6 +43,7 @@ export const loadConfig = (directory: string): AislopConfig => {
 		const merged = loadConfigChain(configPath);
 		return parseConfig(merged);
 	} catch (error) {
+		if (error instanceof JvmConfigError) throw error;
 		const msg = error instanceof Error ? error.message : String(error);
 		process.stderr.write(
 			`  ⚠ Failed to parse ${configPath}: ${msg}\n  ⚠ Using default configuration.\n`,

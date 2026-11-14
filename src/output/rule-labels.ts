@@ -81,6 +81,7 @@ const RULE_LABELS: Record<string, string> = {
 	"security/hardcoded-secret": "Possible hardcoded secret",
 	"security/vulnerable-dependency": "Vulnerable dependency",
 	"security/dependency-audit-skipped": "Dependency audit skipped",
+	"security/jvm-analysis-failed": "JVM analysis incomplete",
 	"security/eval": "eval() usage",
 	"security/innerhtml": "innerHTML assignment",
 	"security/dangerously-set-innerhtml": "dangerouslySetInnerHTML (XSS risk)",
@@ -174,6 +175,8 @@ const RULE_DESCRIPTIONS: Record<string, string> = {
 	"security/hardcoded-secret": "Secret-looking token is embedded in source.",
 	"security/vulnerable-dependency": "Dependency audit reported a known vulnerability.",
 	"security/dependency-audit-skipped": "Audit could not run because inputs/tools are missing.",
+	"security/jvm-analysis-failed":
+		"An enabled JVM analyzer or report import did not complete successfully.",
 	"security/eval": "Dynamic code execution can run attacker-controlled input.",
 	"security/innerhtml": "Raw HTML assignment can introduce XSS.",
 	"security/dangerously-set-innerhtml": "React raw HTML escape hatch can introduce XSS.",

@@ -12,6 +12,7 @@ export interface ScanFlags {
 	sarif?: boolean;
 	format?: string;
 	share?: boolean;
+	jvmSecurity?: boolean;
 	exclude?: string[];
 	include?: string[];
 	explainScope?: boolean;
@@ -67,6 +68,7 @@ export const runScan = async (directory: string, flags: ScanFlags): Promise<void
 		json: !sarif && wantsJson(flags),
 		sarif,
 		share: Boolean(flags.share),
+		jvmSecurity: Boolean(flags.jvmSecurity),
 		exclude: flags.exclude,
 		include: flags.include,
 	});
@@ -82,6 +84,7 @@ export const noFlagsPassed = (flags: ScanFlags): boolean =>
 	!flags.verbose &&
 	!flags.json &&
 	!flags.sarif &&
+	!flags.jvmSecurity &&
 	!flags.format &&
 	!(flags.exclude && flags.exclude.length > 0) &&
 	!(flags.include && flags.include.length > 0) &&

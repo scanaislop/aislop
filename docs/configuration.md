@@ -249,3 +249,7 @@ See the [examples/](../examples/) directory for pre-built configs:
 - [`typescript-strict.yml`](../examples/typescript-strict.yml): tight thresholds for zero-slop teams
 - [`monorepo-relaxed.yml`](../examples/monorepo-relaxed.yml): loose thresholds for incremental adoption
 - [`python-go.yml`](../examples/python-go.yml): backend-focused with higher security weight
+
+## Optional JVM security
+
+`security.jvm` configures SpotBugs/find-sec-bugs and OWASP Dependency-Check for Java and Scala. Tools are disabled by default. Live execution additionally requires `aislop scan --jvm-security` or `aislop ci --jvm-security`; existing SARIF/JSON reports can be imported read-only. See [JVM analysis](jvm-analysis.md) for artifact paths, advisory cache setup, timeouts, and incremental-scan behavior.

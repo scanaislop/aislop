@@ -21,6 +21,8 @@ export const TOOLS_TO_CHECK = [
 	"scalafmt",
 	"pmd",
 	"checkstyle",
+	"spotbugs",
+	"dependency-check",
 	"dotnet",
 	"roslynator",
 	"jb",

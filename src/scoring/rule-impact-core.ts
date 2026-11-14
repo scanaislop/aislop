@@ -67,6 +67,9 @@ export const CORE_RULE_SCORE_IMPACTS: Record<string, RuleScoreImpact> = {
 	"security/dependency-audit-skipped": advisory(
 		"An unavailable audit is visibility loss, not evidence of a vulnerability.",
 	),
+	"security/jvm-analysis-failed": advisory(
+		"Incomplete JVM coverage requires tool or report configuration.",
+	),
 	"dotnet/projects-skipped": advisory(
 		"Skipping unrestored C# projects is visibility loss, not evidence of a defect.",
 	),

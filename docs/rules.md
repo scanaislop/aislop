@@ -315,8 +315,11 @@ Finds secrets, risky constructs, and vulnerable dependencies.
 | `security/shell-injection` | User input in command execution (JS/TS/Python, C#, C/C++ `system`/`popen`) |
 | `security/unsafe-deserialization` | Legacy .NET formatters (`BinaryFormatter`, `SoapFormatter`, ...) that deserialize arbitrary types |
 | `security/unsafe-c-call` | Memory-unsafe C string functions (`gets`, `strcpy`, `strcat`, `sprintf`) |
-| `security/vulnerable-dependency` | npm/pip/cargo/go dependency audit |
+| `security/vulnerable-dependency` | npm/pip/cargo/go/.NET audits and optional Java/Scala OWASP Dependency-Check reports |
 | `security/dependency-audit-skipped` | Dependency audit could not run because tooling or lockfile context was missing |
+| `security/jvm-analysis-failed` | An explicitly enabled JVM tool or configured report import did not complete; this is an error and fails CI |
+
+Optional JVM analysis also emits `spotbugs/<rule-id>` diagnostics from compiled Java and Scala classes, including find-sec-bugs results. See [JVM analysis](jvm-analysis.md) for setup and trust controls.
 
 ## Architecture (opt-in)
 

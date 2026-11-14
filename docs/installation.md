@@ -160,3 +160,7 @@ Run `aislop doctor` to see what is available on your system.
 ## Requirements
 
 - **Node.js** >= 20
+
+### Optional JVM security tools
+
+With JDK 21+ on PATH, run `aislop-tools --jvm-security` to download pinned, checksum-verified SpotBugs, find-sec-bugs, and OWASP Dependency-Check distributions. These analyzers support compiled Java and Scala projects. Live execution is opt-in; see [JVM analysis](jvm-analysis.md).

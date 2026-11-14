@@ -3,13 +3,15 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import javaTools from "../../scripts/java-tools.json";
+import javaSecurityTools from "../../scripts/java-security-tools.json";
+import coreJavaTools from "../../scripts/java-tools.json";
 import { isToolInstalled } from "./subprocess.js";
 
 const THIS_FILE = fileURLToPath(import.meta.url);
+const javaTools = { ...coreJavaTools, ...javaSecurityTools };
 const _esmRequire = createRequire(import.meta.url);
 
-const resolvePackageRoot = (startFile: string): string => {
+export const resolvePackageRoot = (startFile: string): string => {
 	let current = path.dirname(startFile);
 	while (true) {
 		const packageJsonPath = path.join(current, "package.json");
@@ -18,7 +20,7 @@ const resolvePackageRoot = (startFile: string): string => {
 				const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8")) as {
 					name?: string;
 				};
-				if (packageJson.name === "aislop") {
+				if (packageJson.name === "aislop" || packageJson.name === "@scanaislop/aislop") {
 					return current;
 				}
 			} catch {
@@ -147,6 +149,8 @@ export const resolveToolBinary = (toolName: string, options: ResolveToolOptions 
 const isBundledTool = (toolName: string): boolean => getBundledToolPath(toolName) !== null;
 
 export const isToolAvailable = async (toolName: string, projectRoot?: string): Promise<boolean> => {
+	if (toolName === "scalafmt" && resolveScalafmtInvocation().command === "java")
+		return isToolInstalled("java");
 	if (
 		Object.hasOwn(javaTools, toolName) &&
 		resolveJavaToolInvocation(toolName as JavaToolName).command === "java"
@@ -159,6 +163,19 @@ export const isToolAvailable = async (toolName: string, projectRoot?: string): P
 };
 
 type JavaToolName = keyof typeof javaTools;
+
+export const resolveScalafmtInvocation = (): { command: string; args: string[] } => {
+	const classpath = process.env.AISLOP_SCALAFMT_CLASSPATH;
+	return classpath
+		? { command: "java", args: ["-cp", classpath, "org.scalafmt.cli.Cli"] }
+		: { command: "scalafmt", args: [] };
+};
+
+export const resolveFindSecBugsPlugin = (): string | null => {
+	const tool = javaTools.findsecbugs;
+	const file = path.join(PACKAGE_ROOT, "tools", "java", `findsecbugs-${tool.version}`, tool.entry);
+	return fs.statSync(file, { throwIfNoEntry: false })?.isFile() ? file : null;
+};
 
 export const resolveJavaToolInvocation = (
 	toolName: JavaToolName,
