@@ -2,8 +2,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { isToolAvailable, resolveJavaToolInvocation } from "../../src/utils/tooling.js";
 import * as subprocess from "../../src/utils/subprocess.js";
+import {
+	isToolAvailable,
+	resolveJavaToolInvocation,
+	resolvePackageRoot,
+} from "../../src/utils/tooling.js";
 
 let root: string;
 let originalPath: string | undefined;
@@ -24,7 +28,10 @@ const bundledJar = (name: string): void => {
 	const jar = path.join(root, "fixture.jar");
 	fs.writeFileSync(jar, "test fixture");
 	const stats = statSync(jar);
-	vi.spyOn(fs, "statSync").mockImplementation(((candidate: fs.PathLike, options?: { throwIfNoEntry?: boolean }) => {
+	vi.spyOn(fs, "statSync").mockImplementation(((
+		candidate: fs.PathLike,
+		options?: { throwIfNoEntry?: boolean },
+	) => {
 		if (String(candidate).includes(`${path.sep}tools${path.sep}java${path.sep}`)) {
 			return String(candidate).includes(`${path.sep}${name}-`) ? stats : undefined;
 		}
@@ -33,6 +40,15 @@ const bundledJar = (name: string): void => {
 };
 
 describe("Java tool resolution", () => {
+	it("finds bundled assets under the scoped GitHub Packages installation", () => {
+		const packageRoot = path.join(root, "node_modules", "@scanaislop", "aislop");
+		fs.mkdirSync(path.join(packageRoot, "dist"), { recursive: true });
+		fs.writeFileSync(
+			path.join(packageRoot, "package.json"),
+			JSON.stringify({ name: "@scanaislop/aislop" }),
+		);
+		expect(resolvePackageRoot(path.join(packageRoot, "dist/cli.js"))).toBe(packageRoot);
+	});
 	it("prefers an executable system installation over a bundled jar", () => {
 		bundledJar("pmd");
 		const executable = path.join(root, process.platform === "win32" ? "pmd.exe" : "pmd");

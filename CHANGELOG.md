@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+## 0.22.1 (2026-11-14)
+
+Expanded Java and Scala project analysis, with explicit opt-in JVM tools and clearer coverage failures. Scala remains in beta.
+
+Validation: 2,626 unit/regression tests and nine opt-in real-tool checks pass; self-scan scores 100/100.
+
+### Added
+
+- SpotBugs and find-sec-bugs analysis of compiled Java and Scala classes, with portable argument files for large classpaths and paths containing spaces.
+- OWASP Dependency-Check integration for resolved Java and Scala dependencies, including transitive JARs, cached advisory data, and explicit NVD feed updates.
+- Read-only SpotBugs SARIF and Dependency-Check JSON imports, source mapping, deduplication, and incremental scan scope.
+- `aislop-tools --jvm-security` provisions pinned, checksum-verified tools. Live scans require `--jvm-security` as well as project configuration.
+- A caller-managed scalafmt JVM classpath for environments that do not use a native launcher.
+- Real-tool integration coverage for Java 8/17/21 bytecode, Scala 2/3, scalafmt roundtrips, and vulnerable dependency JARs.
+
+### Fixed
+
+- Invalid JVM configuration, missing artifacts, malformed reports, missing classes, and analyzer failures produce explicit errors instead of clean results.
+- JVM findings respect include/exclude source scope, including global CLI scope flags in CI. Incomplete JVM scans cannot be recorded or accepted by baselines.
+- Bundled assets resolve correctly for the scoped GitHub Packages installation.
+- Recognize Homebrew formula and cask download URLs as package metadata while retaining application URL and provider ID checks.
+
 ## 0.22.0 (2026-11-14)
 
 Optional Java tool installation and more reliable Java and Scala analysis. Scala remains in beta.

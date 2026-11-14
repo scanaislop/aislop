@@ -88,6 +88,10 @@ const program = new Command()
 	.option("--base <ref>", "diff base for --changes, e.g. origin/main (default HEAD)")
 	.option("-d, --verbose", "show file details per rule")
 	.option("--json", "output JSON instead of terminal UI")
+	.option(
+		"--jvm-security",
+		"explicitly run configured JVM security tools on trusted compiled artifacts",
+	)
 	.option("--sarif", "output SARIF 2.1.0 (for GitHub code scanning)")
 	.option("--format <format>", "output format: json or sarif")
 	.option(
@@ -133,6 +137,10 @@ program
 	.option("--base <ref>", "diff base for --changes, e.g. origin/main (default HEAD)")
 	.option("-d, --verbose", "show file details per rule")
 	.option("--json", "output JSON")
+	.option(
+		"--jvm-security",
+		"explicitly run configured JVM security tools on trusted compiled artifacts",
+	)
 	.option("--sarif", "output SARIF 2.1.0 (for GitHub code scanning)")
 	.option("--format <format>", "output format: json or sarif")
 	.option(
@@ -253,6 +261,7 @@ program
 const ciProgram = program.command("ci [directory]").description("Run the quality gate for CI");
 
 const CI_OPTIONS: [flag: string, description: string][] = [
+	["--jvm-security", "explicitly run configured JVM security tools on trusted compiled artifacts"],
 	["--changes", "only gate files changed vs --base (or HEAD)"],
 	["--staged", "only gate staged files"],
 	["--base <ref>", "diff base for --changes, e.g. origin/main (default HEAD)"],
@@ -268,15 +277,24 @@ ciProgram.action(async (directory = ".", _flags, command) => {
 		staged?: boolean;
 		base?: string;
 		human?: boolean;
+		jvmSecurity?: boolean;
+		include?: string[];
+		exclude?: string[];
 		sarif?: boolean;
 		format?: string;
 	};
 	const config = loadConfig(directory);
-	const { exitCode } = await ciCommand(directory, config, {
+	const scopedConfig = {
+		...config,
+		include: [...config.include, ...(flags.include ?? [])],
+		exclude: [...config.exclude, ...(flags.exclude ?? [])],
+	};
+	const { exitCode } = await ciCommand(directory, scopedConfig, {
 		changes: Boolean(flags.changes),
 		staged: Boolean(flags.staged),
 		base: flags.base,
 		human: Boolean(flags.human),
+		jvmSecurity: Boolean(flags.jvmSecurity),
 		sarif: Boolean(flags.sarif) || flags.format === "sarif",
 	});
 	if (exitCode !== 0) {

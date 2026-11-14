@@ -100,6 +100,8 @@ Package installation does not run dependency lifecycle scripts. After installing
 
 For Java, run `aislop-tools --java` to download pinned, checksum-verified google-java-format, PMD, and Checkstyle distributions. Keep JDK 21 or newer on PATH. Existing executable system installations take precedence; the bundled tools run directly through Java without shell wrappers. Java formatting still requires a build-file opt-in, and Checkstyle uses your project's configuration.
 
+For compiled Java and Scala security checks, run `aislop-tools --jvm-security`, configure the built artifacts or existing reports, and explicitly enable live runs with `aislop scan --jvm-security` or `aislop ci --jvm-security`. This adds SpotBugs/find-sec-bugs and OWASP Dependency-Check coverage, including resolved transitive dependencies. See the [JVM analysis guide](docs/jvm-analysis.md).
+
 **Homebrew** (macOS / Linux)
 
 ```bash

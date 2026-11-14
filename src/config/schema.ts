@@ -1,5 +1,35 @@
 import { z } from "zod/v4";
 
+export const JvmSecuritySchema = z.strictObject({
+	spotbugs: z.boolean().default(false),
+	findSecBugs: z.boolean().default(true),
+	findSecBugsPlugin: z.string().min(1).optional(),
+	dependencyCheck: z.boolean().default(false),
+	bytecode: z.array(z.string().min(1)).default(() => []),
+	dependencies: z.array(z.string().min(1)).default(() => []),
+	classpath: z.array(z.string().min(1)).default(() => []),
+	spotbugsReports: z.array(z.string().min(1)).default(() => []),
+	dependencyCheckReports: z.array(z.string().min(1)).default(() => []),
+	timeout: z.number().int().positive().max(3_600_000).default(120_000),
+	dataDirectory: z.string().min(1).optional(),
+	updateData: z.boolean().default(false),
+});
+
+export type JvmSecurityConfig = z.infer<typeof JvmSecuritySchema>;
+
+export class JvmConfigError extends Error {}
+
+const validateJvmConfig = (raw: Record<string, unknown>): void => {
+	const security = raw.security;
+	if (!security || typeof security !== "object" || !("jvm" in security)) return;
+	if (security.jvm === undefined) return;
+	const result = JvmSecuritySchema.safeParse(security.jvm);
+	if (!result.success)
+		throw new JvmConfigError(
+			`Invalid security.jvm configuration: ${result.error.issues.map((issue) => issue.path.join(".") || "jvm").join(", ")}`,
+		);
+};
+
 const DEFAULT_WEIGHTS: Record<string, number> = {
 	format: 0.3,
 	lint: 0.6,
@@ -76,6 +106,7 @@ const LintConfigSchema = z.object({
 const SecurityConfigSchema = z.object({
 	audit: z.boolean().default(true),
 	auditTimeout: z.number().positive().default(25000),
+	jvm: JvmSecuritySchema.optional(),
 });
 
 const ImportsSchema = z.object({
@@ -242,6 +273,7 @@ const preMergeWeights = (raw: Record<string, unknown>): void => {
 
 export const parseConfig = (raw: unknown): AislopConfig => {
 	if (!raw || typeof raw !== "object") return defaults;
+	validateJvmConfig(raw as Record<string, unknown>);
 
 	try {
 		const input = raw as Record<string, unknown>;

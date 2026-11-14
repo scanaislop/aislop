@@ -1,0 +1,85 @@
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "SpotBugs",
+          "version": "4.10.5"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "NP_ALWAYS_NULL",
+          "ruleIndex": 0,
+          "message": {
+            "id": "default",
+            "text": "Null pointer dereference",
+            "arguments": [
+              "value",
+              "Unsafe.length()"
+            ]
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Unsafe.java"
+                },
+                "region": {
+                  "startLine": 3
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "value",
+                  "kind": "variable",
+                  "fullyQualifiedName": "Unsafe.length()#value"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "ruleId": "WEAK_MESSAGE_DIGEST_MD5",
+          "ruleIndex": 1,
+          "message": {
+            "id": "default",
+            "text": "MD2, MD4 and MD5 are weak hash functions",
+            "arguments": [
+              "MD5"
+            ]
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Unsafe.java"
+                },
+                "region": {
+                  "startLine": 5
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "hash(byte[])",
+                  "kind": "function",
+                  "fullyQualifiedName": "Unsafe.hash(byte[])"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "invocations": [
+        {
+          "exitCode": 1,
+          "exitCodeDescription": "BUGS FOUND",
+          "executionSuccessful": true
+        }
+      ]
+    }
+  ]
+}

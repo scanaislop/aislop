@@ -230,6 +230,82 @@
 					"default": 25000,
 					"type": "number",
 					"exclusiveMinimum": 0
+				},
+				"jvm": {
+					"type": "object",
+					"properties": {
+						"spotbugs": {
+							"default": false,
+							"type": "boolean"
+						},
+						"findSecBugs": {
+							"default": true,
+							"type": "boolean"
+						},
+						"findSecBugsPlugin": {
+							"type": "string",
+							"minLength": 1
+						},
+						"dependencyCheck": {
+							"default": false,
+							"type": "boolean"
+						},
+						"bytecode": {
+							"default": [],
+							"type": "array",
+							"items": {
+								"type": "string",
+								"minLength": 1
+							}
+						},
+						"dependencies": {
+							"default": [],
+							"type": "array",
+							"items": {
+								"type": "string",
+								"minLength": 1
+							}
+						},
+						"classpath": {
+							"default": [],
+							"type": "array",
+							"items": {
+								"type": "string",
+								"minLength": 1
+							}
+						},
+						"spotbugsReports": {
+							"default": [],
+							"type": "array",
+							"items": {
+								"type": "string",
+								"minLength": 1
+							}
+						},
+						"dependencyCheckReports": {
+							"default": [],
+							"type": "array",
+							"items": {
+								"type": "string",
+								"minLength": 1
+							}
+						},
+						"timeout": {
+							"default": 120000,
+							"type": "integer",
+							"exclusiveMinimum": 0,
+							"maximum": 3600000
+						},
+						"dataDirectory": {
+							"type": "string",
+							"minLength": 1
+						},
+						"updateData": {
+							"default": false,
+							"type": "boolean"
+						}
+					},
+					"additionalProperties": false
 				}
 			}
 		},

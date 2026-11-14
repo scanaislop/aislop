@@ -8,6 +8,7 @@ interface CiOptions {
 	changes?: boolean;
 	staged?: boolean;
 	base?: string;
+	jvmSecurity?: boolean;
 }
 
 export const ciCommand = async (
@@ -20,6 +21,7 @@ export const ciCommand = async (
 			changes: Boolean(options.changes),
 			staged: Boolean(options.staged),
 			base: options.base,
+			jvmSecurity: options.jvmSecurity,
 			verbose: false,
 			json: !options.human && !options.sarif,
 			sarif: options.sarif,
