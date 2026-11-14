@@ -28,7 +28,7 @@ const URL_LITERAL_RE = /(["'`])(https?:\/\/[^"'`\s<>]+)\1/g;
 const HOMEBREW_RECIPE_RE =
 	/^\s*(?:class\s+[A-Z][\w:]*\s*<\s*(?:::)?Formula(?=[\s;]|$)|cask\s+["'][^"'\r\n]+["']\s+do\b)/;
 const RUBY_REQUIRE_RE =
-	/^\s*require(?:_relative)?\s*(?:\(\s*)?(?:"[^"\r\n]+"|'[^'\r\n]+')\s*\)?\s*$/;
+	/^require(?:_relative)?[ \t]*(?:"[^"\r\n]+"|'[^'\r\n]+'|\([ \t]*(?:"[^"\r\n]+"|'[^'\r\n]+')[ \t]*\))$/;
 const HOMEBREW_DOWNLOAD_PREFIX_RE = /^\s*(?:url|mirror)\s*(?:\(\s*)?["']$/;
 const ID_LITERAL_RE = /(["'])([A-Za-z][A-Za-z0-9_-]{15,})\1/g;
 const ENV_REFERENCE_RE =
@@ -278,7 +278,10 @@ const scanFileForConfigLiterals = (
 	const lines = content.split("\n");
 	const firstStatement =
 		ext === ".rb"
-			? lines.find((line) => line.trim().length > 0 && !RUBY_REQUIRE_RE.test(line))
+			? lines.find((line) => {
+					const statement = line.trim();
+					return statement.length > 0 && !RUBY_REQUIRE_RE.test(statement);
+				})
 			: undefined;
 	const isHomebrewRecipe = firstStatement !== undefined && HOMEBREW_RECIPE_RE.test(firstStatement);
 	// Docstrings (triple-quoted string expressions) are Python-specific; other
