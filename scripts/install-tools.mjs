@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import AdmZip from "adm-zip";
 import * as tar from "tar";
 import { digestOf, downloadFile } from "./tool-downloads.mjs";
-import { installJavaTools } from "./install-java-tools.mjs";
+import { installJavaTools, installJvmSecurityTools } from "./install-java-tools.mjs";
 
 const THIS_FILE = fileURLToPath(import.meta.url);
 const PACKAGE_ROOT = path.resolve(path.dirname(THIS_FILE), "..");
@@ -297,11 +297,15 @@ const installAnalyzers = async () => {
 const main = async () => {
 	const args = process.argv.slice(2);
 	if (args.length === 1 && ["--help", "-h"].includes(args[0])) {
-		console.log("Usage: aislop-tools [--java]\n  Default: Ruff, golangci-lint, and C# analyzers\n  --java: google-java-format, PMD, and Checkstyle (requires JDK 21+)");
+		console.log("Usage: aislop-tools [--java | --jvm-security]\n  Default: Ruff, golangci-lint, and C# analyzers\n  --java: google-java-format, PMD, and Checkstyle (requires JDK 21+)\n  --jvm-security: SpotBugs, find-sec-bugs, and OWASP Dependency-Check (requires JDK 21+)");
 		return;
 	}
 	if (args.length === 1 && args[0] === "--java") {
 		await installJavaTools(PACKAGE_ROOT);
+		return;
+	}
+	if (args.length === 1 && args[0] === "--jvm-security") {
+		await installJvmSecurityTools(PACKAGE_ROOT);
 		return;
 	}
 	if (args.length > 0) throw new Error(`Unknown options: ${args.join(" ")}. Run aislop-tools --help.`);

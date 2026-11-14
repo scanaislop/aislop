@@ -8,6 +8,7 @@ export interface ScanOptions {
 	json: boolean;
 	sarif?: boolean;
 	share?: boolean;
+	jvmSecurity?: boolean;
 	showHeader?: boolean;
 	printBrand?: boolean;
 	exclude?: string[];

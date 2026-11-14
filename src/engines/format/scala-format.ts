@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chunkFilePaths, runSubprocess } from "../../utils/subprocess.js";
+import { resolveScalafmtInvocation } from "../../utils/tooling.js";
 import { getScalaTargets, hasScalafmtConfig } from "../scala-targets.js";
 import type { Diagnostic, EngineContext } from "../types.js";
 
@@ -26,10 +27,15 @@ export const runScalaFormat = async (context: EngineContext): Promise<Diagnostic
 		targets.map((file) => path.resolve(context.rootDirectory, file)),
 	)) {
 		try {
-			const result = await runSubprocess("scalafmt", ["--non-interactive", "--list", ...batch], {
-				cwd: context.rootDirectory,
-				timeout: 120000,
-			});
+			const tool = resolveScalafmtInvocation();
+			const result = await runSubprocess(
+				tool.command,
+				[...tool.args, "--non-interactive", "--list", ...batch],
+				{
+					cwd: context.rootDirectory,
+					timeout: 120000,
+				},
+			);
 			if (result.exitCode !== 0 && result.exitCode !== 1)
 				throw new Error(
 					result.stderr || result.stdout || `scalafmt exited with code ${result.exitCode}`,
@@ -72,10 +78,15 @@ export const fixScalaFormat = async (context: EngineContext): Promise<void> => {
 	for (const batch of chunkFilePaths(
 		targets.map((file) => path.resolve(context.rootDirectory, file)),
 	)) {
-		const result = await runSubprocess("scalafmt", ["--non-interactive", ...batch], {
-			cwd: context.rootDirectory,
-			timeout: 120000,
-		});
+		const tool = resolveScalafmtInvocation();
+		const result = await runSubprocess(
+			tool.command,
+			[...tool.args, "--non-interactive", ...batch],
+			{
+				cwd: context.rootDirectory,
+				timeout: 120000,
+			},
+		);
 		if (result.exitCode !== 0) {
 			throw new Error(
 				result.stderr || result.stdout || `scalafmt exited with code ${result.exitCode}`,

@@ -32,10 +32,32 @@ beforeEach(() => {
 });
 afterEach(() => {
 	vi.restoreAllMocks();
+	vi.unstubAllEnvs();
 	fs.rmSync(root, { recursive: true, force: true });
 });
 
 describe("Scala formatter", () => {
+	it("runs a caller-managed formatter classpath directly through Java", async () => {
+		write(".scalafmt.conf", "version = 3.9.10\n");
+		const file = write("source with spaces/Good.scala", "object Good\n");
+		const classpath = path.join(root, "formatter libraries", "*");
+		vi.stubEnv("AISLOP_SCALAFMT_CLASSPATH", classpath);
+		const tool = vi
+			.spyOn(subprocess, "runSubprocess")
+			.mockResolvedValue({ stdout: "", stderr: "", exitCode: 0 });
+		expect(await runScalaFormat(context([file]))).toEqual([]);
+		await fixScalaFormat(context([file]));
+		expect(tool).toHaveBeenCalledWith(
+			"java",
+			["-cp", classpath, "org.scalafmt.cli.Cli", "--non-interactive", "--list", file],
+			expect.objectContaining({ cwd: root }),
+		);
+		expect(tool).toHaveBeenCalledWith(
+			"java",
+			["-cp", classpath, "org.scalafmt.cli.Cli", "--non-interactive", file],
+			expect.objectContaining({ cwd: root }),
+		);
+	});
 	it("accepts scalafmt's difference exit code and decodes file URLs", async () => {
 		write(".scalafmt.conf", "version = 3.11.5\n");
 		const file = write("source with spaces/Bad.scala", "object  Bad\n");
@@ -45,14 +67,22 @@ describe("Scala formatter", () => {
 			exitCode: 1,
 		});
 		expect(await runScalaFormat(context([file]))).toEqual([
-			expect.objectContaining({ filePath: "source with spaces/Bad.scala", severity: "warning", fixable: true }),
+			expect.objectContaining({
+				filePath: "source with spaces/Bad.scala",
+				severity: "warning",
+				fixable: true,
+			}),
 		]);
 	});
 
 	it("reports exit code 1 without file results as a failure", async () => {
 		write(".scalafmt.conf", "version = 3.11.5\n");
 		const file = write("Bad.scala", "object Bad\n");
-		vi.spyOn(subprocess, "runSubprocess").mockResolvedValue({ stdout: "", stderr: "Formatting failed", exitCode: 1 });
+		vi.spyOn(subprocess, "runSubprocess").mockResolvedValue({
+			stdout: "",
+			stderr: "Formatting failed",
+			exitCode: 1,
+		});
 		expect(await runScalaFormat(context([file]))).toEqual([
 			expect.objectContaining({ severity: "error", fixable: false }),
 		]);

@@ -28,7 +28,11 @@ const DEPENDENCY_AUDIT_INPUT_FILE_RE =
 	/(?:^|\/)(?:package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb?|requirements(?:\.[\w-]+)?\.txt|pyproject\.toml|Pipfile|Pipfile\.lock|poetry\.lock|go\.mod|go\.sum|Cargo\.toml|Cargo\.lock|[\w.-]+\.csproj|packages\.lock\.json|Directory\.Packages\.props)$/i;
 
 export const isDependencyAuditInputFile = (filePath: string): boolean =>
-	DEPENDENCY_AUDIT_INPUT_FILE_RE.test(filePath);
+	DEPENDENCY_AUDIT_INPUT_FILE_RE.test(filePath) ||
+	/(?:^|\/)(?:pom\.xml|(?:build|settings)\.gradle(?:\.kts)?|gradle\.lockfile|build\.(?:sbt|sc|mill)|plugins\.sbt|[^/]+\.jar)$/i.test(
+		filePath,
+	) ||
+	/(?:^|\/)project\/[^/]+\.scala$/i.test(filePath);
 
 export const listProjectFiles = (rootDirectory: string): string[] =>
 	enumerateProjectFiles(rootDirectory, WALK_PRUNE_DIRECTORIES);

@@ -7,11 +7,14 @@ import { digestOf, downloadFile } from "./tool-downloads.mjs";
 const definitions = JSON.parse(
 	fs.readFileSync(fileURLToPath(new URL("./java-tools.json", import.meta.url)), "utf8"),
 );
+const securityDefinitions = JSON.parse(
+	fs.readFileSync(fileURLToPath(new URL("./java-security-tools.json", import.meta.url)), "utf8"),
+);
 
-export const installJavaTools = async (packageRoot) => {
+export const installJavaTools = async (packageRoot, tools = definitions) => {
 	const directory = path.join(packageRoot, "tools", "java");
 	fs.mkdirSync(directory, { recursive: true });
-	for (const [name, tool] of Object.entries(definitions)) {
+	for (const [name, tool] of Object.entries(tools)) {
 		const destination = path.join(directory, `${name}-${tool.version}`);
 		const staging = fs.mkdtempSync(path.join(directory, `${name}-staging-`));
 		try {
@@ -37,3 +40,5 @@ export const installJavaTools = async (packageRoot) => {
 	}
 	console.error("[aislop] Java tools installed. Keep JDK 21+ on PATH, then run aislop doctor.");
 };
+
+export const installJvmSecurityTools = (packageRoot) => installJavaTools(packageRoot, securityDefinitions);
