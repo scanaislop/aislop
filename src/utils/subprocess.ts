@@ -208,6 +208,7 @@ export const runSubprocess = (
 		}
 
 		const child = spawn(command, args, {
+			shell: false,
 			cwd: options.cwd,
 			env: { ...process.env, ...options.env },
 			stdio: ["ignore", capture.outFd, capture.errFd],

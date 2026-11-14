@@ -251,3 +251,61 @@ describe("Scala catches", () => {
 		expect(findings).toEqual(["ai-slop/scala-broad-catch:5"]);
 	});
 });
+
+
+describe("Scala 3 catch layout", () => {
+	it("finds swallowed and broad indentation-based catches", async () => {
+		const findings = await scan(MAIN, [
+			"object Service:",
+			"  def load() =",
+			"    try work()",
+			"    catch",
+			"      case _: Throwable => ()",
+			"    logger.info(\"finished\")",
+		].join("\n"));
+		expect(findings).toEqual(["ai-slop/swallowed-exception:4", "ai-slop/scala-broad-catch:5"]);
+	});
+
+	it("stops a clause at dedent instead of borrowing a later rethrow", async () => {
+		const findings = await scan(MAIN, [
+			"object Service:",
+			"  def load() =",
+			"    try work()",
+			"    catch",
+			"      case _: Exception => ()",
+			"    throw new IllegalStateException()",
+		].join("\n"));
+		expect(findings).toEqual(["ai-slop/swallowed-exception:4", "ai-slop/scala-broad-catch:5"]);
+	});
+
+	it("keeps nested match cases inside a rethrowing catch clause", async () => {
+		const findings = await scan(MAIN, [
+			"object Service:",
+			"  def load() =",
+			"    try work()",
+			"    catch",
+			"      case e: Exception =>",
+			"        mode match",
+			"          case Recover => recover(e)",
+			"          case _ => throw e",
+		].join("\n"));
+		expect(findings).toEqual([]);
+	});
+
+	it("recognizes multiple clauses, comments, finally, and end markers", async () => {
+		const findings = await scan(MAIN, [
+			"object Service:",
+			"  def load() =",
+			"    try work()",
+			"    catch",
+			"      case _: IllegalStateException =>",
+			"        // ignored",
+			"        ()",
+			"      case _: Throwable => ()",
+			"    finally",
+			"      cleanup()",
+			"    end try",
+		].join("\n"));
+		expect(findings).toEqual(["ai-slop/swallowed-exception:4", "ai-slop/scala-broad-catch:8"]);
+	});
+});

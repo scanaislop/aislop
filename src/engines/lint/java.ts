@@ -3,7 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import { relativePosix } from "../../utils/paths.js";
 import { chunkFilePaths, runSubprocess } from "../../utils/subprocess.js";
-import { getJavaTargets } from "../java-targets.js";
+import { resolveJavaToolInvocation } from "../../utils/tooling.js";
+import { getJavaTargets, javaToolFailure } from "../java-targets.js";
 import type { Diagnostic, EngineContext } from "../types.js";
 
 const PMD_RULES = [
@@ -96,12 +97,7 @@ const withFileList = async <T>(
 };
 
 export const parsePmdReport = (output: string, rootDirectory: string): Diagnostic[] => {
-	let report: PmdReport;
-	try {
-		report = JSON.parse(output) as PmdReport;
-	} catch {
-		return [];
-	}
+	const report = JSON.parse(output) as PmdReport;
 	return (report.files ?? []).flatMap((file) =>
 		(file.violations ?? []).map((violation) => ({
 			filePath: toProjectPath(rootDirectory, file.filename),
@@ -143,11 +139,13 @@ export const runPmd = async (context: EngineContext): Promise<Diagnostic[]> => {
 	if (targets.length === 0) return [];
 	const rulesets =
 		firstExisting(context.rootDirectory, PROJECT_PMD_RULESETS) ?? PMD_RULES.join(",");
+	const tool = resolveJavaToolInvocation("pmd");
 	try {
 		return await withFileList(targets, async (fileList) => {
 			const result = await runSubprocess(
-				"pmd",
+				tool.command,
 				[
+					...tool.args,
 					"check",
 					"--no-cache",
 					"--no-progress",
@@ -160,10 +158,13 @@ export const runPmd = async (context: EngineContext): Promise<Diagnostic[]> => {
 				],
 				{ cwd: context.rootDirectory, timeout: 180000 },
 			);
+			if (result.exitCode !== 0 && result.exitCode !== 4) {
+				throw new Error(result.stderr || result.stdout || `Exit code ${result.exitCode}`);
+			}
 			return parsePmdReport(result.stdout, context.rootDirectory);
 		});
-	} catch {
-		return [];
+	} catch (error) {
+		return [javaToolFailure("lint", "pmd", targets[0], error)];
 	}
 };
 
@@ -171,16 +172,33 @@ export const runCheckstyle = async (context: EngineContext): Promise<Diagnostic[
 	const config = findProjectCheckstyleConfig(context.rootDirectory);
 	const targets = getJavaTargets(context);
 	if (!config || targets.length === 0) return [];
+	const tool = resolveJavaToolInvocation("checkstyle");
 	const diagnostics: Diagnostic[] = [];
-	for (const batch of chunkFilePaths(targets)) {
+	for (const batch of chunkFilePaths(
+		targets.map((file) => path.resolve(context.rootDirectory, file)),
+	)) {
 		try {
-			const result = await runSubprocess("checkstyle", ["-c", config, ...batch], {
+			const result = await runSubprocess(tool.command, [...tool.args, "-c", config, ...batch], {
 				cwd: context.rootDirectory,
 				timeout: 180000,
 			});
-			diagnostics.push(...parseCheckstyleOutput(result.stdout, context.rootDirectory));
-		} catch {
-			continue;
+			const findings = parseCheckstyleOutput(
+				`${result.stdout}\n${result.stderr}`,
+				context.rootDirectory,
+			);
+			if (result.exitCode !== 0 && findings.length === 0) {
+				throw new Error(result.stderr || result.stdout || `Exit code ${result.exitCode}`);
+			}
+			diagnostics.push(...findings);
+		} catch (error) {
+			diagnostics.push(
+				javaToolFailure(
+					"lint",
+					"checkstyle",
+					path.relative(context.rootDirectory, batch[0]).split(path.sep).join("/"),
+					error,
+				),
+			);
 		}
 	}
 	return diagnostics;

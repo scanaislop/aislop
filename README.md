@@ -39,7 +39,7 @@ See [Installation](#installation) for every option.
 
 aislop supports TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, Scala (beta), C#, and C/C++.
 
-**Scala support (beta):** Initial support is available, with coverage and accuracy still being refined. Scala 3 indentation-based syntax and real-world scalafmt integration remain ongoing work.
+**Scala support (beta):** Initial support is available, with coverage and accuracy still being refined. Indentation-based Scala 3 catch clauses are supported. Broader Scala 3 syntax coverage and real-world scalafmt integration remain ongoing work.
 
 Coverage includes formatting, linting, complexity, AI-slop detection, and security checks. Some checks use optional system tools; see [Installation](docs/installation.md) and the [rules reference](docs/rules.md) for details.
 
@@ -97,6 +97,8 @@ npm install -g aislop
 Also available as [`@scanaislop/aislop`](docs/installation.md) on GitHub Packages.
 
 Package installation does not run dependency lifecycle scripts. After installing, run `aislop-tools` once if you want bundled Ruff and golangci-lint coverage; the core scanner works without it.
+
+For Java, run `aislop-tools --java` to download pinned, checksum-verified google-java-format, PMD, and Checkstyle distributions. Keep JDK 21 or newer on PATH. Existing executable system installations take precedence; the bundled tools run directly through Java without shell wrappers. Java formatting still requires a build-file opt-in, and Checkstyle uses your project's configuration.
 
 **Homebrew** (macOS / Linux)
 

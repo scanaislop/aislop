@@ -290,6 +290,25 @@ describe("runSubprocess bounded output", () => {
 	});
 });
 
+describe("runSubprocess argument boundaries", () => {
+	it.each([
+		"a file with spaces.scala",
+		"a;echo injected.scala",
+		"$(echo injected).scala",
+		"a&echo injected.scala",
+		'quoted "file".scala',
+		"%PATH%.scala",
+	])("preserves %s as one literal argument", async (argument) => {
+		const result = await runSubprocess(process.execPath, [
+			"-e",
+			"process.stdout.write(JSON.stringify(process.argv.slice(1)))",
+			argument,
+		]);
+		expect(result.exitCode).toBe(0);
+		expect(JSON.parse(result.stdout)).toEqual([argument]);
+	});
+});
+
 describe("isMissingToolError", () => {
 	it("is true for an ENOENT spawn error", () => {
 		const error = Object.assign(new Error("spawn foo ENOENT"), { code: "ENOENT" });

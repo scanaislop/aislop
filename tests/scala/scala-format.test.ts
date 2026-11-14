@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fixScalaFormat, runScalaFormat } from "../../src/engines/format/scala-format.js";
 import { getScalaTargets, hasScalafmtConfig } from "../../src/engines/scala-targets.js";
@@ -35,6 +36,28 @@ afterEach(() => {
 });
 
 describe("Scala formatter", () => {
+	it("accepts scalafmt's difference exit code and decodes file URLs", async () => {
+		write(".scalafmt.conf", "version = 3.11.5\n");
+		const file = write("source with spaces/Bad.scala", "object  Bad\n");
+		vi.spyOn(subprocess, "runSubprocess").mockResolvedValue({
+			stdout: pathToFileURL(file).href,
+			stderr: "",
+			exitCode: 1,
+		});
+		expect(await runScalaFormat(context([file]))).toEqual([
+			expect.objectContaining({ filePath: "source with spaces/Bad.scala", severity: "warning", fixable: true }),
+		]);
+	});
+
+	it("reports exit code 1 without file results as a failure", async () => {
+		write(".scalafmt.conf", "version = 3.11.5\n");
+		const file = write("Bad.scala", "object Bad\n");
+		vi.spyOn(subprocess, "runSubprocess").mockResolvedValue({ stdout: "", stderr: "Formatting failed", exitCode: 1 });
+		expect(await runScalaFormat(context([file]))).toEqual([
+			expect.objectContaining({ severity: "error", fixable: false }),
+		]);
+	});
+
 	it("requires project configuration", async () => {
 		const tool = vi.spyOn(subprocess, "runSubprocess");
 		const file = write("src/Bad.scala", "object   Bad\n");
