@@ -142,11 +142,22 @@ const detectPrintLeftovers = (masked: string, relPath: string): Diagnostic[] => 
 		);
 };
 
-// Split a catch block body into its case clauses: the pattern text, the
-// expression after `=>`, and the clause offset within the block.
-const catchClauses = (block: string): Array<{ pattern: string; body: string; offset: number }> => {
+const indentationAt = (content: string, index: number): number => {
+	const start = content.lastIndexOf("\n", index - 1) + 1;
+	return /^[\t ]*/.exec(content.slice(start))?.[0].length ?? 0;
+};
+
+const catchClauses = (
+	block: string,
+	clauseIndent?: number,
+): Array<{ pattern: string; body: string; offset: number }> => {
 	const clauses: Array<{ pattern: string; body: string; offset: number }> = [];
-	const matches = [...block.matchAll(CASE_RE)];
+	const matches = [...block.matchAll(CASE_RE)].filter(
+		(match, index) =>
+			index === 0 ||
+			clauseIndent === undefined ||
+			indentationAt(block, match.index) === clauseIndent,
+	);
 	for (let k = 0; k < matches.length; k++) {
 		const match = matches[k];
 		const bodyStart = match.index + match[0].length;
@@ -172,26 +183,53 @@ const isSwallowedBody = (body: string): boolean => {
 
 const catchBlocks = (
 	masked: string,
-): Array<{ index: number; block: string; blockStart: number }> => {
-	const blocks: Array<{ index: number; block: string; blockStart: number }> = [];
+): Array<{ index: number; block: string; blockStart: number; clauseIndent?: number }> => {
+	const blocks: Array<{ index: number; block: string; blockStart: number; clauseIndent?: number }> =
+		[];
 	for (const match of masked.matchAll(CATCH_RE)) {
-		const open = masked.indexOf("{", match.index);
-		if (open === -1) continue;
-		// Only treat the brace as the catch body when nothing but whitespace
-		// (and, in Scala 3, an optional newline layout) separates it from the
-		// keyword; a later `{` belongs to something else.
-		if (masked.slice(match.index + "catch".length, open).trim() !== "") continue;
-		const close = closingBrace(masked, open);
-		if (close === -1) continue;
-		blocks.push({ index: match.index, block: masked.slice(open + 1, close), blockStart: open + 1 });
+		const start = match.index + match[0].length;
+		const next = start + (masked.slice(start).match(/^\s*/)?.[0].length ?? 0);
+		if (masked[next] === "{") {
+			const close = closingBrace(masked, next);
+			if (close !== -1)
+				blocks.push({
+					index: match.index,
+					block: masked.slice(next + 1, close),
+					blockStart: next + 1,
+				});
+			continue;
+		}
+		if (!/^case\b/.test(masked.slice(next))) continue;
+		const clauseIndent = indentationAt(masked, next);
+		let end = masked.length;
+		let lineStart = masked.indexOf("\n", next) + 1;
+		while (lineStart > 0 && lineStart < masked.length) {
+			const newline = masked.indexOf("\n", lineStart);
+			const line = masked.slice(lineStart, newline === -1 ? masked.length : newline);
+			const indent = indentationAt(masked, lineStart);
+			if (
+				line.trim() &&
+				(indent < clauseIndent || (indent === clauseIndent && !/^\s*case\b/.test(line)))
+			) {
+				end = lineStart;
+				break;
+			}
+			lineStart = newline + 1;
+		}
+		blocks.push({
+			index: match.index,
+			block: masked.slice(start, end),
+			blockStart: start,
+			clauseIndent,
+		});
 	}
 	return blocks;
 };
 
 const detectSwallowedCatches = (masked: string, relPath: string): Diagnostic[] => {
 	const diagnostics: Diagnostic[] = [];
-	for (const { index, block } of catchBlocks(masked)) {
-		const clauses = catchClauses(block);
+	for (const { index, block, clauseIndent } of catchBlocks(masked)) {
+		const clauses = catchClauses(block, clauseIndent);
 		if (clauses.length === 0) continue;
 		if (!clauses.every((clause) => isSwallowedBody(clause.body))) continue;
 		diagnostics.push(
@@ -209,8 +247,8 @@ const detectSwallowedCatches = (masked: string, relPath: string): Diagnostic[] =
 
 const detectBroadCatches = (masked: string, relPath: string): Diagnostic[] => {
 	const diagnostics: Diagnostic[] = [];
-	for (const { block, blockStart } of catchBlocks(masked)) {
-		for (const clause of catchClauses(block)) {
+	for (const { block, blockStart, clauseIndent } of catchBlocks(masked)) {
+		for (const clause of catchClauses(block, clauseIndent)) {
 			const typeMatch = /:\s*([\w.]+)\s*$/.exec(clause.pattern.trim());
 			const typeName = typeMatch?.[1].split(".").pop() ?? "";
 			if (!BROAD_CATCH_TYPES.has(typeName)) continue;

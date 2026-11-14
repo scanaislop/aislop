@@ -6,6 +6,7 @@ import {
 	chunkFilePaths,
 	isMissingToolError,
 	killActiveChildren,
+	runShellCommand,
 	runSubprocess,
 	warnSubprocessFailure,
 } from "../src/utils/subprocess.js";
@@ -287,6 +288,31 @@ describe("runSubprocess bounded output", () => {
 		expect(result.stdout.length).toBeLessThanOrEqual(32);
 		expect(result.stdout.endsWith("END")).toBe(true);
 		expect(result.stdout).not.toContain("PREFIX_SENTINEL");
+	});
+});
+
+describe("runSubprocess argument boundaries", () => {
+	it("interprets shell operators only through the explicit shell-check entry point", async () => {
+		const result = await runShellCommand("echo first && echo second");
+		expect(result.exitCode).toBe(0);
+		expect(result.stdout.split(/\r?\n/).map((line) => line.trim())).toEqual(["first", "second"]);
+	});
+
+	it.each([
+		"a file with spaces.scala",
+		"a;echo injected.scala",
+		"$(echo injected).scala",
+		"a&echo injected.scala",
+		'quoted "file".scala',
+		"%PATH%.scala",
+	])("preserves %s as one literal argument", async (argument) => {
+		const result = await runSubprocess(process.execPath, [
+			"-e",
+			"process.stdout.write(JSON.stringify(process.argv.slice(1)))",
+			argument,
+		]);
+		expect(result.exitCode).toBe(0);
+		expect(JSON.parse(result.stdout)).toEqual([argument]);
 	});
 });
 

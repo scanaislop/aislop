@@ -89,7 +89,7 @@ const FORMAT_SPECS: LangToolSpec[] = [
 		"java",
 		"google-java-format",
 		"google-java-format",
-		"Install: brew install google-java-format | https://github.com/google/google-java-format/releases",
+		"Install: aislop-tools --java (requires JDK 21+) | brew install google-java-format",
 	),
 	spec(
 		"scala",
@@ -116,7 +116,7 @@ const LINT_SPECS: LangToolSpec[] = [
 	spec("go", "golangci-lint", "golangci-lint", "Install: brew install golangci-lint"),
 	spec("rust", "clippy-driver", "clippy", "Install: rustup component add clippy"),
 	spec("ruby", "rubocop", "rubocop", "Install: gem install rubocop"),
-	spec("java", "pmd", "pmd", "Install: brew install pmd | https://pmd.github.io"),
+	spec("java", "pmd", "pmd", "Install: aislop-tools --java (requires JDK 21+) | brew install pmd"),
 	spec(
 		"csharp",
 		"jb",

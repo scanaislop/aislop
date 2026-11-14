@@ -1,0 +1,26 @@
+{
+	"google-java-format": {
+		"version": "2.0.0",
+		"url": "https://github.com/google/google-java-format/releases/download/v2.0.0/google-java-format-2.0.0-all-deps.jar",
+		"sha256": "c78feb48c549fa7114b7ea11db3b456808f7b371ffe84e6643a44dd2f9588639",
+		"asset": "google-java-format-2.0.0-all-deps.jar",
+		"entry": "google-java-format-2.0.0-all-deps.jar",
+		"mainClass": ""
+	},
+	"pmd": {
+		"version": "7.29.0",
+		"url": "https://github.com/pmd/pmd/releases/download/pmd_releases/7.29.0/pmd-dist-7.29.0-bin.zip",
+		"sha256": "d27177c185b837fa57f097e482d1253468aa035379c5eb2671fa0a279109b179",
+		"asset": "pmd-dist-7.29.0-bin.zip",
+		"entry": "pmd-bin-7.29.0/lib/pmd-cli-7.29.0.jar",
+		"mainClass": "net.sourceforge.pmd.cli.PmdCli"
+	},
+	"checkstyle": {
+		"version": "14.4.0",
+		"url": "https://github.com/checkstyle/checkstyle/releases/download/checkstyle-14.4.0/checkstyle-14.4.0-all.jar",
+		"sha256": "c0a521e54eabd1ece4ff7bd84cf231b012615745ed3aa4fb27ab0ca73097250c",
+		"asset": "checkstyle-14.4.0-all.jar",
+		"entry": "checkstyle-14.4.0-all.jar",
+		"mainClass": ""
+	}
+}

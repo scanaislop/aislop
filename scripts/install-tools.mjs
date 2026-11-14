@@ -1,22 +1,18 @@
 #!/usr/bin/env node
 
-import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Readable } from "node:stream";
-import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
 import AdmZip from "adm-zip";
 import * as tar from "tar";
+import { digestOf, downloadFile } from "./tool-downloads.mjs";
+import { installJavaTools } from "./install-java-tools.mjs";
 
 const THIS_FILE = fileURLToPath(import.meta.url);
 const PACKAGE_ROOT = path.resolve(path.dirname(THIS_FILE), "..");
 const TOOLS_BIN_DIR = path.join(PACKAGE_ROOT, "tools", "bin");
 const TOOLS_ANALYZERS_DIR = path.join(PACKAGE_ROOT, "tools", "analyzers");
-const USER_AGENT = "aislop-installer";
-const DOWNLOAD_ATTEMPTS = 3;
-const RETRYABLE_HTTP_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 
 // Pinned Roslyn analyzer packages whose rules feed the C# lint engine.
 // (AsyncFixer01-03, MA0040/42/45, IDISP001: see RELEVANT_IDS in lint/dotnet.ts).
@@ -123,37 +119,6 @@ const withExecutableExtension = (name) => (isWindows ? `${name}.exe` : name);
 const info = (message) => console.error(`[aislop] ${message}`);
 const warn = (message) => console.error(`[aislop] ${message}`);
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const downloadError = (message, retryable) =>
-	Object.assign(new Error(message), { retryable });
-
-const downloadFile = async (url, destination) => {
-	let lastError = null;
-	for (let attempt = 1; attempt <= DOWNLOAD_ATTEMPTS; attempt += 1) {
-		try {
-			const response = await fetch(url, {
-				headers: { "User-Agent": USER_AGENT },
-			});
-			if (response.ok && response.body) {
-				await pipeline(
-					Readable.fromWeb(response.body),
-					fs.createWriteStream(destination),
-				);
-				return;
-			}
-			const message = `Failed to download ${url} (${response.status})`;
-			lastError = downloadError(message, RETRYABLE_HTTP_STATUSES.has(response.status));
-			if (!lastError.retryable) throw lastError;
-		} catch (error) {
-			lastError = error instanceof Error ? error : new Error(String(error));
-			if (lastError.retryable === false || attempt === DOWNLOAD_ATTEMPTS) break;
-		}
-		await sleep(400 * attempt);
-	}
-	throw lastError ?? new Error(`Failed to download ${url}`);
-};
-
 const extractArchive = async (archivePath, extractDir) => {
 	if (archivePath.endsWith(".tar.gz")) {
 		await tar.x({ file: archivePath, cwd: extractDir });
@@ -211,12 +176,6 @@ const findBinary = (rootDir, binaryName) => {
 		}
 	}
 	return null;
-};
-
-const digestOf = async (filePath, algorithm, encoding) => {
-	const hash = createHash(algorithm);
-	for await (const chunk of fs.createReadStream(filePath)) hash.update(chunk);
-	return hash.digest(encoding);
 };
 
 const installTool = async (tool) => {
@@ -336,6 +295,16 @@ const installAnalyzers = async () => {
 };
 
 const main = async () => {
+	const args = process.argv.slice(2);
+	if (args.length === 1 && ["--help", "-h"].includes(args[0])) {
+		console.log("Usage: aislop-tools [--java]\n  Default: Ruff, golangci-lint, and C# analyzers\n  --java: google-java-format, PMD, and Checkstyle (requires JDK 21+)");
+		return;
+	}
+	if (args.length === 1 && args[0] === "--java") {
+		await installJavaTools(PACKAGE_ROOT);
+		return;
+	}
+	if (args.length > 0) throw new Error(`Unknown options: ${args.join(" ")}. Run aislop-tools --help.`);
 	const failures = [];
 	for (const tool of TOOL_DEFINITIONS) {
 		try {

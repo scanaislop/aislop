@@ -1,4 +1,5 @@
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { chunkFilePaths, runSubprocess } from "../../utils/subprocess.js";
 import { getScalaTargets, hasScalafmtConfig } from "../scala-targets.js";
 import type { Diagnostic, EngineContext } from "../types.js";
@@ -21,34 +22,40 @@ export const runScalaFormat = async (context: EngineContext): Promise<Diagnostic
 	if (!hasScalafmtConfig(context.rootDirectory) || targets.length === 0) return [];
 	const known = new Set(targets);
 	const diagnostics: Diagnostic[] = [];
-	for (const batch of chunkFilePaths(targets)) {
+	for (const batch of chunkFilePaths(
+		targets.map((file) => path.resolve(context.rootDirectory, file)),
+	)) {
 		try {
-			const result = await runSubprocess(
-				"scalafmt",
-				[
-					"--non-interactive",
-					"--list",
-					...batch.map((file) => path.resolve(context.rootDirectory, file)),
-				],
-				{
-					cwd: context.rootDirectory,
-					timeout: 120000,
-				},
-			);
-			if (result.exitCode !== 0)
+			const result = await runSubprocess("scalafmt", ["--non-interactive", "--list", ...batch], {
+				cwd: context.rootDirectory,
+				timeout: 120000,
+			});
+			if (result.exitCode !== 0 && result.exitCode !== 1)
 				throw new Error(
 					result.stderr || result.stdout || `scalafmt exited with code ${result.exitCode}`,
 				);
+			const changed: string[] = [];
 			for (const line of result.stdout.split(/\r?\n/)) {
+				const outputPath = line.trim().startsWith("file:")
+					? fileURLToPath(line.trim())
+					: line.trim();
 				const filePath = path
-					.relative(context.rootDirectory, path.resolve(context.rootDirectory, line.trim()))
+					.relative(context.rootDirectory, path.resolve(context.rootDirectory, outputPath))
 					.split(path.sep)
 					.join("/");
-				if (known.has(filePath)) diagnostics.push(unformattedDiagnostic(filePath));
+				if (known.has(filePath)) changed.push(filePath);
 			}
+			if (result.exitCode === 1 && changed.length === 0) {
+				throw new Error(
+					result.stderr || result.stdout || "scalafmt exited with code 1 without file results",
+				);
+			}
+			diagnostics.push(...changed.map(unformattedDiagnostic));
 		} catch (error) {
 			diagnostics.push({
-				...unformattedDiagnostic(batch[0]),
+				...unformattedDiagnostic(
+					path.relative(context.rootDirectory, batch[0]).split(path.sep).join("/"),
+				),
 				severity: "error",
 				fixable: false,
 				message: `scalafmt failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -62,15 +69,13 @@ export const runScalaFormat = async (context: EngineContext): Promise<Diagnostic
 export const fixScalaFormat = async (context: EngineContext): Promise<void> => {
 	const targets = getScalaTargets(context);
 	if (!hasScalafmtConfig(context.rootDirectory) || targets.length === 0) return;
-	for (const batch of chunkFilePaths(targets)) {
-		const result = await runSubprocess(
-			"scalafmt",
-			["--non-interactive", ...batch.map((file) => path.resolve(context.rootDirectory, file))],
-			{
-				cwd: context.rootDirectory,
-				timeout: 120000,
-			},
-		);
+	for (const batch of chunkFilePaths(
+		targets.map((file) => path.resolve(context.rootDirectory, file)),
+	)) {
+		const result = await runSubprocess("scalafmt", ["--non-interactive", ...batch], {
+			cwd: context.rootDirectory,
+			timeout: 120000,
+		});
 		if (result.exitCode !== 0) {
 			throw new Error(
 				result.stderr || result.stdout || `scalafmt exited with code ${result.exitCode}`,
