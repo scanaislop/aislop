@@ -78,6 +78,7 @@ export interface EngineConfig {
 	security: {
 		audit: boolean;
 		auditTimeout: number;
+		jvm?: AislopConfig["security"]["jvm"];
 	};
 	lint: {
 		typecheck: boolean;
@@ -101,6 +102,7 @@ export interface EngineConfig {
 		};
 	};
 	allowProjectLocalTools?: boolean;
+	allowJvmExecution?: boolean;
 	architectureRulesPath?: string;
 }
 

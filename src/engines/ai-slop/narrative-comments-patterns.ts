@@ -112,6 +112,8 @@ export const SUPPORTED_EXTS = new Set([
 	".rs",
 	".rb",
 	".java",
+	".scala",
+	".sc",
 	".php",
 	".cs",
 ]);
@@ -129,6 +131,8 @@ export const RUBY_DECL_START = /^\s*(class|module|def)\s+/;
 export const JAVA_DECL_START =
 	/^\s*(?:public|private|protected|static|final|abstract|sealed|non-sealed|\s)+(?:class|interface|enum|record|@interface|\w[^(){};=]*\s+\w+\s*\()/;
 export const JAVA_DECL_START_FALLBACK = /^\s*(class|interface|enum|record|@interface)\s+/;
+export const SCALA_DECL_START =
+	/^\s*(?:(?:private|protected|final|sealed|abstract|case|opaque|inline|open|lazy|override|given)\s+)*(?:def|val|var|class|object|trait|enum|type|extension|given)\b/;
 export const CSHARP_DECL_START =
 	/^\s*(?:\[[^\]]*\]\s*)*(?:(?:public|private|protected|internal|static|async|sealed|abstract|virtual|override|partial|readonly|extern|unsafe|file|new)\s+)+(?:class|interface|struct|record|enum|[\w<>[\],.?]+\s+\w+)/;
 export const CSHARP_DECL_START_FALLBACK = /^\s*(class|interface|struct|record|enum|namespace)\s+/;

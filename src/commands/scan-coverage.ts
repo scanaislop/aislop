@@ -9,7 +9,7 @@ export const coverageReason = (c: Coverage): string => {
 		return `This repository is ${c.dominantUnsupported} (${c.unsupportedFiles} files), which aislop does not analyze. No score — it would not reflect this code.`;
 	}
 	if (c.supportedFiles === 0) {
-		return "No files in a language aislop analyzes (TypeScript, JavaScript, Python, Go, Rust, Ruby, PHP, Java). Nothing to score.";
+		return "No files in a language aislop analyzes (TypeScript, JavaScript, Python, Go, Rust, Ruby, PHP, Java, Scala). Nothing to score.";
 	}
 	const lang = c.dominantUnsupported ?? "an unsupported language";
 	const files = `${c.supportedFiles} supported file${c.supportedFiles === 1 ? "" : "s"}`;

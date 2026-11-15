@@ -92,7 +92,7 @@ describe.skipIf(process.platform === "win32")("Java format engine", () => {
 		expect(diagnostics.map((d) => [d.rule, d.filePath])).toEqual([
 			["java-formatting", "src/Bad.java"],
 		]);
-		expect(fs.readFileSync(logFile, "utf-8")).toContain("--dry-run src/Bad.java src/Good.java");
+		expect(fs.readFileSync(logFile, "utf-8")).toContain(`--dry-run ${bad} ${good}`);
 	});
 
 	it("passes --aosp and --replace when fixing an AOSP project", async () => {
@@ -102,7 +102,7 @@ describe.skipIf(process.platform === "win32")("Java format engine", () => {
 		const bad = write("src/Bad.java", "class Bad{}");
 
 		await fixJavaFormat(context([bad]));
-		expect(fs.readFileSync(logFile, "utf-8").trim()).toBe("--aosp --replace src/Bad.java");
+		expect(fs.readFileSync(logFile, "utf-8").trim()).toBe(`--aosp --replace ${bad}`);
 	});
 
 	it("splits long path lists so each command line stays short", async () => {

@@ -11,12 +11,12 @@ import { log } from "../ui/logger.js";
 import { applyChangeContext } from "../utils/change-context.js";
 import { getChangedLineMap } from "../utils/git.js";
 import { APP_VERSION } from "../version.js";
-import { computeScanExitCode } from "./scan-exit-code.js";
 import { applyScanBaseline, baselineWarning, type ScanBaselineSummary } from "./scan-baseline.js";
+import { computeScanExitCode } from "./scan-exit-code.js";
 import { deriveScanCoverage } from "./scan-file-scope.js";
 import { isMachineOutput, resolveScanScopeMode, type ScanOptions } from "./scan-options.js";
-import { type PreparedScan, prepareScan, runScanEngines } from "./scan-pipeline.js";
 import { writeHumanOutput, writeMachineOutput } from "./scan-output.js";
+import { type PreparedScan, prepareScan, runScanEngines } from "./scan-pipeline.js";
 import { scanTargetError } from "./scan-validation.js";
 
 export { buildScanRender } from "./scan-render.js";
@@ -30,7 +30,11 @@ export const scanCommand = async (
 	options: ScanOptions,
 ): Promise<{ exitCode: number }> => {
 	const resolvedDir = path.resolve(directory);
-	const targetError = scanTargetError(resolvedDir, options);
+	const targetError =
+		scanTargetError(resolvedDir, options) ??
+		(options.jvmSecurity && !config.security.jvm
+			? "Configure security.jvm before enabling --jvm-security. See the JVM analysis guide."
+			: null);
 	if (targetError) {
 		if (options.json) {
 			console.log(JSON.stringify({ error: targetError }, null, 2));
@@ -137,6 +141,7 @@ const runScanBody = async (prepared: PreparedScan, config: AislopConfig, options
 		prepared,
 		config,
 		machineOutput,
+		options.jvmSecurity === true,
 	);
 	if (suppressedCount > 0 && !machineOutput) {
 		log.muted(`Suppressed ${suppressedCount} finding(s) via aislop-ignore directives`);

@@ -1,0 +1,26 @@
+{
+	"spotbugs": {
+		"version": "4.10.5",
+		"url": "https://github.com/spotbugs/spotbugs/releases/download/4.10.5/spotbugs-4.10.5.zip",
+		"sha256": "f8eb9cf4ac8e1b29b3e29567541eef3f30b3bf49ff3880670a7963092cd8a859",
+		"asset": "spotbugs-4.10.5.zip",
+		"entry": "spotbugs-4.10.5/lib/spotbugs.jar",
+		"mainClass": ""
+	},
+	"findsecbugs": {
+		"version": "1.14.0",
+		"url": "https://repo.maven.apache.org/maven2/com/h3xstream/findsecbugs/findsecbugs-plugin/1.14.0/findsecbugs-plugin-1.14.0.jar",
+		"sha256": "6fa340344fa433ff46c2985dab1010e8bc739f9395c983594a5240095e92abc8",
+		"asset": "findsecbugs-plugin-1.14.0.jar",
+		"entry": "findsecbugs-plugin-1.14.0.jar",
+		"mainClass": ""
+	},
+	"dependency-check": {
+		"version": "13.0.0",
+		"url": "https://github.com/dependency-check/DependencyCheck/releases/download/v13.0.0/dependency-check-13.0.0-release.zip",
+		"sha256": "44d920d1ec03e948df862a253f0912782a31b9beee8a7c8895b9cb95760176ed",
+		"asset": "dependency-check-13.0.0-release.zip",
+		"entry": "dependency-check/lib/dependency-check-cli-13.0.0.jar",
+		"mainClass": "org.owasp.dependencycheck.App"
+	}
+}

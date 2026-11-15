@@ -43,6 +43,7 @@ const primaryLanguage = (langs: Language[]): Language | null => {
 		"ruby",
 		"php",
 		"java",
+		"scala",
 		"csharp",
 		"cpp",
 	];

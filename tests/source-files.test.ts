@@ -36,6 +36,13 @@ describe("source file selection", () => {
 		fs.rmSync(tmpDir, { recursive: true, force: true });
 	});
 
+	it.each(["scala", "sc"])("keeps production JVM package paths for .%s sources", (extension) => {
+		const relative = `src/main/scala/com/example/Service.${extension}`;
+		createFile(tmpDir, relative, "package com.example\nclass Service\n");
+		createFile(tmpDir, `examples/${relative}`, "class Example\n");
+		expect(getSourceFilesForRoot(tmpDir)).toEqual([path.join(tmpDir, relative)]);
+	});
+
 	it("includes tracked source files even when gitignore matches them", async () => {
 		createFile(tmpDir, ".gitignore", "ignored.ts\nignored-dir/\nignored-untracked.ts\n");
 		createFile(tmpDir, "src/app.ts", "export const app = true;\n");

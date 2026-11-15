@@ -1,5 +1,7 @@
+import path from "node:path";
 import { chunkFilePaths, runSubprocess } from "../../utils/subprocess.js";
-import { detectJavaFormatStyle, getJavaTargets } from "../java-targets.js";
+import { resolveJavaToolInvocation } from "../../utils/tooling.js";
+import { detectJavaFormatStyle, getJavaTargets, javaToolFailure } from "../java-targets.js";
 import type { Diagnostic, EngineContext } from "../types.js";
 
 const styleArgs = (context: EngineContext): string[] | null => {
@@ -27,18 +29,37 @@ export const runJavaFormat = async (context: EngineContext): Promise<Diagnostic[
 	if (!style || targets.length === 0) return [];
 	const known = new Set(targets);
 	const diagnostics: Diagnostic[] = [];
-	for (const batch of chunkFilePaths(targets)) {
+	const tool = resolveJavaToolInvocation("google-java-format");
+	for (const batch of chunkFilePaths(
+		targets.map((file) => path.resolve(context.rootDirectory, file)),
+	)) {
 		try {
-			const result = await runSubprocess("google-java-format", [...style, "--dry-run", ...batch], {
-				cwd: context.rootDirectory,
-				timeout: 120000,
-			});
+			const result = await runSubprocess(
+				tool.command,
+				[...tool.args, ...style, "--dry-run", ...batch],
+				{
+					cwd: context.rootDirectory,
+					timeout: 120000,
+				},
+			);
+			if (result.exitCode !== 0)
+				throw new Error(result.stderr || result.stdout || `Exit code ${result.exitCode}`);
 			for (const line of result.stdout.split(/\r?\n/)) {
-				const filePath = line.trim().replaceAll("\\", "/");
+				const filePath = path
+					.relative(context.rootDirectory, path.resolve(context.rootDirectory, line.trim()))
+					.split(path.sep)
+					.join("/");
 				if (known.has(filePath)) diagnostics.push(unformattedDiagnostic(filePath));
 			}
-		} catch {
-			continue;
+		} catch (error) {
+			diagnostics.push(
+				javaToolFailure(
+					"format",
+					"google-java-format",
+					path.relative(context.rootDirectory, batch[0]).split(path.sep).join("/"),
+					error,
+				),
+			);
 		}
 	}
 	return diagnostics;
@@ -48,11 +69,18 @@ export const fixJavaFormat = async (context: EngineContext): Promise<void> => {
 	const style = styleArgs(context);
 	const targets = getJavaTargets(context);
 	if (!style || targets.length === 0) return;
-	for (const batch of chunkFilePaths(targets)) {
-		const result = await runSubprocess("google-java-format", [...style, "--replace", ...batch], {
-			cwd: context.rootDirectory,
-			timeout: 120000,
-		});
+	const tool = resolveJavaToolInvocation("google-java-format");
+	for (const batch of chunkFilePaths(
+		targets.map((file) => path.resolve(context.rootDirectory, file)),
+	)) {
+		const result = await runSubprocess(
+			tool.command,
+			[...tool.args, ...style, "--replace", ...batch],
+			{
+				cwd: context.rootDirectory,
+				timeout: 120000,
+			},
+		);
 		if (result.exitCode !== 0) {
 			throw new Error(
 				result.stderr || result.stdout || `google-java-format exited with code ${result.exitCode}`,

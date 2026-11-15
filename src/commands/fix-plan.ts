@@ -1,5 +1,6 @@
 import type { AislopConfig } from "../config/index.js";
 import { detectJavaFormatStyle } from "../engines/java-targets.js";
+import { hasScalafmtConfig } from "../engines/scala-targets.js";
 import type { ProjectInfo } from "../utils/discover.js";
 
 export interface FixPlanStep {
@@ -125,6 +126,12 @@ const planFormatters = (
 		projectInfo.languages.includes("java") &&
 			Boolean(projectInfo.installedTools["google-java-format"]) &&
 			detectJavaFormatStyle(projectInfo.rootDirectory) !== null,
+	);
+	add(
+		"Formatting (scala)",
+		projectInfo.languages.includes("scala") &&
+			Boolean(projectInfo.installedTools.scalafmt) &&
+			hasScalafmtConfig(projectInfo.rootDirectory),
 	);
 	add(
 		"Formatting (csharp)",

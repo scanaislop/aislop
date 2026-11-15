@@ -79,6 +79,16 @@ export const scopeIncludesManifestWrites = (context: EngineContext): boolean => 
 	);
 };
 
+export const rollbackFiles = (context: EngineContext): string[] | undefined => {
+	if (!isScopedFix(context)) return undefined;
+	return [
+		...(context.files ?? []),
+		...(context.testFiles ?? []),
+		...(context.dependencyAuditFiles ?? []),
+		...(scopeIncludesManifestWrites(context) ? ["package.json", ...WRITTEN_LOCKFILES] : []),
+	];
+};
+
 export const isPathInFixScope = (context: EngineContext, filePath: string): boolean => {
 	if (!isScopedFix(context)) return true;
 	const relative = projectRelativePosix(context.rootDirectory, filePath);

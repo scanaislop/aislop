@@ -1,13 +1,31 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getSourceFiles } from "../utils/source-files.js";
-import type { EngineContext } from "./types.js";
+import type { Diagnostic, EngineContext } from "./types.js";
 
 const JAVA_EXTENSIONS = new Set([".java"]);
 const BUILD_FILES = ["pom.xml", "build.gradle", "build.gradle.kts"];
 const MAX_BUILD_FILE_BYTES = 1_048_576;
 
 export type JavaFormatStyle = "google" | "aosp";
+
+export const javaToolFailure = (
+	engine: "format" | "lint",
+	tool: string,
+	filePath: string,
+	error: unknown,
+): Diagnostic => ({
+	filePath,
+	engine,
+	rule: engine === "format" ? "java-formatting" : `${tool}/failed`,
+	severity: "error",
+	message: `${tool} failed: ${error instanceof Error ? error.message : String(error)}`,
+	help: "Check the tool and project configuration. Bundled tools: aislop-tools --java (requires JDK 21+)",
+	line: 0,
+	column: 0,
+	category: engine === "format" ? "Format" : "Java Lint",
+	fixable: false,
+});
 
 export const getJavaTargets = (context: EngineContext): string[] => {
 	const files = context.files ?? getSourceFiles(context);

@@ -21,6 +21,7 @@ const WILDCARD_RULE_SCORE_IMPACTS: Array<[prefix: string, impact: RuleScoreImpac
 	["clippy/", standard("External clippy rule uses standard lint impact.")],
 	["rubocop/", standard("External rubocop rule uses standard lint impact.")],
 	["pmd/", standard("External PMD rule uses standard lint impact.")],
+	["spotbugs/", standard("Compiled Java and Scala findings retain the analyzer severity.")],
 	["checkstyle/", standard("External Checkstyle rule uses standard lint impact.")],
 	["typescript/", strict("TypeScript compiler diagnostics can break builds.")],
 	["expo-doctor/", maintainability("Expo Doctor findings are project-configuration hygiene.")],

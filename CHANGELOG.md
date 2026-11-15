@@ -4,6 +4,82 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+## 0.22.1 (2026-11-14)
+
+Expanded Java and Scala project analysis, with explicit opt-in JVM tools and clearer coverage failures. Scala remains in beta.
+
+Validation: 2,626 unit/regression tests and nine opt-in real-tool checks pass; self-scan scores 100/100.
+
+### Added
+
+- SpotBugs and find-sec-bugs analysis of compiled Java and Scala classes, with portable argument files for large classpaths and paths containing spaces.
+- OWASP Dependency-Check integration for resolved Java and Scala dependencies, including transitive JARs, cached advisory data, and explicit NVD feed updates.
+- Read-only SpotBugs SARIF and Dependency-Check JSON imports, source mapping, deduplication, and incremental scan scope.
+- `aislop-tools --jvm-security` provisions pinned, checksum-verified tools. Live scans require `--jvm-security` as well as project configuration.
+- A caller-managed scalafmt JVM classpath for environments that do not use a native launcher.
+- Real-tool integration coverage for Java 8/17/21 bytecode, Scala 2/3, scalafmt roundtrips, and vulnerable dependency JARs.
+
+### Fixed
+
+- Invalid JVM configuration, missing artifacts, malformed reports, missing classes, and analyzer failures produce explicit errors instead of clean results.
+- JVM findings respect include/exclude source scope, including global CLI scope flags in CI. Incomplete JVM scans cannot be recorded or accepted by baselines.
+- Bundled assets resolve correctly for the scoped GitHub Packages installation.
+- Recognize Homebrew formula and cask download URLs as package metadata while retaining application URL and provider ID checks.
+
+## 0.22.0 (2026-11-14)
+
+Optional Java tool installation and more reliable Java and Scala analysis. Scala remains in beta.
+
+### Added
+
+- **Java tool installation.** `aislop-tools --java` downloads pinned, checksum-verified google-java-format, PMD, and Checkstyle distributions. Requires JDK 21+ and preserves executable system tools.
+- **Scala 3 catch checks.** Indentation-based catch clauses respect dedents and nested match expressions.
+
+### Fixed
+
+- Correctly handle scalafmt formatting results and file URLs, including paths with spaces.
+- Report Java tool and configuration failures clearly instead of returning zero findings.
+- Keep explicitly enabled project shell checks separate from analyzer argument execution.
+
+## 0.21.0 (2026-11-13)
+
+A minor release with per-run rule ignores, scan-scope explanations, opt-in post-fix project checks, and initial Scala support in beta.
+
+### Added
+
+- **Scala language support, beta (#539).** Scala sources and sbt/Mill builds are detected, with opt-in scalafmt, import/exception/console patterns, SQL/process/deserialization checks, and generic file-size and comment checks. Integrates j5ik2o's implementation with follow-up accuracy fixes. Coverage and accuracy are still being refined; Scala 3 indentation-based syntax and real-world scalafmt integration remain ongoing work.
+
+- **CLI rule ignores (#533).** `aislop scan --ignore <rule>` disables repeatable or comma-separated rule IDs for one invocation, including when file overrides enable them.
+
+- **Scope explanation (#319, #481).** `aislop scan --explain-scope` reports effective file selection as text or versioned JSON without running engines. Verbose output adds relative examples; excluded files and skipped directories are counted separately.
+
+- **Post-fix project checks (#322, #480).** Repeatable `--check` commands verify fixes and roll back fixer-owned changes on failure. Configured commands require explicit `--run-checks`; snapshots respect scope and exclusions, and partial restore failures are reported without deleting current files.
+
+### Fixed
+
+- **Rollback coverage and Scala import advice.** Full-project checks also restore fixer changes outside scan include patterns. Duplicate Scala imports are checked within consecutive import groups, and unused-import advice is limited to Java imports because Scala imports can supply implicits without textual references.
+
+- **Timeout rollback ordering.** Timed-out project checks finish terminating their process tree before rollback starts, preventing late writes and Windows working-directory locks.
+
+- **Rust literal masking (#412).** Braces in strings, character literals, raw strings, and nested comments no longer inflate function lengths. Lifetimes and labels remain visible as code.
+
+- **Scala package discovery and interpolation.** JVM package paths under Scala source roots remain in scope, including packages named `example` or `samples`. Executable expressions inside interpolated strings remain visible to import and security checks while literal text stays masked.
+
+### Changed
+
+- **Dependency updates (#515-#519).** Update React to 19.3.1, oxlint to 1.92.0, MCP SDK to 1.32.2, tsdown to 0.23.7, and smol-toml to 1.9.1.
+
+## 0.20.1 (2026-11-11)
+
+A patch release that fixes Python diagnostic false positives and reduces CPU work when security checks produce many findings.
+
+### Fixed
+
+- **Python string boundaries.** Triple-quoted examples, escaped quotes and comments no longer hide real print statements or trigger bare-handler and swallowed-exception findings inside strings. Real statements remain reported.
+- **Security diagnostic line lookup.** Secret and risky-code checks advance a newline cursor per pattern instead of repeatedly splitting source prefixes for each finding. Finding contents and line positions remain unchanged, with linear newline-counting work on large inputs.
+
 ## 0.20.0 (2026-11-01)
 
 A minor release. `aislop scan --share` prints a public report link and README badge for GitHub repos, and the scan summary points to it instead of the team invitation.
@@ -753,7 +829,7 @@ A follow-up round after 0.6.0 went live: hook UX gaps surfaced on first contact,
 
 ### Changed
 
-- **`README.md` covers hooks.** New "Install as a native hook" section under Usage with adapter + rules-only installer lists, quality-gate flow, and a link to [`/docs/hooks`](https://scanaislop.com/docs/hooks). Quick-start and "Why aislop" blocks mention hooks. Sample-output version banner bumped to 0.6.1.
+- **`README.md` covers hooks.** New "Install as a native hook" section under Usage with adapter + rules-only installer lists, quality-gate flow, and a link to [`/docs/hooks`](https://scanaislop.com/docs/hooks/). Quick-start and "Why aislop" blocks mention hooks. Sample-output version banner bumped to 0.6.1.
 - **Internal refactors** driven by the new rules:
   - `src/commands/doctor.ts`: extracted `systemToolDecision()` + `firstMatching()` + `FORMAT_SPECS` / `LINT_SPECS` / `AUDIT_SPECS` data tables, replacing six repeated `if (languages.includes(X)) return installedTools[Y] ? {...} : {...}` blocks.
   - `src/utils/source-masker.ts`: extracted `handleQuotesAndComments()` — the string/template/comment state machine was duplicated across the top-level and inside-interpolation branches.

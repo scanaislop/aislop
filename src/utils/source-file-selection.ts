@@ -28,7 +28,11 @@ const DEPENDENCY_AUDIT_INPUT_FILE_RE =
 	/(?:^|\/)(?:package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb?|requirements(?:\.[\w-]+)?\.txt|pyproject\.toml|Pipfile|Pipfile\.lock|poetry\.lock|go\.mod|go\.sum|Cargo\.toml|Cargo\.lock|[\w.-]+\.csproj|packages\.lock\.json|Directory\.Packages\.props)$/i;
 
 export const isDependencyAuditInputFile = (filePath: string): boolean =>
-	DEPENDENCY_AUDIT_INPUT_FILE_RE.test(filePath);
+	DEPENDENCY_AUDIT_INPUT_FILE_RE.test(filePath) ||
+	/(?:^|\/)(?:pom\.xml|(?:build|settings)\.gradle(?:\.kts)?|gradle\.lockfile|build\.(?:sbt|sc|mill)|plugins\.sbt|[^/]+\.jar)$/i.test(
+		filePath,
+	) ||
+	/(?:^|\/)project\/[^/]+\.scala$/i.test(filePath);
 
 export const listProjectFiles = (rootDirectory: string): string[] =>
 	enumerateProjectFiles(rootDirectory, WALK_PRUNE_DIRECTORIES);
@@ -48,6 +52,86 @@ const normalizeIncludePatterns = (patterns: string[]): string[] =>
 const createPathMatcher = (patterns: string[]): ((filePath: string) => boolean) => {
 	const matchers = patterns.map((pattern) => picomatch(pattern, { dot: true }));
 	return (filePath) => matchers.some((matches) => matches(filePath));
+};
+
+const matchesNothing = (_filePath: string): boolean => false;
+
+export interface CompiledIncludeMatcher {
+	readonly includePatterns: string[];
+	readonly matchesInclude: (filePath: string) => boolean;
+}
+
+export const compileExcludeMatcher = (
+	patterns: readonly string[],
+): ((filePath: string) => boolean) => createPathMatcher(normalizeExcludePatterns([...patterns]));
+
+export const compileIncludeMatcher = (patterns: readonly string[]): CompiledIncludeMatcher => {
+	const includePatterns = normalizeIncludePatterns([...patterns]);
+	return { includePatterns, matchesInclude: createPathMatcher(includePatterns) };
+};
+
+export interface PathPolicy {
+	readonly excludedDirectories: readonly string[];
+	readonly extraExtensions: ReadonlySet<string>;
+	readonly ignored: boolean;
+	readonly includePatterns: readonly string[];
+	readonly matchesAislopIgnore: (filePath: string) => boolean;
+	readonly matchesInclude: (filePath: string) => boolean;
+	readonly matchesUserExclude: (filePath: string) => boolean;
+	readonly testFiles: boolean;
+}
+
+export type PathDropReason =
+	| "aislopignore"
+	| "builtin-directory"
+	| "extension"
+	| "generated"
+	| "gitignore"
+	| "include-filter"
+	| "role-mismatch"
+	| "user-exclude";
+
+export interface DeclarationPathPolicy {
+	readonly includePatterns: readonly string[];
+	readonly matchesAislopIgnore: (filePath: string) => boolean;
+	readonly matchesInclude: (filePath: string) => boolean;
+	readonly matchesUserExclude: (filePath: string) => boolean;
+}
+
+// Same checks as the project and test filters, after the file is known to be a
+// regular file inside the project. Null means the path stays in that role.
+export const pathSelectionReason = (
+	relativePath: string,
+	policy: PathPolicy,
+): PathDropReason | null => {
+	if (isInExcludedDirectory(relativePath, policy.excludedDirectories)) return "builtin-directory";
+	if (isTestFile(relativePath) !== policy.testFiles) return "role-mismatch";
+	if (isGeneratedArtifactFile(relativePath)) return "generated";
+	if (policy.ignored) return "gitignore";
+	if (policy.includePatterns.length > 0 && !policy.matchesInclude(relativePath)) {
+		return "include-filter";
+	}
+	if (policy.matchesAislopIgnore(relativePath)) return "aislopignore";
+	if (policy.matchesUserExclude(relativePath)) return "user-exclude";
+	if (!hasAllowedSourceExtension(relativePath, policy.extraExtensions)) return "extension";
+	return null;
+};
+
+export const declarationPathReason = (
+	relativePath: string,
+	policy: DeclarationPathPolicy,
+): PathDropReason | null => {
+	if (!relativePath.endsWith(".d.ts")) return "extension";
+	if (isTestFile(relativePath)) return "role-mismatch";
+	if (isInExcludedDirectory(relativePath, DECLARATION_EXCLUDED_DIRECTORIES)) {
+		return "builtin-directory";
+	}
+	if (policy.includePatterns.length > 0 && !policy.matchesInclude(relativePath)) {
+		return "include-filter";
+	}
+	if (policy.matchesAislopIgnore(relativePath)) return "aislopignore";
+	if (policy.matchesUserExclude(relativePath)) return "user-exclude";
+	return null;
 };
 
 interface FileFilterOptions {
@@ -91,32 +175,27 @@ const filterFiles = (
 				normalizedFiles.map(({ relativePath }) => relativePath),
 			)
 		: new Set<string>();
-	const excludePatterns = normalizeExcludePatterns(options.exclude);
-	const includePatterns = normalizeIncludePatterns(options.include);
-	const matchesExclude = createPathMatcher(excludePatterns);
-	const matchesInclude = createPathMatcher(includePatterns);
+	const include = compileIncludeMatcher(options.include);
+	const matchesUserExclude = compileExcludeMatcher(options.exclude);
 	const excludedDirectories = options.testFiles
 		? TEST_EXCLUDED_DIRECTORIES
 		: EXCLUDED_SOURCE_DIRECTORIES;
 
 	return normalizedFiles
 		.filter(({ absolutePath, relativePath }) => {
-			if (
-				!isSafeRegularProjectFile(rootDirectory, absolutePath) ||
-				isInExcludedDirectory(relativePath, excludedDirectories) ||
-				isTestFile(relativePath) !== options.testFiles ||
-				isGeneratedArtifactFile(relativePath) ||
-				ignoredPaths.has(relativePath)
-			) {
-				return false;
-			}
-			if (includePatterns.length > 0 && !matchesInclude(relativePath)) {
-				return false;
-			}
-			if (matchesExclude(relativePath)) {
-				return false;
-			}
-			return hasAllowedSourceExtension(relativePath, extraExtensions);
+			if (!isSafeRegularProjectFile(rootDirectory, absolutePath)) return false;
+			return (
+				pathSelectionReason(relativePath, {
+					excludedDirectories,
+					extraExtensions,
+					ignored: ignoredPaths.has(relativePath),
+					includePatterns: include.includePatterns,
+					matchesAislopIgnore: matchesNothing,
+					matchesInclude: include.matchesInclude,
+					matchesUserExclude,
+					testFiles: options.testFiles,
+				}) === null
+			);
 		})
 		.map(({ absolutePath }) => absolutePath);
 };
@@ -212,22 +291,17 @@ export const filterProjectDeclarationFiles = (
 	exclude: string[] = [],
 	include: string[] = [],
 ): string[] => {
-	const excludePatterns = normalizeExcludePatterns(exclude);
-	const includePatterns = normalizeIncludePatterns(include);
-	const matchesExclude = createPathMatcher(excludePatterns);
-	const matchesInclude = createPathMatcher(includePatterns);
+	const includeMatcher = compileIncludeMatcher(include);
+	const matchesUserExclude = compileExcludeMatcher(exclude);
 	return filterExplicitFiles(rootDirectory, files).filter((filePath) => {
-		if (!filePath.endsWith(".d.ts")) return false;
 		const relativePath = toProjectPath(rootDirectory, filePath);
-		if (
-			isTestFile(relativePath) ||
-			isInExcludedDirectory(relativePath, DECLARATION_EXCLUDED_DIRECTORIES)
-		) {
-			return false;
-		}
-		if (includePatterns.length > 0 && !matchesInclude(relativePath)) {
-			return false;
-		}
-		return !matchesExclude(relativePath);
+		return (
+			declarationPathReason(relativePath, {
+				includePatterns: includeMatcher.includePatterns,
+				matchesAislopIgnore: matchesNothing,
+				matchesInclude: includeMatcher.matchesInclude,
+				matchesUserExclude,
+			}) === null
+		);
 	});
 };

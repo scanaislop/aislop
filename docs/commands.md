@@ -96,6 +96,9 @@ Use `--changes --base origin/<target>` to gate a pull request on only the files 
 | `--base <ref>` | Diff base for `--changes`, e.g. `origin/main` (default `HEAD`) |
 | `--staged` | Only fix staged files |
 | `-p, --prompt` | Print an agent-ready prompt for remaining issues |
+| `--run-checks` | Explicitly enable configured `fix.checks` commands for this invocation |
+| `--check <command>` | Opt-in shell command run after fixes. Repeat for more commands. Enabled config `fix.checks` run first, then these flags in the order given. A failure or timeout rolls back only files this fix changed and exits non-zero. |
+| `--check-timeout <ms>` | Per-command timeout for project checks, in milliseconds (default 120000) |
 
 Agent handoff flags: `--claude`, `--codex`, `--cursor`, `--windsurf`, `--vscode`, `--amp`, `--antigravity`, `--deep-agents`, `--gemini`, `--kimi`, `--opencode`, `--warp`, `--aider`, `--goose`, `--pi`, `--crush`.
 
@@ -316,3 +319,7 @@ fix --claude  Hand off remaining issues to a coding agent
   |
 scan          Verify everything is resolved
 ```
+
+### JVM security consent
+
+`aislop scan --jvm-security` and `aislop ci --jvm-security` explicitly run the tools enabled in `security.jvm`. Configuration alone cannot authorize execution. Build trusted Java or Scala projects first, or import existing SpotBugs SARIF and Dependency-Check JSON reports without running tools. See [JVM analysis](jvm-analysis.md).

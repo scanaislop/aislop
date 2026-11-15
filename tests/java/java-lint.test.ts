@@ -81,7 +81,7 @@ describe("Java lint parsers", () => {
 			["pmd/CloseResource", "warning", "src/A.java", 3],
 			["pmd/HardCodedCryptoKey", "error", "src/A.java", 9],
 		]);
-		expect(parsePmdReport("not json", root)).toEqual([]);
+		expect(() => parsePmdReport("not json", root)).toThrow();
 	});
 
 	it("parses Checkstyle plain output and resolves symlinked absolute paths", () => {
@@ -129,7 +129,7 @@ describe.skipIf(process.platform === "win32")("Java lint engines", () => {
 		expect(JSON.parse(fs.readFileSync(logFile, "utf-8").trim())).toEqual([
 			"-c",
 			path.join(root, "checkstyle.xml"),
-			"src/A.java",
+			file,
 		]);
 	});
 

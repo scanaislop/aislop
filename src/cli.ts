@@ -8,6 +8,7 @@ import { commaSeparatedParser, noFlagsPassed, runScan, type ScanFlags } from "./
 import { ciCommand } from "./commands/ci.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { fixCommand } from "./commands/fix.js";
+import { collectCheckOption } from "./commands/fix-checks.js";
 import { initCommand } from "./commands/init.js";
 import { interactiveCommand } from "./commands/interactive.js";
 import { loadConfig } from "./config/index.js";
@@ -87,8 +88,18 @@ const program = new Command()
 	.option("--base <ref>", "diff base for --changes, e.g. origin/main (default HEAD)")
 	.option("-d, --verbose", "show file details per rule")
 	.option("--json", "output JSON instead of terminal UI")
+	.option(
+		"--jvm-security",
+		"explicitly run configured JVM security tools on trusted compiled artifacts",
+	)
 	.option("--sarif", "output SARIF 2.1.0 (for GitHub code scanning)")
 	.option("--format <format>", "output format: json or sarif")
+	.option(
+		"--ignore <rules>",
+		"disable rule IDs for this scan (comma-separated or repeatable)",
+		commaSeparatedParser,
+		[],
+	)
 	.option(
 		"--exclude <patterns>",
 		"comma-separated or repeatable list of paths and files to exclude",
@@ -100,6 +111,10 @@ const program = new Command()
 		"comma-separated or repeatable list of paths and files to include",
 		commaSeparatedParser,
 		[],
+	)
+	.option(
+		"--explain-scope",
+		"print the file scope a scan would use, then exit before detection engines",
 	)
 	.showSuggestionAfterError()
 	.action(async (directory: string, flags: ScanFlags) => {
@@ -122,8 +137,18 @@ program
 	.option("--base <ref>", "diff base for --changes, e.g. origin/main (default HEAD)")
 	.option("-d, --verbose", "show file details per rule")
 	.option("--json", "output JSON")
+	.option(
+		"--jvm-security",
+		"explicitly run configured JVM security tools on trusted compiled artifacts",
+	)
 	.option("--sarif", "output SARIF 2.1.0 (for GitHub code scanning)")
 	.option("--format <format>", "output format: json or sarif")
+	.option(
+		"--ignore <rules>",
+		"disable rule IDs for this scan (comma-separated or repeatable)",
+		commaSeparatedParser,
+		[],
+	)
 	.option("--share", "print a public report link and README badge for this GitHub repo")
 	.option(
 		"--exclude <patterns>",
@@ -136,6 +161,10 @@ program
 		"comma-separated or repeatable list of paths and files to include",
 		commaSeparatedParser,
 		[],
+	)
+	.option(
+		"--explain-scope",
+		"print the file scope a scan would use, then exit before detection engines",
 	)
 	.action(async (directory = ".", _flags, command) => {
 		await runScan(directory, command.optsWithGlobals() as ScanFlags);
@@ -154,12 +183,28 @@ const fixProgram = program
 	.addOption(new Option("--changes", "only fix changed files (git diff)").conflicts("staged"))
 	.addOption(new Option("--staged", "only fix staged files").conflicts("changes"))
 	.option("--base <ref>", "diff base for --changes, e.g. origin/main (default HEAD)")
-	.option("-p, --prompt", "print a prompt for your coding agent to fix remaining issues");
+	.option("-p, --prompt", "print a prompt for your coding agent to fix remaining issues")
+	.option("--run-checks", "explicitly enable project commands from config fix.checks")
+	.option(
+		"--check <command>",
+		"run this project check after fixes; repeat for more (enabled config checks run first)",
+		collectCheckOption,
+		[],
+	)
+	.option(
+		"--check-timeout <ms>",
+		"per-command timeout in milliseconds for project checks (default 120000)",
+	);
 
 for (const a of FIX_AGENT_FLAGS) fixProgram.option(`--${a.flag}`, a.help);
 
 fixProgram.action(async (directory = ".", _flags, command) => {
-	const flags = command.optsWithGlobals() as Record<string, boolean | undefined>;
+	const flags = command.optsWithGlobals() as Record<
+		string,
+		boolean | string | string[] | undefined
+	>;
+	const checkTimeoutRaw = flags.checkTimeout;
+	const checkList = flags.check;
 	const { exitCode } = await fixCommand(directory, loadConfig(directory), {
 		verbose: Boolean(flags.verbose),
 		force: Boolean(flags.force),
@@ -169,7 +214,10 @@ fixProgram.action(async (directory = ".", _flags, command) => {
 		staged: Boolean(flags.staged),
 		base: typeof flags.base === "string" ? flags.base : undefined,
 		prompt: Boolean(flags.prompt),
-		agent: matchFixAgent(flags),
+		agent: matchFixAgent(flags as Record<string, boolean | undefined>),
+		checks: Array.isArray(checkList) ? checkList : undefined,
+		runChecks: Boolean(flags.runChecks),
+		checkTimeoutMs: typeof checkTimeoutRaw === "string" ? Number(checkTimeoutRaw) : undefined,
 	});
 	if (exitCode !== 0) {
 		await flushTelemetry();
@@ -213,6 +261,7 @@ program
 const ciProgram = program.command("ci [directory]").description("Run the quality gate for CI");
 
 const CI_OPTIONS: [flag: string, description: string][] = [
+	["--jvm-security", "explicitly run configured JVM security tools on trusted compiled artifacts"],
 	["--changes", "only gate files changed vs --base (or HEAD)"],
 	["--staged", "only gate staged files"],
 	["--base <ref>", "diff base for --changes, e.g. origin/main (default HEAD)"],
@@ -228,15 +277,24 @@ ciProgram.action(async (directory = ".", _flags, command) => {
 		staged?: boolean;
 		base?: string;
 		human?: boolean;
+		jvmSecurity?: boolean;
+		include?: string[];
+		exclude?: string[];
 		sarif?: boolean;
 		format?: string;
 	};
 	const config = loadConfig(directory);
-	const { exitCode } = await ciCommand(directory, config, {
+	const scopedConfig = {
+		...config,
+		include: [...config.include, ...(flags.include ?? [])],
+		exclude: [...config.exclude, ...(flags.exclude ?? [])],
+	};
+	const { exitCode } = await ciCommand(directory, scopedConfig, {
 		changes: Boolean(flags.changes),
 		staged: Boolean(flags.staged),
 		base: flags.base,
 		human: Boolean(flags.human),
+		jvmSecurity: Boolean(flags.jvmSecurity),
 		sarif: Boolean(flags.sarif) || flags.format === "sarif",
 	});
 	if (exitCode !== 0) {

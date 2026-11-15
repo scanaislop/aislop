@@ -59,6 +59,28 @@ const AUDIT_SPECS: AuditSpec[] = [
 ];
 
 export const planSecurity = (ctx: PlanContext): ToolDecision => {
+	const jvm = ctx.config.security.jvm;
+	if (jvm) {
+		const tools = [
+			jvm.spotbugs ? "spotbugs" : null,
+			jvm.dependencyCheck && ctx.config.security.audit ? "dependency-check" : null,
+		].filter((tool): tool is string => tool !== null);
+		const missing = tools.filter((tool) => !ctx.projectInfo.installedTools[tool]);
+		if (missing.length)
+			return {
+				tool: missing.join(" + "),
+				status: "missing",
+				remediation:
+					"Install: aislop-tools --jvm-security. Live scans require --jvm-security; reports can be imported without running tools.",
+			};
+		if (tools.length)
+			return { tool: `${tools.join(" + ")} (explicit --jvm-security)`, status: "ok" };
+		if (
+			jvm.spotbugsReports.length ||
+			(ctx.config.security.audit && jvm.dependencyCheckReports.length)
+		)
+			return { tool: "JVM security report imports", status: "ok" };
+	}
 	const { rootDirectory, projectInfo } = ctx;
 	const { installedTools } = projectInfo;
 	const hasFile = (relativePath: string): boolean =>

@@ -12,6 +12,7 @@ import { detectHallucinatedImports } from "./hallucinated-imports.js";
 import { detectHardcodedConfigLiterals } from "./hardcoded-config.js";
 import { detectHiddenFallbacks } from "./hidden-fallback.js";
 import { detectJavaPatterns } from "./java-patterns.js";
+import { detectScalaPatterns } from "./scala-patterns.js";
 import { detectMetaComments } from "./meta-comment.js";
 import { detectNarrativeComments } from "./narrative-comments.js";
 import { detectPythonPatterns } from "./python-patterns.js";
@@ -42,6 +43,7 @@ export const aiSlopEngine: Engine = {
 			detectPythonPatterns(context),
 			detectGoPatterns(context),
 			detectJavaPatterns(context),
+			detectScalaPatterns(context),
 			detectRustPatterns(context),
 			detectHallucinatedImports(context),
 			detectSilentRecovery(context),

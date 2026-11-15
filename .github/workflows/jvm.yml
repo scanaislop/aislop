@@ -1,0 +1,47 @@
+name: JVM integration
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+permissions:
+  contents: read
+jobs:
+  jvm:
+    name: JVM tools (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/install-tools.mjs --jvm-security
+      - name: Resolve pinned Scala compiler and formatter fixtures
+        run: mvn -q -f tests/fixtures/jvm/compiler-pom.xml dependency:copy-dependencies -DoutputDirectory="${{ runner.temp }}/jvm-compiler"
+      - name: Exercise real Java and Scala tools
+        run: pnpm vitest run tests/jvm-live.integration.test.ts
+        env:
+          AISLOP_JVM_INTEGRATION: "1"
+          AISLOP_SCALA_COMPILER_LIB: ${{ runner.temp }}/jvm-compiler
+          AISLOP_NO_TELEMETRY: "1"
+      - name: Populate advisory cache from official NVD feeds
+        if: runner.os == 'Linux'
+        run: java -cp "tools/java/dependency-check-13.0.0/dependency-check/lib/*" org.owasp.dependencycheck.App --updateonly --data "${{ runner.temp }}/nvd-data" --nvdDatafeed 'https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-{0}.json.gz'
+      - name: Verify real Java and Scala vulnerability audits
+        if: runner.os == 'Linux'
+        run: pnpm vitest run tests/jvm-dependency-live.integration.test.ts
+        env:
+          AISLOP_JVM_DEPENDENCY_INTEGRATION: "1"
+          AISLOP_NVD_DATA: ${{ runner.temp }}/nvd-data
+          AISLOP_NO_TELEMETRY: "1"

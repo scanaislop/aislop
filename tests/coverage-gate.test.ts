@@ -42,6 +42,18 @@ describe("coverage gate (discoverProject)", () => {
 		expect(info.coverage.unsupportedFiles).toBe(0);
 	});
 
+	it("counts Scala source as supported without duplicating unsupported coverage", async () => {
+		write("src/Main.scala", "object Main { val ready = true }\n");
+		write("scripts/run.sc", "val ready = true\n");
+		const info = await discoverProject(tmpDir);
+		expect(info.coverage).toEqual({
+			supportedFiles: 2,
+			unsupportedFiles: 0,
+			dominantUnsupported: null,
+			scoreable: true,
+		});
+	});
+
 	it("still scores a supported repo with a minority of unsupported files", async () => {
 		for (let i = 0; i < 30; i++) write(`m${i}.py`, `def f${i}():\n    return ${i}\n`);
 		for (let i = 0; i < 5; i++) write(`ext${i}.swift`, "let x = 0\n");

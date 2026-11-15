@@ -22,6 +22,7 @@ import {
 	PY_DECL_START,
 	RUBY_DECL_START,
 	RUST_DECL_START,
+	SCALA_DECL_START,
 	SECTION_HEADER,
 	SUPPORTED_EXTS,
 	TS_MEMBER_DECL_START,
@@ -43,6 +44,9 @@ const looksLikeDeclarationPreamble = (nextLine: string | null, ext: string): boo
 			return RUBY_DECL_START.test(nextLine);
 		case ".java":
 			return JAVA_DECL_START.test(nextLine) || JAVA_DECL_START_FALLBACK.test(nextLine);
+		case ".scala":
+		case ".sc":
+			return SCALA_DECL_START.test(nextLine);
 		case ".php":
 			return PHP_DECL_START.test(nextLine);
 		case ".cs":

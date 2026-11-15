@@ -39,9 +39,15 @@ export const applyScanBaseline = (
 		? new Set(input.scopeFiles.map((file) => relativePosix(input.rootDirectory, file)))
 		: null;
 	const staleEngines = fullyRanEngines(input.results);
+	const failedEngines = new Set(
+		input.results.filter((result) => result.failed).map((result) => result.engine),
+	);
 
 	const matched = matchBaseline({
-		baseline,
+		baseline: {
+			...baseline,
+			entries: baseline.entries.filter((entry) => !failedEngines.has(entry.engine)),
+		},
 		diagnostics: input.results.flatMap((result) => result.diagnostics),
 		rootDirectory: input.rootDirectory,
 		scopeFiles,

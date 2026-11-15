@@ -6,8 +6,10 @@ import { runDotnetFormat } from "./dotnet-format.js";
 import { runGenericFormatter } from "./generic.js";
 import { runGofmt } from "./gofmt.js";
 import { detectJavaFormatStyle } from "../java-targets.js";
+import { hasScalafmtConfig } from "../scala-targets.js";
 import { runJavaFormat } from "./java-format.js";
 import { runRuffFormat } from "./ruff-format.js";
+import { runScalaFormat } from "./scala-format.js";
 
 const FORMAT_TOOL_REQUIREMENTS: readonly ToolRequirement[] = [
 	{ language: "python", tool: "ruff" },
@@ -20,6 +22,11 @@ const FORMAT_TOOL_REQUIREMENTS: readonly ToolRequirement[] = [
 		language: "java",
 		tool: "google-java-format",
 		applies: (context) => detectJavaFormatStyle(context.rootDirectory) !== null,
+	},
+	{
+		language: "scala",
+		tool: "scalafmt",
+		applies: (context) => hasScalafmtConfig(context.rootDirectory),
 	},
 	{
 		language: "csharp",
@@ -72,6 +79,14 @@ export const formatEngine: Engine = {
 			detectJavaFormatStyle(context.rootDirectory) !== null
 		) {
 			promises.push(runJavaFormat(context));
+		}
+
+		if (
+			languages.includes("scala") &&
+			installedTools.scalafmt &&
+			hasScalafmtConfig(context.rootDirectory)
+		) {
+			promises.push(runScalaFormat(context));
 		}
 
 		if (

@@ -3,12 +3,15 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import javaSecurityTools from "../../scripts/java-security-tools.json";
+import coreJavaTools from "../../scripts/java-tools.json";
 import { isToolInstalled } from "./subprocess.js";
 
 const THIS_FILE = fileURLToPath(import.meta.url);
+const javaTools = { ...coreJavaTools, ...javaSecurityTools };
 const _esmRequire = createRequire(import.meta.url);
 
-const resolvePackageRoot = (startFile: string): string => {
+export const resolvePackageRoot = (startFile: string): string => {
 	let current = path.dirname(startFile);
 	while (true) {
 		const packageJsonPath = path.join(current, "package.json");
@@ -17,7 +20,7 @@ const resolvePackageRoot = (startFile: string): string => {
 				const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8")) as {
 					name?: string;
 				};
-				if (packageJson.name === "aislop") {
+				if (packageJson.name === "aislop" || packageJson.name === "@scanaislop/aislop") {
 					return current;
 				}
 			} catch {
@@ -68,8 +71,8 @@ const isExecutableFile = (candidate: string): boolean => {
 
 // Synchronous PATH lookup for a bundled tool's system install. We check for the
 // platform executable name in each PATH entry rather than shelling out to
-// `which` so resolveToolBinary can stay synchronous. (.exe on Windows covers the
-// pip/standalone ruff and golangci-lint distributions, the only bundled tools.)
+// `which` so resolution stays synchronous. On Windows, direct execution needs
+// an .exe; bundled Java tools use the JVM instead of batch launchers.
 const findToolOnPath = (toolName: string): string | null => {
 	const executable = withExecutableExtension(toolName);
 	const pathValue = process.env.PATH ?? "";
@@ -146,9 +149,49 @@ export const resolveToolBinary = (toolName: string, options: ResolveToolOptions 
 const isBundledTool = (toolName: string): boolean => getBundledToolPath(toolName) !== null;
 
 export const isToolAvailable = async (toolName: string, projectRoot?: string): Promise<boolean> => {
+	if (toolName === "scalafmt" && resolveScalafmtInvocation().command === "java")
+		return isToolInstalled("java");
+	if (
+		Object.hasOwn(javaTools, toolName) &&
+		resolveJavaToolInvocation(toolName as JavaToolName).command === "java"
+	) {
+		return isToolInstalled("java");
+	}
 	if (isBundledTool(toolName)) return true;
 	if (projectRoot && findProjectVenvTool(toolName, projectRoot)) return true;
 	return isToolInstalled(toolName);
+};
+
+type JavaToolName = keyof typeof javaTools;
+
+export const resolveScalafmtInvocation = (): { command: string; args: string[] } => {
+	const classpath = process.env.AISLOP_SCALAFMT_CLASSPATH;
+	return classpath
+		? { command: "java", args: ["-cp", classpath, "org.scalafmt.cli.Cli"] }
+		: { command: "scalafmt", args: [] };
+};
+
+export const resolveFindSecBugsPlugin = (): string | null => {
+	const tool = javaTools.findsecbugs;
+	const file = path.join(PACKAGE_ROOT, "tools", "java", `findsecbugs-${tool.version}`, tool.entry);
+	return fs.statSync(file, { throwIfNoEntry: false })?.isFile() ? file : null;
+};
+
+export const resolveJavaToolInvocation = (
+	toolName: JavaToolName,
+): { command: string; args: string[] } => {
+	const system = findToolOnPath(toolName);
+	if (system) return { command: system, args: [] };
+	const tool = javaTools[toolName];
+	const directory = path.join(PACKAGE_ROOT, "tools", "java", `${toolName}-${tool.version}`);
+	const entry = path.join(directory, tool.entry);
+	if (!fs.statSync(entry, { throwIfNoEntry: false })?.isFile()) {
+		return { command: toolName, args: [] };
+	}
+	const args = tool.mainClass
+		? ["-cp", path.join(path.dirname(entry), "*"), tool.mainClass]
+		: ["-jar", entry];
+	return { command: "java", args };
 };
 
 // Absolute paths to the bundled C# analyzer assemblies (provisioned by scripts/postinstall-tools.mjs).

@@ -1,9 +1,21 @@
 import { maskCSharp, maskCStyle } from "./source-masker-cstyle.js";
 import { maskJava } from "./source-masker-java.js";
+import { maskRust } from "./source-masker-rust.js";
+import { maskScala } from "./source-masker-scala.js";
 import { maskSimple } from "./source-masker-simple.js";
 import { consumeQuotedString } from "./string-literals.js";
 
-type LangFamily = "js" | "py" | "rb" | "php" | "csharp" | "java" | "cstyle" | "none";
+type LangFamily =
+	| "js"
+	| "py"
+	| "rb"
+	| "php"
+	| "csharp"
+	| "java"
+	| "scala"
+	| "cstyle"
+	| "rust"
+	| "none";
 
 const JS_EXTS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
 const PY_EXTS = new Set([".py"]);
@@ -14,10 +26,15 @@ const PHP_EXTS = new Set([".php"]);
 // of one wrong leaves its contents visible as code.
 const CSHARP_EXTS = new Set([".cs"]);
 const JAVA_EXTS = new Set([".java"]);
+// Scala needs its own scanner: block comments nest, triple-quoted strings
+// have no escapes, and apostrophes are often symbol literals, not chars.
+const SCALA_EXTS = new Set([".scala", ".sc"]);
 // C and C++ (including headers) share C-style string and character literals
 // and `//` + `/* */` comments, so the cstyle masker handles them.
 const CPP_EXTS = new Set([".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx"]);
 const C_STYLE_COMMENT_EXTS = new Set([".go"]);
+// Rust lifetimes (`'a`) would open a char literal in the cstyle masker.
+const RUST_EXTS = new Set([".rs"]);
 
 const familyForExt = (ext: string): LangFamily => {
 	if (JS_EXTS.has(ext)) return "js";
@@ -26,12 +43,22 @@ const familyForExt = (ext: string): LangFamily => {
 	if (PHP_EXTS.has(ext)) return "php";
 	if (CSHARP_EXTS.has(ext)) return "csharp";
 	if (JAVA_EXTS.has(ext)) return "java";
+	if (SCALA_EXTS.has(ext)) return "scala";
 	if (CPP_EXTS.has(ext)) return "cstyle";
 	if (C_STYLE_COMMENT_EXTS.has(ext)) return "cstyle";
+	if (RUST_EXTS.has(ext)) return "rust";
 	return "none";
 };
 
-const FULLY_MASKED_FAMILIES = new Set<LangFamily>(["js", "py", "csharp", "java", "cstyle"]);
+const FULLY_MASKED_FAMILIES = new Set<LangFamily>([
+	"js",
+	"py",
+	"csharp",
+	"java",
+	"cstyle",
+	"rust",
+	"scala",
+]);
 
 export const masksAllMultilineLiterals = (ext: string): boolean =>
 	FULLY_MASKED_FAMILIES.has(familyForExt(ext));
@@ -42,7 +69,9 @@ export const maskStringsAndComments = (content: string, ext: string): string => 
 	if (family === "js") return maskJs(content, true);
 	if (family === "csharp") return maskCSharp(content, true);
 	if (family === "java") return maskJava(content, true);
+	if (family === "scala") return maskScala(content, true);
 	if (family === "cstyle") return maskCStyle(content, true);
+	if (family === "rust") return maskRust(content, true);
 	return maskSimple(content, family, true);
 };
 
@@ -53,7 +82,9 @@ export const maskComments = (content: string, ext: string): string => {
 	if (family === "js") return maskJs(content, false);
 	if (family === "csharp") return maskCSharp(content, false);
 	if (family === "java") return maskJava(content, false);
+	if (family === "scala") return maskScala(content, false);
 	if (family === "cstyle") return maskCStyle(content, false);
+	if (family === "rust") return maskRust(content, false);
 	return maskSimple(content, family, false);
 };
 

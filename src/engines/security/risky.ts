@@ -6,6 +6,7 @@ import { maskStringsAndComments } from "../../utils/source-masker.js";
 import type { Diagnostic, EngineContext } from "../types.js";
 import { consumeTemplateLiteral, isSafeInnerHtmlAssignment } from "./html-safety.js";
 import { RISKY_PATTERNS } from "./risky-patterns.js";
+import { createLineCounter } from "./source-line.js";
 
 const hasDangerouslySetInnerHtmlIgnore = (lines: string[], lineIndex: number): boolean => {
 	const start = Math.max(0, lineIndex - 2);
@@ -104,9 +105,10 @@ export const detectRiskyConstructs = async (context: EngineContext): Promise<Dia
 			if (!extensions.includes(ext)) continue;
 
 			const regex = new RegExp(pattern.source, pattern.flags);
+			const lineAt = createLineCounter(content);
 
 			for (const match of masked.matchAll(regex)) {
-				const line = content.slice(0, match.index).split("\n").length;
+				const line = lineAt(match.index);
 
 				// For innerHTML: skip if target is a <template> element (safe by design)
 				if (name === "innerhtml") {

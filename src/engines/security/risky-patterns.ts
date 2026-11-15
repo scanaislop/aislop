@@ -45,6 +45,18 @@ const javaRisk = (pattern: RegExp, name: string, message: string, help: string):
 	help,
 });
 
+const scalaRisk = (pattern: RegExp, name: string, message: string, help: string): RiskyPattern => ({
+	pattern,
+	extensions: [".scala", ".sc"],
+	name,
+	message,
+	help,
+});
+
+// A Scala interpolated string opener: `s"`, `f"`, or `raw"`. After masking
+// the body is blanked but the prefix and the opening quote survive.
+const SCALA_INTERP = '(?:s|f|raw)"';
+
 const csharpRisk = (
 	pattern: RegExp,
 	name: string,
@@ -175,6 +187,30 @@ export const RISKY_PATTERNS: RiskyPattern[] = [
 	),
 	javaRisk(
 		/\bnew\s+(?:[\w.]+\.)?(?:ObjectInputStream|XMLDecoder)\s*\(/g,
+		"unsafe-deserialization",
+		"Java deserialization of untrusted data can execute arbitrary code",
+		"Use a data format such as JSON with explicit types, or an ObjectInputFilter allowlist",
+	),
+	scalaRisk(
+		new RegExp(
+			`\\.(${JAVA_SQL_SINK})\\s*\\(\\s*(?:${SCALA_INTERP}|${JAVA_CONCAT}|${JAVA_FORMAT})`,
+			"g",
+		),
+		"sql-injection",
+		"Possible SQL injection: query built by string interpolation or concatenation",
+		"Use a PreparedStatement with ? parameters, or a parameterized query API such as doobie or skunk fragments",
+	),
+	scalaRisk(
+		new RegExp(
+			`(?:\\.exec\\s*\\(|new\\s+ProcessBuilder\\s*\\(|\\bProcess\\s*\\()\\s*(?:${SCALA_INTERP}|${JAVA_CONCAT})`,
+			"g",
+		),
+		"shell-injection",
+		"Possible command injection: process command built from interpolated or concatenated strings",
+		"Pass the program and each argument as separate strings (scala.sys.process.Process takes a Seq[String]), never one built command",
+	),
+	scalaRisk(
+		/\bnew\s+(?:[\w.]+\.)?ObjectInputStream\s*\(/g,
 		"unsafe-deserialization",
 		"Java deserialization of untrusted data can execute arbitrary code",
 		"Use a data format such as JSON with explicit types, or an ObjectInputFilter allowlist",

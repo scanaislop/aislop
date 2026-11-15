@@ -1,5 +1,35 @@
 import { z } from "zod/v4";
 
+export const JvmSecuritySchema = z.strictObject({
+	spotbugs: z.boolean().default(false),
+	findSecBugs: z.boolean().default(true),
+	findSecBugsPlugin: z.string().min(1).optional(),
+	dependencyCheck: z.boolean().default(false),
+	bytecode: z.array(z.string().min(1)).default(() => []),
+	dependencies: z.array(z.string().min(1)).default(() => []),
+	classpath: z.array(z.string().min(1)).default(() => []),
+	spotbugsReports: z.array(z.string().min(1)).default(() => []),
+	dependencyCheckReports: z.array(z.string().min(1)).default(() => []),
+	timeout: z.number().int().positive().max(3_600_000).default(120_000),
+	dataDirectory: z.string().min(1).optional(),
+	updateData: z.boolean().default(false),
+});
+
+export type JvmSecurityConfig = z.infer<typeof JvmSecuritySchema>;
+
+export class JvmConfigError extends Error {}
+
+const validateJvmConfig = (raw: Record<string, unknown>): void => {
+	const security = raw.security;
+	if (!security || typeof security !== "object" || !("jvm" in security)) return;
+	if (security.jvm === undefined) return;
+	const result = JvmSecuritySchema.safeParse(security.jvm);
+	if (!result.success)
+		throw new JvmConfigError(
+			`Invalid security.jvm configuration: ${result.error.issues.map((issue) => issue.path.join(".") || "jvm").join(", ")}`,
+		);
+};
+
 const DEFAULT_WEIGHTS: Record<string, number> = {
 	format: 0.3,
 	lint: 0.6,
@@ -76,6 +106,7 @@ const LintConfigSchema = z.object({
 const SecurityConfigSchema = z.object({
 	audit: z.boolean().default(true),
 	auditTimeout: z.number().positive().default(25000),
+	jvm: JvmSecuritySchema.optional(),
 });
 
 const ImportsSchema = z.object({
@@ -106,6 +137,22 @@ const CiSchema = z.object({
 
 const TelemetrySchema = z.object({
 	enabled: z.boolean().default(true),
+});
+
+export const DEFAULT_CHECK_TIMEOUT_MS = 120_000;
+
+const FixSchema = z.object({
+	checks: z
+		.array(z.string())
+		.default(() => [])
+		.describe(
+			"Shell commands run after fixes only with explicit --run-checks, in listed order. Package scripts are never discovered.",
+		),
+	checkTimeoutMs: z
+		.number()
+		.positive()
+		.default(DEFAULT_CHECK_TIMEOUT_MS)
+		.describe("Per-command timeout in milliseconds for fix.checks."),
 });
 
 const RuleSeverityOverride = z.enum(["error", "warning", "off"]);
@@ -185,6 +232,10 @@ const AislopConfigSchema = z.object({
 	telemetry: TelemetrySchema.default(() => ({
 		enabled: true,
 	})),
+	fix: FixSchema.default(() => ({
+		checks: [],
+		checkTimeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
+	})),
 	rules: RulesSchema,
 	overrides: z.array(FileOverrideSchema).default(() => []),
 	exclude: z.array(z.string()).default(() => ["node_modules", ".git", "dist", "build", "coverage"]),
@@ -203,6 +254,13 @@ const defaults: AislopConfig = AislopConfigSchema.parse({});
  * Pre-merge scoring weights so partial overrides extend the defaults
  * rather than replacing them entirely (z.record replaces by default).
  */
+const preNormalizeFixChecks = (raw: Record<string, unknown>): void => {
+	const fix = raw.fix;
+	if (!fix || typeof fix !== "object" || Array.isArray(fix)) return;
+	const record = fix as Record<string, unknown>;
+	if (typeof record.checks === "string") record.checks = [record.checks];
+};
+
 const preMergeWeights = (raw: Record<string, unknown>): void => {
 	const scoring = raw.scoring as Record<string, unknown> | undefined;
 	if (!scoring) return;
@@ -215,10 +273,12 @@ const preMergeWeights = (raw: Record<string, unknown>): void => {
 
 export const parseConfig = (raw: unknown): AislopConfig => {
 	if (!raw || typeof raw !== "object") return defaults;
+	validateJvmConfig(raw as Record<string, unknown>);
 
 	try {
 		const input = raw as Record<string, unknown>;
 		preMergeWeights(input);
+		preNormalizeFixChecks(input);
 		return AislopConfigSchema.parse(input);
 	} catch {
 		// If validation fails, return defaults rather than crashing

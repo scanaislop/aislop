@@ -8,7 +8,9 @@ import {
 import { fixGenericFormatter, runGenericFormatter } from "../engines/format/generic.js";
 import { fixGofmt, runGofmt } from "../engines/format/gofmt.js";
 import { fixJavaFormat, runJavaFormat } from "../engines/format/java-format.js";
+import { fixScalaFormat, runScalaFormat } from "../engines/format/scala-format.js";
 import { detectJavaFormatStyle } from "../engines/java-targets.js";
+import { hasScalafmtConfig } from "../engines/scala-targets.js";
 import { fixRuffFormat, runRuffFormat } from "../engines/format/ruff-format.js";
 import { log } from "../ui/logger.js";
 import type { PipelineDeps } from "./fix-pipeline.js";
@@ -119,6 +121,8 @@ export const runFormattingStep = async (deps: PipelineDeps): Promise<void> => {
 
 	await runJavaFormattingStep(deps);
 
+	await runScalaFormattingStep(deps);
+
 	await runNativeFormattingSteps(deps);
 };
 
@@ -135,6 +139,20 @@ const runJavaFormattingStep = async (deps: PipelineDeps): Promise<void> => {
 		"Formatting (java)",
 		() => runJavaFormat(deps.context),
 		() => fixJavaFormat(deps.context),
+	);
+};
+
+const runScalaFormattingStep = async (deps: PipelineDeps): Promise<void> => {
+	if (!deps.projectInfo.languages.includes("scala")) return;
+	if (!hasScalafmtConfig(deps.context.rootDirectory)) return;
+	if (!deps.projectInfo.installedTools.scalafmt) {
+		log.warn("Scala uses scalafmt but it is not installed; skipping Scala formatting fixes.");
+		return;
+	}
+	await deps.runStep(
+		"Formatting (scala)",
+		() => runScalaFormat(deps.context),
+		() => fixScalaFormat(deps.context),
 	);
 };
 

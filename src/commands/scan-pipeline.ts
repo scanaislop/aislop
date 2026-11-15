@@ -51,6 +51,7 @@ export const runScanEngines = async (
 	prepared: PreparedScan,
 	config: AislopConfig,
 	machineOutput: boolean,
+	allowJvmExecution = false,
 ): Promise<{ results: EngineResult[]; suppressedCount: number }> => {
 	const { resolvedDir, scanScope, projectInfo } = prepared;
 	const configDir = findConfigDir(resolvedDir);
@@ -62,6 +63,7 @@ export const runScanEngines = async (
 		quality: config.quality,
 		security: config.security,
 		lint: config.lint,
+		allowJvmExecution,
 		architectureRulesPath: config.engines.architecture ? rulesPath : undefined,
 	};
 

@@ -1,5 +1,6 @@
 import type { Diagnostic, Engine, EngineContext, EngineResult } from "../types.js";
 import { runDependencyAudit } from "./audit.js";
+import { runJvmSecurity } from "./jvm.js";
 import { detectRiskyConstructs } from "./risky.js";
 import { scanSecrets } from "./secrets.js";
 
@@ -12,6 +13,7 @@ export const securityEngine: Engine = {
 		const promises: Promise<Diagnostic[]>[] = [
 			scanSecrets(context),
 			detectRiskyConstructs(context),
+			runJvmSecurity(context),
 		];
 
 		if (context.config.security.audit) {
@@ -30,6 +32,9 @@ export const securityEngine: Engine = {
 			diagnostics,
 			elapsed: 0,
 			skipped: false,
+			...(diagnostics.some((item) => item.rule === "security/jvm-analysis-failed")
+				? { failed: true }
+				: {}),
 		};
 	},
 };

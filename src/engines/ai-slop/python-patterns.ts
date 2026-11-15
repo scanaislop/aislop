@@ -221,8 +221,9 @@ const pushLineFinding = (
 };
 
 const flagBareExcept = (lines: string[], relPath: string, out: Diagnostic[]): void => {
+	const stringContentLines = scanPythonDocstrings(lines).tripleQuotedStringLines;
 	for (let i = 0; i < lines.length; i++) {
-		if (!BARE_EXCEPT_RE.test(lines[i])) continue;
+		if (stringContentLines.has(i) || !BARE_EXCEPT_RE.test(lines[i])) continue;
 		pushFinding(out, {
 			relPath,
 			rule: "ai-slop/python-bare-except",
@@ -240,7 +241,9 @@ const flagBroadExceptWithSilentBody = (
 	relPath: string,
 	out: Diagnostic[],
 ): void => {
+	const stringContentLines = scanPythonDocstrings(lines).tripleQuotedStringLines;
 	for (let i = 0; i < lines.length; i++) {
+		if (stringContentLines.has(i)) continue;
 		const match = BROAD_EXCEPT_RE.exec(lines[i]);
 		if (!match) continue;
 		const next = lines[i + 1] ?? "";
