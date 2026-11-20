@@ -539,6 +539,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). AI assistants: [AGENTS.md](AGENTS.md).
 
 Built on: [Biome](https://biomejs.dev/), [oxlint](https://oxc.rs/), [knip](https://knip.dev/), [ruff](https://docs.astral.sh/ruff/), [golangci-lint](https://golangci-lint.run/), [expo-doctor](https://docs.expo.dev/)
 
+Supported by [PostHog for Startups](https://posthog.com/startups) and [NVIDIA Inception](https://www.nvidia.com/en-us/startups/).
+
+<a href="https://posthog.com"><picture><source media="(prefers-color-scheme: dark)" srcset="https://brand.posthog.com/badges/posthog-badge-dark.svg"><img src="https://brand.posthog.com/badges/posthog-badge.svg" alt="Built with PostHog" width="100" height="50"></picture></a>
+
 ## Contributors
 
 <!-- CONTRIBUTORS-START -->
