@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- Failed Go and JavaScript linter runs are reported in scan JSON and fail the CI gate. Findings from successful sibling linters remain available. Go analysis supports the v2 JSON output flag and the legacy v1 flag.
+- Failed Go and JavaScript linter runs are reported in scan JSON and fail the CI gate. Incomplete engine runs withhold the score. Findings from successful sibling linters remain available. Go analysis supports the v2 JSON output flag and the legacy v1 flag.
 
 - Scala catch analysis preserves nested case boundaries, supports balanced multiline guards and wrapped handler bodies, and detects discarded clauses even when sibling clauses recover.
 - Scala triple-quoted strings ending in literal quotes no longer hide executable code that follows on the same line.

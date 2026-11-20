@@ -120,7 +120,6 @@ const runScanBody = async (prepared: PreparedScan, config: AislopConfig, options
 	const language = projectInfo.languages[0] ?? "unknown";
 	const printedHumanHeader = !machineOutput && showHeader;
 	const { files, scoreFileCount, scopeLabel, testFiles } = scanScope;
-	const scanCoverage = deriveScanCoverage(projectInfo.coverage, scoreFileCount);
 
 	if (printedHumanHeader) {
 		process.stdout.write(
@@ -166,11 +165,13 @@ const runScanBody = async (prepared: PreparedScan, config: AislopConfig, options
 		config.scoring.smoothing,
 		config.scoring.maxPerRule,
 	);
+	const failedEngines = results.filter((result) => result.failed).map((result) => result.engine);
+	const scanCoverage = deriveScanCoverage(projectInfo.coverage, scoreFileCount, failedEngines);
 	const scoreable = scanCoverage.scoreable;
 	const hasErrors = allDiagnostics.some((d) => d.severity === "error");
 	const missingTools = collectMissingTools(results);
 	const exitCode = computeScanExitCode({
-		engineFailed: results.some((result) => result.failed),
+		engineFailed: failedEngines.length > 0,
 		hasErrors,
 		scoreable,
 		score: scoreResult.score,

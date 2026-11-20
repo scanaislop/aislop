@@ -5,6 +5,8 @@ import type { Coverage, ProjectInfo } from "../utils/discover.js";
 import { APP_VERSION } from "../version.js";
 
 export const coverageReason = (c: Coverage): string => {
+	if (c.failedEngines?.length)
+		return `Score withheld because these checks failed: ${c.failedEngines.join(", ")}.`;
 	if (c.supportedFiles === 0 && c.dominantUnsupported) {
 		return `This repository is ${c.dominantUnsupported} (${c.unsupportedFiles} files), which aislop does not analyze. No score — it would not reflect this code.`;
 	}
