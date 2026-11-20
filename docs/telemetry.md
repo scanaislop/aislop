@@ -36,7 +36,7 @@ Agent command events add only aggregate options and outcomes: provider (`auto` /
 
 Properties are filtered through an allowlist before being sent — anything not on the list is dropped, even if a future caller passes it.
 
-Events are sent without a person profile, and each install sends at most 200 events per UTC day; further events that day are dropped. The counter lives in `telemetry_budget`, next to `install_id`.
+Events are sent without a person profile, and each install sends at most 200 events per UTC day; further events that day are dropped. Concurrent CLI processes reserve slots in a dated directory next to `install_id`. Earlier directories are removed at rollover.
 
 ## Anonymous identity
 
