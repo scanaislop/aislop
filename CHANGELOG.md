@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## Unreleased
 
+### Changed
+
+- Telemetry events are sent without a person profile, and each install sends at most 200 events per UTC day, so a looping hook or script can no longer flood analytics.
+
 ## 0.22.1 (2026-11-14)
 
 Expanded Java and Scala project analysis, with explicit opt-in JVM tools and clearer coverage failures. Scala remains in beta.
