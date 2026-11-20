@@ -539,6 +539,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). AI assistants: [AGENTS.md](AGENTS.md).
 
 Built on: [Biome](https://biomejs.dev/), [oxlint](https://oxc.rs/), [knip](https://knip.dev/), [ruff](https://docs.astral.sh/ruff/), [golangci-lint](https://golangci-lint.run/), [expo-doctor](https://docs.expo.dev/)
 
+Scan AI Slop participates in [NVIDIA Inception](https://www.nvidia.com/en-us/startups/) and [PostHog for Startups](https://posthog.com/startups).
+
 ## Contributors
 
 <!-- CONTRIBUTORS-START -->
