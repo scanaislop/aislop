@@ -541,7 +541,7 @@ Built on: [Biome](https://biomejs.dev/), [oxlint](https://oxc.rs/), [knip](https
 
 Supported by [PostHog for Startups](https://posthog.com/startups) and [NVIDIA Inception](https://www.nvidia.com/en-us/startups/).
 
-<a href="https://posthog.com"><picture><source media="(prefers-color-scheme: dark)" srcset="https://brand.posthog.com/badges/posthog-badge-dark.svg"><img src="https://brand.posthog.com/badges/posthog-badge.svg" alt="Built with PostHog" width="100" height="50"></picture></a>
+<a href="https://posthog.com"><picture><source media="(prefers-color-scheme: dark)" srcset="https://brand.posthog.com/badges/posthog-badge-dark.svg"><img src="https://brand.posthog.com/badges/posthog-badge.svg" alt="Built with PostHog" width="100" height="50"></picture></a> <a href="https://www.nvidia.com/en-us/startups/"><img src="assets/nvidia-inception-badge.svg" alt="NVIDIA Inception Program" width="115" height="50"></a>
 
 ## Contributors
 
