@@ -32,10 +32,16 @@ export interface ScanFileScope {
 	readonly testFiles: string[];
 }
 
-export const deriveScanCoverage = (coverage: Coverage, fileCount: number): Coverage => ({
+export const deriveScanCoverage = (
+	coverage: Coverage,
+	fileCount: number,
+	failedEngines: string[] = [],
+): Coverage => ({
 	...coverage,
 	supportedFiles: fileCount,
+	...(failedEngines.length ? { failedEngines } : {}),
 	scoreable: !(
+		failedEngines.length > 0 ||
 		fileCount === 0 ||
 		(coverage.unsupportedFiles >= 10 && coverage.unsupportedFiles > fileCount * 3)
 	),
