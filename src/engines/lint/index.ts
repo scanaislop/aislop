@@ -206,9 +206,12 @@ export const lintEngine: Engine = {
 		}
 
 		const results = await Promise.allSettled(promises);
+		const failures: string[] = [];
 		for (const result of results) {
 			if (result.status === "fulfilled") {
 				diagnostics.push(...result.value);
+			} else {
+				failures.push(result.reason instanceof Error ? result.reason.message : "linter failed");
 			}
 		}
 
@@ -217,7 +220,8 @@ export const lintEngine: Engine = {
 				engine: "lint",
 				diagnostics,
 				elapsed: 0,
-				skipped: false,
+				skipped: results.every((result) => result.status === "rejected"),
+				...(failures.length ? { failed: true, skipReason: failures.join(", ") } : {}),
 			},
 			missingTools,
 		);

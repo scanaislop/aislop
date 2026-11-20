@@ -34,6 +34,12 @@ const scan = async (source: string): Promise<string[]> => {
 };
 
 describe("Scala risky constructs", () => {
+	it("finds a shell sink after a triple string ending in a literal quote", async () => {
+		const findings = await scan(
+			'object Runner { def run(dir: String) = { val text = """quoted""""; scala.sys.process.Process(s"ls $dir") } }',
+		);
+		expect(findings).toEqual(["security/shell-injection:1"]);
+	});
 	it("flags SQL built by interpolation or concatenation", async () => {
 		const findings = await scan(
 			[

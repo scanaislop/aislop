@@ -19,6 +19,8 @@ import {
 } from "./oxlint-context-filters.js";
 import { collectAmbientGlobals, collectEslintIgnorePatterns } from "./oxlint-globals.js";
 
+import { parseLintReport } from "./report.js";
+
 const esmRequire = createRequire(import.meta.url);
 
 interface OxlintDiagnostic {
@@ -44,7 +46,7 @@ const resolveOxlintBinary = (): string => {
 		const oxlintDir = path.resolve(path.dirname(oxlintMainPath), "..");
 		return path.join(oxlintDir, "bin", "oxlint");
 	} catch {
-		return "oxlint";
+		throw new Error("oxlint is unavailable");
 	}
 };
 
@@ -317,14 +319,9 @@ export const runOxlint = async (context: EngineContext): Promise<Diagnostic[]> =
 			timeout: 120000,
 		});
 
-		if (!result.stdout) return [];
-
-		let output: OxlintOutput;
-		try {
-			output = JSON.parse(result.stdout) as OxlintOutput;
-		} catch {
-			return [];
-		}
+		const output = parseLintReport("oxlint", result) as OxlintOutput;
+		if (!Array.isArray(output?.diagnostics))
+			throw new Error("oxlint report is missing diagnostics");
 
 		const seen = new Set<string>();
 		return output.diagnostics

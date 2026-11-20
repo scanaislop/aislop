@@ -61,7 +61,9 @@ export const buildJsonOutput = (
 			skipped: result.skipped,
 			elapsed: result.elapsed,
 			...(result.failed ? { failed: true as const } : {}),
-			...(result.skipped && result.skipReason ? { skipReason: result.skipReason } : {}),
+			...((result.skipped || result.failed) && result.skipReason
+				? { skipReason: result.skipReason }
+				: {}),
 			...(result.missingTools?.length ? { missingTools: result.missingTools } : {}),
 		};
 	}

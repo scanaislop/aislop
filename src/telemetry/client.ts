@@ -1,5 +1,6 @@
 import os from "node:os";
 import { APP_VERSION } from "../version.js";
+import { consumeDailyBudget, resolveBudgetPath } from "./budget.js";
 import { detectInstallChannel, isCiEnv } from "./env.js";
 import { ensureInstallId, resolveInstallIdPath } from "./identity.js";
 import { redactProperties } from "./redaction.js";
@@ -85,11 +86,15 @@ export const track = (input: TrackInput): TrackResult => {
 		return { installCreated };
 	}
 
+	if (!consumeDailyBudget(resolveBudgetPath(resolveInstallIdPath()))) {
+		return { installCreated };
+	}
+
 	const payload = {
 		api_key: POSTHOG_KEY,
 		event: input.event,
 		distinct_id: cachedInstallId,
-		properties: clean,
+		properties: { ...clean, $process_person_profile: false },
 		timestamp: new Date().toISOString(),
 	};
 

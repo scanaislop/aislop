@@ -7,6 +7,7 @@ import { type GridRow, type GridRowOutcome, LiveGrid } from "../ui/live-grid.js"
 const ALL_ENGINE_NAMES = Object.keys(ENGINE_INFO) as EngineName[];
 
 const resultSummary = (result: EngineResult): { outcome: GridRowOutcome; summary: string } => {
+	if (result.failed) return { outcome: "fail", summary: result.skipReason ?? "engine failed" };
 	const errors = result.diagnostics.filter((diagnostic) => diagnostic.severity === "error").length;
 	if (errors > 0) {
 		return { outcome: "fail", summary: `${errors} error${errors === 1 ? "" : "s"}` };
@@ -40,7 +41,7 @@ export const runEnginesWithProgress = async (
 		enabled,
 		(engine) => renderer?.update(engine, { status: "running" }),
 		(result) => {
-			if (result.skipped) {
+			if (result.skipped && !result.failed) {
 				renderer?.update(result.engine, { status: "skipped", summary: "skipped" });
 			} else {
 				renderer?.update(result.engine, {
