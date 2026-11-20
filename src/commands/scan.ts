@@ -111,30 +111,32 @@ const annotateResults = (
 	return { results: baselined?.results ?? contextResults, baselineSummary: baselined?.summary };
 };
 
-const runScanBody = async (prepared: PreparedScan, config: AislopConfig, options: ScanOptions) => {
-	const { resolvedDir: _resolvedDir, projectInfo, scanScope } = prepared;
-	const startTime = performance.now();
-	const showHeader = options.showHeader !== false;
-	const machineOutput = isMachineOutput(options);
-	const projectName = projectInfo.projectName ?? "project";
-	const language = projectInfo.languages[0] ?? "unknown";
-	const printedHumanHeader = !machineOutput && showHeader;
-	const { files, scoreFileCount, scopeLabel, testFiles } = scanScope;
-
-	if (printedHumanHeader) {
+const writeScanIntro = (prepared: PreparedScan, options: ScanOptions): void => {
+	const { projectInfo, scanScope } = prepared;
+	if (options.showHeader !== false) {
+		const projectName = projectInfo.projectName ?? "project";
+		const language = projectInfo.languages[0] ?? "unknown";
 		process.stdout.write(
 			renderHeader({
 				version: APP_VERSION,
 				command: "Scan result",
-				context: [projectName, language, `${scoreFileCount} files`],
+				context: [projectName, language, `${scanScope.scoreFileCount} files`],
 				brand: options.printBrand !== false,
 			}),
 		);
 	}
+	const fileCount = scanScope.files.length + scanScope.testFiles.length;
+	process.stdout.write(renderScopeRow(`${fileCount} ${scanScope.scopeLabel}`));
+};
 
-	if (!machineOutput) {
-		process.stdout.write(renderScopeRow(`${files.length + testFiles.length} ${scopeLabel}`));
-	}
+const runScanBody = async (prepared: PreparedScan, config: AislopConfig, options: ScanOptions) => {
+	const {
+		projectInfo,
+		scanScope: { scoreFileCount },
+	} = prepared;
+	const startTime = performance.now();
+	const machineOutput = isMachineOutput(options);
+	if (!machineOutput) writeScanIntro(prepared, options);
 
 	const { results: unannotated, suppressedCount } = await runScanEngines(
 		prepared,
@@ -193,7 +195,7 @@ const runScanBody = async (prepared: PreparedScan, config: AislopConfig, options
 		elapsedMs,
 		missingTools,
 		baselineSummary,
-		includeHeader: !printedHumanHeader && showHeader,
+		includeHeader: false,
 		counts: completion,
 	};
 	if (!(await writeMachineOutput(output))) writeHumanOutput(output);
