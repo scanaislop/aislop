@@ -18,7 +18,11 @@ export const runGolangciLint = async (context: EngineContext): Promise<Diagnosti
 			cwd: context.rootDirectory,
 			timeout: 120000,
 		});
-	let result = await run("--output.json.path=stdout", "--output.text.path=stderr", "--show-stats=false");
+	let result = await run(
+		"--output.json.path=stdout",
+		"--output.text.path=stderr",
+		"--show-stats=false",
+	);
 	if (result.exitCode !== 0 && result.stderr.includes("unknown flag: --output.json.path")) {
 		result = await run("--out-format=json");
 	}
