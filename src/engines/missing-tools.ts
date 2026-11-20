@@ -27,7 +27,9 @@ export const withMissingTools = (result: EngineResult, missingTools: string[]): 
 	return {
 		...result,
 		missingTools,
-		...(result.skipped ? { skipReason: `missing tools: ${missingTools.join(", ")}` } : {}),
+		...(result.skipped && !result.failed
+			? { skipReason: `missing tools: ${missingTools.join(", ")}` }
+			: {}),
 	};
 };
 
