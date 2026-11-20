@@ -39,7 +39,7 @@ See [Installation](#installation) for every option.
 
 aislop supports TypeScript, JavaScript, Expo / React Native, Python, Go, Rust, Ruby, PHP, Java, Scala (beta), C#, and C/C++.
 
-**Scala support (beta):** Initial support is available, with coverage and accuracy still being refined. Indentation-based Scala 3 catch clauses are supported. Broader Scala 3 syntax coverage and real-world scalafmt integration remain ongoing work.
+**Scala support (beta):** Source checks are lexical, with compiler-verified Scala 2/3 catch fixtures and real scalafmt roundtrip tests. Broader syntax, semantic import analysis, function-level metrics, and real-project coverage remain open. See [Scala coverage and beta readiness](docs/scala-support.md).
 
 Coverage includes formatting, linting, complexity, AI-slop detection, and security checks. Some checks use optional system tools; see [Installation](docs/installation.md) and the [rules reference](docs/rules.md) for details.
 

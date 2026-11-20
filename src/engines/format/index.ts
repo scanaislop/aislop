@@ -1,12 +1,12 @@
+import { detectJavaFormatStyle } from "../java-targets.js";
 import { findMissingTools, type ToolRequirement, withMissingTools } from "../missing-tools.js";
+import { hasScalafmtConfig } from "../scala-targets.js";
 import type { Diagnostic, Engine, EngineContext, EngineResult } from "../types.js";
 import { runBiomeFormat } from "./biome.js";
 import { hasClangFormatConfig, runClangFormat } from "./clang-format.js";
 import { runDotnetFormat } from "./dotnet-format.js";
 import { runGenericFormatter } from "./generic.js";
 import { runGofmt } from "./gofmt.js";
-import { detectJavaFormatStyle } from "../java-targets.js";
-import { hasScalafmtConfig } from "../scala-targets.js";
 import { runJavaFormat } from "./java-format.js";
 import { runRuffFormat } from "./ruff-format.js";
 import { runScalaFormat } from "./scala-format.js";
@@ -131,6 +131,11 @@ export const formatEngine: Engine = {
 				diagnostics,
 				elapsed: 0,
 				skipped: false,
+				...(diagnostics.some(
+					(item) => item.rule === "scala-formatting" && item.severity === "error",
+				)
+					? { failed: true }
+					: {}),
 			},
 			missingTools,
 		);
