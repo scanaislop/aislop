@@ -36,6 +36,8 @@ Agent command events add only aggregate options and outcomes: provider (`auto` /
 
 Properties are filtered through an allowlist before being sent — anything not on the list is dropped, even if a future caller passes it.
 
+Events are sent without a person profile, and each install sends at most 200 events per UTC day; further events that day are dropped. Concurrent CLI processes reserve slots in a dated directory next to `install_id`. Earlier directories are removed at rollover.
+
 ## Anonymous identity
 
 Telemetry uses a random UUID stored at `~/.aislop/install_id` (or `$XDG_STATE_HOME/aislop/install_id` on Linux). Deleting the file re-rolls your identity. The file is created with `0600` permissions and is never created if telemetry is disabled.

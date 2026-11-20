@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Scalafmt failures mark formatting incomplete, preventing failed analysis from being recorded or accepted through baselines.
 - Clarified Scala beta coverage and expanded compiler-verified Scala 2/3 and real scalafmt integration fixtures, including scripts and selected-file fixes.
 
+### Changed
+
+- Telemetry events are sent without a person profile, and each install sends at most 200 events per UTC day, so a looping hook or script can no longer flood analytics.
+
 ## 0.22.1 (2026-11-14)
 
 Expanded Java and Scala project analysis, with explicit opt-in JVM tools and clearer coverage failures. Scala remains in beta.
