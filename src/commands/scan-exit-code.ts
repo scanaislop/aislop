@@ -1,6 +1,7 @@
 // Error diagnostics always fail CI; the score threshold only applies when the score is scoreable (a withheld score can't be compared to failBelow).
 export const computeScanExitCode = (opts: {
 	hasErrors: boolean;
+	engineFailed?: boolean;
 	scoreable: boolean;
 	score: number;
 	failBelow: number;
@@ -9,7 +10,8 @@ export const computeScanExitCode = (opts: {
 	newFindings?: number;
 }): number => {
 	const findingsFail = opts.newFindings === undefined ? opts.hasErrors : opts.newFindings > 0;
-	return findingsFail ||
+	return opts.engineFailed ||
+		findingsFail ||
 		(opts.scoreable && opts.score < opts.failBelow) ||
 		(opts.failOnMissingTools === true && opts.missingTools === true)
 		? 1

@@ -13,14 +13,14 @@ interface GolangciIssue {
 
 export const runGolangciLint = async (context: EngineContext): Promise<Diagnostic[]> => {
 	const golangciBinary = resolveToolBinary("golangci-lint");
-	const run = (flag: string) =>
-		runSubprocess(golangciBinary, ["run", flag, "./..."], {
+	const run = (...flags: string[]) =>
+		runSubprocess(golangciBinary, ["run", ...flags, "./..."], {
 			cwd: context.rootDirectory,
 			timeout: 120000,
 		});
-	let result = await run("--out-format=json");
-	if (result.exitCode !== 0 && result.stderr.includes("unknown flag: --out-format")) {
-		result = await run("--output.json.path=stdout");
+	let result = await run("--output.json.path=stdout", "--output.text.path=stderr", "--show-stats=false");
+	if (result.exitCode !== 0 && result.stderr.includes("unknown flag: --output.json.path")) {
+		result = await run("--out-format=json");
 	}
 	const parsed = parseLintReport("golangci-lint", result) as { Issues?: GolangciIssue[] | null };
 	if (!Object.hasOwn(parsed, "Issues")) throw new Error("golangci-lint report is missing Issues");

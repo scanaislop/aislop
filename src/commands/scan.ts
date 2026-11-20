@@ -170,6 +170,7 @@ const runScanBody = async (prepared: PreparedScan, config: AislopConfig, options
 	const hasErrors = allDiagnostics.some((d) => d.severity === "error");
 	const missingTools = collectMissingTools(results);
 	const exitCode = computeScanExitCode({
+		engineFailed: results.some((result) => result.failed),
 		hasErrors,
 		scoreable,
 		score: scoreResult.score,
