@@ -60,3 +60,14 @@ it("reports a crashed Go linter as a failed check", async () => {
 		skipReason: "golangci-lint failed (exit 3)",
 	});
 });
+
+it("normalizes the findings exit code for both Go report formats", async () => {
+	const run = vi
+		.spyOn(subprocess, "runSubprocess")
+		.mockResolvedValueOnce({ stdout: "", stderr: "unknown flag: --output.json.path", exitCode: 3 })
+		.mockResolvedValueOnce({ stdout: '{"Issues":[]}', stderr: "", exitCode: 0 });
+	const result = await lintEngine.run({ ...context, languages: ["go"] });
+	expect(result.failed).toBeFalsy();
+	expect(run).toHaveBeenCalledTimes(2);
+	for (const [, args] of run.mock.calls) expect(args).toContain("--issues-exit-code=1");
+});

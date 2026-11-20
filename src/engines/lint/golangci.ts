@@ -14,7 +14,7 @@ interface GolangciIssue {
 export const runGolangciLint = async (context: EngineContext): Promise<Diagnostic[]> => {
 	const golangciBinary = resolveToolBinary("golangci-lint");
 	const run = (...flags: string[]) =>
-		runSubprocess(golangciBinary, ["run", ...flags, "./..."], {
+		runSubprocess(golangciBinary, ["run", "--issues-exit-code=1", ...flags, "./..."], {
 			cwd: context.rootDirectory,
 			timeout: 120000,
 		});
