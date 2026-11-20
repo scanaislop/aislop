@@ -8,6 +8,7 @@ import {
 export interface Coverage {
 	readonly dominantUnsupported: string | null;
 	readonly scoreable: boolean;
+	readonly failedEngines?: string[];
 	readonly supportedFiles: number;
 	readonly unsupportedFiles: number;
 }

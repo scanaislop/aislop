@@ -218,7 +218,9 @@ export const printEngineStatus = (result: EngineResult): void => {
 	const label = getEngineLabel(result.engine);
 	const elapsed = toElapsedLabel(result.elapsed);
 
-	if (result.skipped) {
+	if (result.failed) {
+		log.error(`${label}: failed${result.skipReason ? ` (${result.skipReason})` : ""}`);
+	} else if (result.skipped) {
 		log.warn(`${label}: skipped${result.skipReason ? ` (${result.skipReason})` : ""}`);
 	} else if (result.diagnostics.length === 0) {
 		log.success(`${label}: done (0 issues, ${elapsed})`);

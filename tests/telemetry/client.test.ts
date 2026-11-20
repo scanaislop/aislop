@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MAX_EVENTS_PER_DAY } from "../../src/telemetry/budget.js";
 import {
 	flushTelemetry,
 	isTelemetryDisabled,
@@ -66,6 +67,7 @@ describe("track — distinct_id stitching", () => {
 		// resolveInstallIdPath() reads os.homedir(), which honors $HOME on POSIX.
 		tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "aislop-distinct-"));
 		process.env.HOME = tmpHome;
+		vi.spyOn(os, "homedir").mockReturnValue(tmpHome);
 		resetTelemetryForTests();
 		fetchMock = vi.fn(async () => new Response(null, { status: 200 }));
 		vi.stubGlobal("fetch", fetchMock);
@@ -73,6 +75,7 @@ describe("track — distinct_id stitching", () => {
 
 	afterEach(() => {
 		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
 		resetTelemetryForTests();
 		process.env = { ...originalEnv };
 		fs.rmSync(tmpHome, { recursive: true, force: true });
@@ -103,6 +106,22 @@ describe("track — distinct_id stitching", () => {
 		expect(new Set(ids).size).toBe(1);
 		expect(ids[0]).toMatch(/^[0-9a-f-]{36}$/);
 	});
+
+	it("sends events without a person profile", async () => {
+		track({ event: "cli_command_started", config: { enabled: true } });
+		await flushTelemetry();
+
+		expect((bodyOf(0).properties as Record<string, unknown>).$process_person_profile).toBe(false);
+	});
+
+	it("stops sending once an install reaches the daily event cap", async () => {
+		for (let i = 0; i < MAX_EVENTS_PER_DAY + 50; i++) {
+			track({ event: "cli_command_started", config: { enabled: true } });
+		}
+		await flushTelemetry();
+
+		expect(fetchMock).toHaveBeenCalledTimes(MAX_EVENTS_PER_DAY);
+	});
 });
 
 describe("flushTelemetry — bounded flush (per-edit hook path)", () => {
@@ -117,11 +136,13 @@ describe("flushTelemetry — bounded flush (per-edit hook path)", () => {
 		delete process.env.XDG_STATE_HOME;
 		tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "aislop-flush-"));
 		process.env.HOME = tmpHome;
+		vi.spyOn(os, "homedir").mockReturnValue(tmpHome);
 		resetTelemetryForTests();
 	});
 
 	afterEach(() => {
 		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
 		resetTelemetryForTests();
 		process.env = { ...originalEnv };
 		fs.rmSync(tmpHome, { recursive: true, force: true });

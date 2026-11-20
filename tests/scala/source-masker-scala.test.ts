@@ -53,6 +53,17 @@ describe("Scala source masking", () => {
 });
 
 describe("Scala literal boundaries", () => {
+	it.each(["", "s", "raw"])(
+		"keeps code following a %s triple string ending in a quote",
+		(prefix) => {
+			const source = `val text = ${prefix}"""quoted""""; println(text)`;
+			const masked = maskStringsAndComments(source, ".scala");
+			expect(masked).toContain("println(text)");
+			expect(masked).not.toContain("quoted");
+			expect(masked.length).toBe(source.length);
+			expect(maskComments(source, ".scala")).toBe(source);
+		},
+	);
 	it("keeps comments inside strings and masks escaped character bodies", () => {
 		const source = String.raw`val brace = '\u007b'; val url = "https://host/path"; // remove`;
 		expect(maskStringsAndComments(source, ".scala")).not.toContain("u007b");
