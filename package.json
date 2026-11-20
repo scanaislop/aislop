@@ -96,7 +96,7 @@
 	},
 	"packageManager": "pnpm@10.28.0",
 	"dependencies": {
-		"@biomejs/biome": "^2.5.12",
+		"@biomejs/biome": "^2.6.6",
 		"@clack/prompts": "^1.8.1",
 		"@modelcontextprotocol/sdk": "^1.32.2",
 		"adm-zip": "^0.6.1",
