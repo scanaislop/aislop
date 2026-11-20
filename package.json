@@ -117,7 +117,7 @@
 		"zod": "^4.6.6"
 	},
 	"devDependencies": {
-		"@types/node": "^26.6.5",
+		"@types/node": "^26.6.6",
 		"@types/picomatch": "^4.0.3",
 		"@types/react": "^19.3.0",
 		"ink-testing-library": "^4.0.0",
