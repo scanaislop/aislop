@@ -1,22 +1,38 @@
-# aislop scan demo
-# Run: vhs assets/scan.tape
-
+# From the repository root: pnpm build && vhs assets/scan.tape
 Output assets/scan.gif
-
-Set Shell "zsh"
+Set Shell "bash"
 Set Theme "Catppuccin Mocha"
 Set FontFamily "Menlo"
-Set FontSize 18
-Set Width 1200
-Set Height 600
-Set Padding 30
-Set LineHeight 1.4
-Set LetterSpacing 0.5
-Set TypingSpeed 40ms
+Set FontSize 20
+Set Width 1120
+Set Height 570
+Set Padding 24
+Set TypingSpeed 24ms
+Set Framerate 12
 
-Type "node dist/cli.js scan ../daily"
-Sleep 500ms
+Hide
+Type `cli=$PWD/dist/cli.js; demo=$(mktemp -d); cd "$demo"; trap 'rm -rf "$demo"' EXIT`
 Enter
-Sleep 10s
-
+Type `export PS1='$ ' AISLOP_NO_TELEMETRY=1; unset PROMPT_COMMAND; aislop() { node "$cli" "$@"; }`
+Enter
+Type `printf 'export function total(prices) {\n\tdebugger;\n\treturn prices.reduce((sum, price) => sum + price, 0);\n}\n' > cart.js`
+Enter
+Type `clear`
+Enter
+Sleep 500ms
+Show
+Type `cat -n cart.js`
+Enter
+Sleep 2s
+Type `aislop ci > report.json`
+Enter
+Sleep 2s
+Type `jq '.diagnostics[] | select(.engine == "lint") | {filePath, line, rule}' report.json`
+Enter
 Sleep 3s
+Type `sed '/debugger;/d' cart.js > clean.js && mv clean.js cart.js`
+Enter
+Sleep 1s
+Type `aislop ci | jq '.engines.lint | {issues, skipped}'`
+Enter
+Sleep 4s

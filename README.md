@@ -61,11 +61,9 @@ Run `npx aislop@latest badge` to auto-generate. Free at [scanaislop.com](https:/
 
 ## See it in action
 
-### Scan
+Run `aislop ci` on a JavaScript cart helper with a leftover `debugger` statement. The JSON report identifies the file, line, and lint rule. Remove the statement and rerun the same check to see the finding disappear.
 
-![aislop scan demo](assets/scan.gif)
-
----
+![Terminal recording showing aislop flagging a debugger statement in cart.js and the lint check passing after its removal](assets/scan.gif)
 
 ## Installation
 
@@ -539,7 +537,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). AI assistants: [AGENTS.md](AGENTS.md).
 
 Built on: [Biome](https://biomejs.dev/), [oxlint](https://oxc.rs/), [knip](https://knip.dev/), [ruff](https://docs.astral.sh/ruff/), [golangci-lint](https://golangci-lint.run/), [expo-doctor](https://docs.expo.dev/)
 
-Scan AI Slop participates in [NVIDIA Inception](https://www.nvidia.com/en-us/startups/) and [PostHog for Startups](https://posthog.com/startups).
+aislop participates in [NVIDIA Inception](https://www.nvidia.com/en-us/startups/) and [PostHog for Startups](https://posthog.com/startups).
+
+<a href="https://www.nvidia.com/en-us/startups/"><img src="assets/nvidia-inception-badge.svg" alt="NVIDIA Inception Program" height="50"></a>
+<a href="https://posthog.com/startups"><picture><source media="(prefers-color-scheme: dark)" srcset="https://brand.posthog.com/badges/posthog-badge-dark.svg"><img src="https://brand.posthog.com/badges/posthog-badge.svg" alt="Built with PostHog" height="50"></picture></a>
 
 ## Contributors
 
