@@ -61,9 +61,9 @@ Run `npx aislop@latest badge` to auto-generate. Free at [scanaislop.com](https:/
 
 ## See it in action
 
-Run `aislop ci` on a JavaScript cart helper with a leftover `debugger` statement. The JSON report identifies the file, line, and lint rule. Remove the statement and rerun the same check to see the finding disappear.
+In a Python shopping cart, `aislop scan` flags an unused `math` import, a duplicate `Counter` import, and an f-string with no placeholders. After `aislop fix` applies four fixes, a second scan reports 100/100 with no issues.
 
-![Terminal recording showing aislop flagging a debugger statement in cart.js and the lint check passing after its removal](assets/scan.gif)
+![Terminal showing the Python findings, four automatic fixes, and a clean rescan](assets/scan.gif)
 
 ## Installation
 
