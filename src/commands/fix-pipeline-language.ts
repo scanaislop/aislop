@@ -1,4 +1,4 @@
-import type { ProjectInfo } from "./fix-pipeline.js";
+import type { ProjectInfo } from "../utils/discover.js";
 
 export const hasJsOrTs = (projectInfo: ProjectInfo): boolean =>
 	projectInfo.languages.includes("typescript") || projectInfo.languages.includes("javascript");
