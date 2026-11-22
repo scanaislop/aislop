@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.22.3
+## 0.22.3 (2026-11-22)
+
+- Python traceback checks now recognize logging calls that capture exceptions when a nested helper receives `exc_info=False` or a continued log message mentions that option.
 
 - The README now shows a reproducible VHS recording of a Python scan, four automatic fixes, and a clean rescan.
 - Updated oxlint to 1.94.0, expo-doctor to 1.21.8, and tar to 7.5.23.
