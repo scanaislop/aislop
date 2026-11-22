@@ -101,16 +101,16 @@
 		"@modelcontextprotocol/sdk": "^1.32.2",
 		"adm-zip": "^0.6.1",
 		"commander": "^14.0.3",
-		"expo-doctor": "^1.21.5",
+		"expo-doctor": "^1.21.8",
 		"ink": "^8.0.0",
 		"ink-select-input": "^6.2.0",
 		"knip": "^6.45.1",
-		"oxlint": "^1.92.0",
+		"oxlint": "^1.94.0",
 		"picocolors": "^1.1.1",
 		"picomatch": "^4.0.7",
 		"react": "^19.3.1",
 		"smol-toml": "^1.9.1",
-		"tar": "^7.5.22",
+		"tar": "^7.5.23",
 		"typescript": "^6.0.3",
 		"wcwidth": "^1.0.1",
 		"yaml": "^2.9.1",
@@ -122,7 +122,7 @@
 		"@types/react": "^19.3.0",
 		"ink-testing-library": "^4.0.0",
 		"tsdown": "^0.23.7",
-		"vite": "^8.3.4",
-		"vitest": "^5.0.4"
+		"vite": "^8.3.8",
+		"vitest": "^5.1.0"
 	}
 }

@@ -61,11 +61,9 @@ Run `npx aislop@latest badge` to auto-generate. Free at [scanaislop.com](https:/
 
 ## See it in action
 
-### Scan
+In a Python shopping cart, `aislop scan` flags an unused `math` import, a duplicate `Counter` import, and an f-string with no placeholders. After `aislop fix` applies four fixes, a second scan reports 100/100 with no issues.
 
-![aislop scan demo](assets/scan.gif)
-
----
+![Terminal showing the Python findings, four automatic fixes, and a clean rescan](assets/scan.gif)
 
 ## Installation
 
@@ -539,7 +537,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). AI assistants: [AGENTS.md](AGENTS.md).
 
 Built on: [Biome](https://biomejs.dev/), [oxlint](https://oxc.rs/), [knip](https://knip.dev/), [ruff](https://docs.astral.sh/ruff/), [golangci-lint](https://golangci-lint.run/), [expo-doctor](https://docs.expo.dev/)
 
-Scan AI Slop participates in [NVIDIA Inception](https://www.nvidia.com/en-us/startups/) and [PostHog for Startups](https://posthog.com/startups).
+aislop participates in [NVIDIA Inception](https://www.nvidia.com/en-us/startups/) and [PostHog for Startups](https://posthog.com/startups).
+
+<a href="https://www.nvidia.com/en-us/startups/"><img src="assets/nvidia-inception-badge.svg" alt="NVIDIA Inception Program" height="50"></a>
+<a href="https://posthog.com/startups"><picture><source media="(prefers-color-scheme: dark)" srcset="https://brand.posthog.com/badges/posthog-badge-dark.svg"><img src="https://brand.posthog.com/badges/posthog-badge.svg" alt="Built with PostHog" height="50"></picture></a>
 
 ## Contributors
 
