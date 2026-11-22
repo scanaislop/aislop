@@ -1,17 +1,8 @@
 import type { Diagnostic } from "../types.js";
+import { SEVERITY_RANK, toSeverity } from "./audit-shared.js";
 import { isRecord, readString } from "./audit-value.js";
 
 export type JsAuditSource = "npm audit" | "pnpm audit" | "bun audit";
-
-const SEVERITY_RANK: Record<string, number> = {
-	critical: 4,
-	high: 3,
-	moderate: 2,
-	low: 1,
-};
-
-const toSeverity = (value: string): "error" | "warning" =>
-	value === "critical" || value === "high" ? "error" : "warning";
 
 interface VulnAggregate {
 	packageName: string;

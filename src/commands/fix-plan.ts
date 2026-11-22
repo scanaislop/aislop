@@ -2,6 +2,7 @@ import type { AislopConfig } from "../config/index.js";
 import { detectJavaFormatStyle } from "../engines/java-targets.js";
 import { hasScalafmtConfig } from "../engines/scala-targets.js";
 import type { ProjectInfo } from "../utils/discover.js";
+import { hasJsOrTs } from "./fix-pipeline-language.js";
 
 export interface FixPlanStep {
 	name: string;
@@ -16,9 +17,6 @@ export interface FixPlanOptions {
 
 const SKIPPED_BY_SAFE = "skipped by --safe";
 const DISABLED_IN_CONFIG = "disabled in config";
-
-const hasJsTs = (projectInfo: ProjectInfo): boolean =>
-	projectInfo.languages.includes("typescript") || projectInfo.languages.includes("javascript");
 
 const planned = (name: string): FixPlanStep => ({ name, status: "planned" });
 
@@ -55,7 +53,7 @@ const planQualityStep = (
 	config: AislopConfig,
 	safe: boolean,
 ): FixPlanStep[] => {
-	if (!hasJsTs(projectInfo)) return [];
+	if (!hasJsOrTs(projectInfo)) return [];
 	const qualityOn = config.engines["code-quality"];
 	const reason = safe ? SKIPPED_BY_SAFE : qualityOn ? "" : DISABLED_IN_CONFIG;
 	return [reason ? skipped(name, reason) : planned(name)];
@@ -64,7 +62,7 @@ const planQualityStep = (
 const planLint = (projectInfo: ProjectInfo, config: AislopConfig, safe: boolean): FixPlanStep[] => {
 	const steps: FixPlanStep[] = [];
 	const reason = safe ? SKIPPED_BY_SAFE : config.engines.lint ? "" : DISABLED_IN_CONFIG;
-	if (hasJsTs(projectInfo)) {
+	if (hasJsOrTs(projectInfo)) {
 		steps.push(reason ? skipped("Lint fixes (js/ts)", reason) : planned("Lint fixes (js/ts)"));
 	}
 	if (projectInfo.languages.includes("python") && projectInfo.installedTools.ruff) {
@@ -97,7 +95,7 @@ const planFormatters = (
 		steps.push(planned(name));
 	};
 
-	add("Formatting (js/ts)", hasJsTs(projectInfo));
+	add("Formatting (js/ts)", hasJsOrTs(projectInfo));
 	add(
 		"Formatting (python)",
 		projectInfo.languages.includes("python") && Boolean(projectInfo.installedTools.ruff),
@@ -154,7 +152,7 @@ const planForce = (
 	if (!options.forceRequested) return [];
 	const reason = options.safe ? SKIPPED_BY_SAFE : "";
 	const steps: FixPlanStep[] = [];
-	if (hasJsTs(projectInfo)) {
+	if (hasJsOrTs(projectInfo)) {
 		steps.push(
 			reason
 				? skipped("Remove unused files", reason)
