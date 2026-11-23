@@ -82,10 +82,16 @@ jobs:
             echo "tag=$RELEASE_TAG"
           } >> "$GITHUB_OUTPUT"
 
+  python-engines:
+    needs: resolve-release
+    uses: ./.github/workflows/python-engine.yml
+    with:
+      ref: ${{ needs.resolve-release.outputs.sha }}
+
   publish-npm:
     name: Publish to npm
     runs-on: ubuntu-latest
-    needs: resolve-release
+    needs: [resolve-release, python-engines]
     permissions:
       contents: read
       id-token: write
@@ -135,6 +141,16 @@ jobs:
           AISLOP_NO_TELEMETRY: "1"
           AISLOP_NO_UPDATE_NOTIFIER: "1"
           DO_NOT_TRACK: "1"
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: '*-*64'
+          path: tools/python
+
+      - name: Verify packaged Python engines
+        run: |
+          chmod +x tools/python/{darwin,linux}-{arm64,x64}/aislop-python
+          npm pack --dry-run --json | node packaging/python/verify-package.mjs
 
       - name: Verify npm trusted publishing
         shell: bash
@@ -200,6 +216,16 @@ jobs:
 
       - name: Set scoped package name
         run: npm pkg set name="@scanaislop/aislop"
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: '*-*64'
+          path: tools/python
+
+      - name: Verify packaged Python engines
+        run: |
+          chmod +x tools/python/{darwin,linux}-{arm64,x64}/aislop-python
+          npm pack --dry-run --json | node packaging/python/verify-package.mjs
 
       - name: Publish to GitHub Packages
         run: npm publish --access public --registry=https://npm.pkg.github.com

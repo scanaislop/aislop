@@ -16,3 +16,6 @@ docs/specs/
 .aislop/history.jsonl
 .aislop/hook.lock
 .aislop/baseline.json
+
+/tools/python/*/aislop-python
+/tools/python/*/aislop-python.exe
