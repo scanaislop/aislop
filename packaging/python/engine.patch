@@ -1,0 +1,351 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 43b0266..67a96ce 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -3085,7 +3085,7 @@ dependencies = [
+
+ [[package]]
+ name = "ruff"
+-version = "0.17.5"
++version = "0.17.5+aislop.2"
+ dependencies = [
+  "anyhow",
+  "assert_fs",
+@@ -3128,7 +3128,6 @@ dependencies = [
+  "ruff_python_parser",
+  "ruff_python_trivia",
+  "ruff_ranged_value",
+- "ruff_server",
+  "ruff_source_file",
+  "ruff_text_size",
+  "ruff_workspace",
+diff --git a/crates/ruff/Cargo.toml b/crates/ruff/Cargo.toml
+index 4977246..8983a32 100644
+--- a/crates/ruff/Cargo.toml
++++ b/crates/ruff/Cargo.toml
+@@ -1,6 +1,6 @@
+ [package]
+ name = "ruff"
+-version = "0.17.5"
++version = "0.17.5+aislop.2"
+ description = "An extremely fast Python linter and code formatter"
+ authors = { workspace = true }
+ edition = { workspace = true }
+@@ -34,7 +34,6 @@ ruff_python_ast = { workspace = true }
+ ruff_python_formatter = { workspace = true }
+ ruff_python_parser = { workspace = true, features = ["stacker"] }
+ ruff_ranged_value = { workspace = true }
+-ruff_server = { workspace = true }
+ ruff_source_file = { workspace = true }
+ ruff_text_size = { workspace = true }
+ ruff_workspace = { workspace = true }
+diff --git a/crates/ruff/src/args.rs b/crates/ruff/src/args.rs
+index 94162d8..f7e2aa6 100644
+--- a/crates/ruff/src/args.rs
++++ b/crates/ruff/src/args.rs
+@@ -19,12 +19,11 @@ use ruff_command_line::TerminalColor;
+ use ruff_graph::Direction;
+ use ruff_linter::line_width::LineLength;
+ use ruff_linter::logging::LogLevel;
+-use ruff_linter::registry::Rule;
+ use ruff_linter::settings::types::{
+     ExtensionPair, FilePattern, OutputFormat, PatternPrefixPair, PerFileIgnore, PreviewMode,
+     PythonVersion, UnsafeFixes,
+ };
+-use ruff_linter::{RuleParser, UnresolvedRuleSelector, UnresolvedRuleSelectorParser};
++use ruff_linter::{UnresolvedRuleSelector, UnresolvedRuleSelectorParser};
+ use ruff_options_metadata::{OptionEntry, OptionsMetadata};
+ use ruff_python_ast as ast;
+ use ruff_ranged_value::{ValueSource, ValueSourceGuard};
+@@ -103,7 +102,7 @@ const STYLES: Styles = Styles::styled()
+ #[command(
+     author,
+     name = "ruff",
+-    about = "Ruff: An extremely fast Python linter and code formatter.",
++    about = "aislop Python prototype: import checks, undefined names, unused assignments, duplicate keys, and formatting.",
+     after_help = "For help with a specific command, see: `ruff help <command>`."
+ )]
+ #[command(version)]
+@@ -120,21 +119,6 @@ pub struct Args {
+ pub enum Command {
+     /// Run Ruff on the given files or directories.
+     Check(CheckCommand),
+-    /// Explain a rule (or all rules).
+-    #[command(group = clap::ArgGroup::new("selector").multiple(false).required(true))]
+-    Rule {
+-        /// Rule to explain
+-        #[arg(value_parser=RuleParser, group = "selector", hide_possible_values = true)]
+-        rule: Option<Rule>,
+-
+-        /// Explain all rules
+-        #[arg(long, conflicts_with = "rule", group = "selector")]
+-        all: bool,
+-
+-        /// Output format
+-        #[arg(long, value_enum, default_value = "text")]
+-        output_format: HelpFormat,
+-    },
+     /// List or describe the available configuration options.
+     Config {
+         /// Config key to show
+@@ -147,12 +131,6 @@ pub enum Command {
+         #[arg(long, value_enum, default_value = "text")]
+         output_format: HelpFormat,
+     },
+-    /// List all supported upstream linters.
+-    Linter {
+-        /// Output format
+-        #[arg(long, value_enum, default_value = "text")]
+-        output_format: HelpFormat,
+-    },
+     /// Clear any caches in the current directory and any subdirectories.
+     Clean,
+     /// Generate shell completion.
+@@ -160,8 +138,6 @@ pub enum Command {
+     GenerateShellCompletion { shell: clap_complete_command::Shell },
+     /// Run the Ruff formatter on the given files or directories.
+     Format(FormatCommand),
+-    /// Run the language server.
+-    Server(ServerCommand),
+     /// Run analysis over Python source code.
+     #[clap(subcommand)]
+     Analyze(AnalyzeCommand),
+@@ -612,36 +588,6 @@ pub struct FormatCommand {
+     output_format: Option<OutputFormat>,
+ }
+
+-#[derive(Copy, Clone, Debug, clap::Parser)]
+-pub struct ServerCommand {
+-    /// Treat all workspaces as untrusted, disabling the uv formatter backend.
+-    #[arg(long)]
+-    untrusted_workspace: bool,
+-
+-    /// Enable preview mode. Use `--no-preview` to disable.
+-    ///
+-    /// This enables unstable server features and turns on the preview mode for the linter
+-    /// and the formatter.
+-    #[arg(long, overrides_with("no_preview"))]
+-    preview: bool,
+-    #[clap(long, overrides_with("preview"), hide = true)]
+-    no_preview: bool,
+-}
+-
+-impl ServerCommand {
+-    pub(crate) fn resolve_workspace_trust(self) -> ruff_server::WorkspaceTrust {
+-        if self.untrusted_workspace {
+-            ruff_server::WorkspaceTrust::Untrusted
+-        } else {
+-            ruff_server::WorkspaceTrust::Trusted
+-        }
+-    }
+-
+-    pub(crate) fn resolve_preview(self) -> Option<bool> {
+-        resolve_bool_arg(self.preview, self.no_preview)
+-    }
+-}
+-
+ #[derive(Debug, Clone, Copy, clap::ValueEnum)]
+ pub enum HelpFormat {
+     Text,
+diff --git a/crates/ruff/src/cache.rs b/crates/ruff/src/cache.rs
+index 94ca467..2528433 100644
+--- a/crates/ruff/src/cache.rs
++++ b/crates/ruff/src/cache.rs
+@@ -18,11 +18,14 @@ use tempfile::NamedTempFile;
+
+ use ruff_cache::{CacheKey, CacheKeyHasher};
+ use ruff_linter::package::PackageRoot;
+-use ruff_linter::{VERSION, warn_user};
++use ruff_linter::warn_user;
++
+ use ruff_macros::CacheKey;
+ use ruff_workspace::Settings;
+ use ruff_workspace::resolver::Resolver;
+
++const VERSION: &str = env!("CARGO_PKG_VERSION");
++
+ /// [`Path`] that is relative to the package root in [`PackageCache`].
+ pub(crate) type RelativePath = Path;
+ /// [`PathBuf`] that is relative to the package root in [`PackageCache`].
+diff --git a/crates/ruff/src/commands/mod.rs b/crates/ruff/src/commands/mod.rs
+index 9358c76..9f54fc4 100644
+--- a/crates/ruff/src/commands/mod.rs
++++ b/crates/ruff/src/commands/mod.rs
+@@ -8,9 +8,6 @@ pub(crate) mod clean;
+ pub(crate) mod config;
+ pub(crate) mod format;
+ pub(crate) mod format_stdin;
+-pub(crate) mod linter;
+-pub(crate) mod rule;
+-pub(crate) mod server;
+ pub(crate) mod show_files;
+ pub(crate) mod show_settings;
+ pub(crate) mod version;
+diff --git a/crates/ruff/src/lib.rs b/crates/ruff/src/lib.rs
+index 7bf3bc8..3c6fc1a 100644
+--- a/crates/ruff/src/lib.rs
++++ b/crates/ruff/src/lib.rs
+@@ -12,7 +12,7 @@ use colored::Colorize;
+ use log::error;
+ use notify::{RecursiveMode, Watcher, recommended_watcher};
+
+-use args::{GlobalConfigArgs, ServerCommand};
++use args::GlobalConfigArgs;
+ use ruff_command_line::TerminalColor;
+ use ruff_db::diagnostic::{Diagnostic, Severity};
+ use ruff_linter::logging::{LogLevel, set_up_logging};
+@@ -151,11 +151,7 @@ pub fn run(args: Args) -> Result<ExitStatus> {
+         }));
+     }
+
+-    // Don't set up logging for the server command, as it has its own logging setup
+-    // and setting the global logger can only be done once.
+-    if !matches!(args.command, Command::Server { .. }) {
+-        set_up_logging(args.global_options.log_level())?;
+-    }
++    set_up_logging(args.global_options.log_level())?;
+
+     run_command(args)
+ }
+@@ -172,19 +168,6 @@ pub fn run_command(
+             commands::version::version(output_format)?;
+             Ok(ExitStatus::Success)
+         }
+-        Command::Rule {
+-            rule,
+-            all,
+-            output_format,
+-        } => {
+-            if all {
+-                commands::rule::rules(output_format)?;
+-            }
+-            if let Some(rule) = rule {
+-                commands::rule::rule(rule, output_format)?;
+-            }
+-            Ok(ExitStatus::Success)
+-        }
+         Command::Config {
+             option,
+             output_format,
+@@ -192,10 +175,6 @@ pub fn run_command(
+             commands::config::config(option.as_deref(), output_format)?;
+             Ok(ExitStatus::Success)
+         }
+-        Command::Linter { output_format } => {
+-            commands::linter::linter(output_format)?;
+-            Ok(ExitStatus::Success)
+-        }
+         Command::Clean => {
+             commands::clean::clean(global_options.log_level())?;
+             Ok(ExitStatus::Success)
+@@ -206,7 +185,6 @@ pub fn run_command(
+         }
+         Command::Check(args) => check(args, global_options),
+         Command::Format(args) => format(args, global_options),
+-        Command::Server(args) => server(args),
+         Command::Analyze(AnalyzeCommand::Graph(args)) => analyze_graph(args, global_options),
+     }
+ }
+@@ -230,10 +208,6 @@ fn analyze_graph(
+     commands::analyze_graph::analyze_graph(cli, &config_arguments)
+ }
+
+-fn server(args: ServerCommand) -> Result<ExitStatus> {
+-    commands::server::run_server(args.resolve_preview(), args.resolve_workspace_trust())
+-}
+-
+ pub fn check(args: CheckCommand, global_options: GlobalConfigArgs) -> Result<ExitStatus> {
+     let (cli, config_arguments) = args.partition(global_options)?;
+
+diff --git a/crates/ruff_linter/src/settings/rule_table.rs b/crates/ruff_linter/src/settings/rule_table.rs
+index 4688231..0a9487c 100644
+--- a/crates/ruff_linter/src/settings/rule_table.rs
++++ b/crates/ruff_linter/src/settings/rule_table.rs
+@@ -13,6 +13,18 @@ pub struct RuleTable {
+     should_fix: RuleSet,
+ }
+
++pub const fn supported(rule: Rule) -> bool {
++    matches!(
++        rule,
++        Rule::UnusedImport
++            | Rule::UnsortedImports
++            | Rule::UndefinedName
++            | Rule::RedefinedWhileUnused
++            | Rule::UnusedVariable
++            | Rule::MultiValueRepeatedKeyLiteral
++    )
++}
++
+ impl RuleTable {
+     /// Creates a new empty rule table.
+     pub const fn empty() -> Self {
+@@ -25,7 +37,7 @@ impl RuleTable {
+     /// Returns whether the given rule should be checked.
+     #[inline]
+     pub const fn enabled(&self, rule: Rule) -> bool {
+-        self.enabled.contains(rule)
++        supported(rule) && self.enabled.contains(rule)
+     }
+
+     /// Returns whether any of the given rules should be checked.
+@@ -54,6 +66,9 @@ impl RuleTable {
+     /// Enables the given rule.
+     #[inline]
+     pub fn enable(&mut self, rule: Rule, should_fix: bool) {
++        if !supported(rule) {
++            return;
++        }
+         self.enabled.insert(rule);
+
+         if should_fix {
+@@ -92,7 +107,7 @@ impl Display for RuleTable {
+
+ impl FromIterator<Rule> for RuleTable {
+     fn from_iter<T: IntoIterator<Item = Rule>>(iter: T) -> Self {
+-        let rules = RuleSet::from_iter(iter);
++        let rules = RuleSet::from_iter(iter.into_iter().filter(|rule| supported(*rule)));
+         Self {
+             enabled: rules.clone(),
+             should_fix: rules,
+diff --git a/crates/ruff_workspace/src/configuration.rs b/crates/ruff_workspace/src/configuration.rs
+index 18a0467..b3ee66a 100644
+--- a/crates/ruff_workspace/src/configuration.rs
++++ b/crates/ruff_workspace/src/configuration.rs
+@@ -28,7 +28,7 @@ use ruff_linter::registry::{INCOMPATIBLE_CODES, Rule, RuleSet};
+ use ruff_linter::rule_selector::{PreviewOptions, RuleResolutionError, Specificity};
+ use ruff_linter::rules::{flake8_import_conventions, isort, pycodestyle};
+ use ruff_linter::settings::fix_safety_table::FixSafetyTable;
+-use ruff_linter::settings::rule_table::RuleTable;
++use ruff_linter::settings::rule_table::{RuleTable, supported};
+ use ruff_linter::settings::types::{
+     CompiledPerFileIgnoreList, CompiledPerFileTargetVersionList, ExtensionMapping, FilePattern,
+     FilePatternSet, GlobPath, OutputFormat, PerFileIgnore, PerFileTargetVersion, PreviewMode,
+@@ -919,6 +919,7 @@ impl LintConfiguration {
+         let mut select_set: RuleSet = selectors
+             .iter()
+             .flat_map(|selector| selector.rules(&preview))
++            .filter(|rule| supported(*rule))
+             .collect();
+
+         // The fixable set keeps track of which rules are fixable.
+@@ -1195,6 +1196,19 @@ impl LintConfiguration {
+             );
+         }
+
++        let unsupported = select_set
++            .iter()
++            .filter(|rule| !supported(*rule))
++            .map(|rule| {
++                rule.noqa_code()
++                    .map_or_else(|| rule.name().to_string(), |code| code.to_string())
++            })
++            .sorted()
++            .join(", ");
++        if !unsupported.is_empty() {
++            warn_user_once_by_message!("Unsupported by the aislop Python engine: {unsupported}");
++        }
++
+         let mut rules = RuleTable::empty();
+
+         for rule in select_set {

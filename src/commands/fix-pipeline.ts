@@ -137,7 +137,7 @@ export const runLintSteps = async (deps: PipelineDeps): Promise<void> => {
 			() => (deps.force ? fixRuffLintForce(deps.context) : fixRuffLint(deps.context)),
 		);
 	} else if (deps.projectInfo.languages.includes("python")) {
-		log.warn("Python detected but ruff is not installed; skipping Python lint fixes.");
+		log.warn("Python engine unavailable on this platform; skipping Python lint fixes.");
 	}
 
 	if (deps.projectInfo.languages.includes("ruby") && deps.projectInfo.installedTools.rubocop) {

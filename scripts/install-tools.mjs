@@ -48,29 +48,6 @@ const PLATFORM_KEY = `${process.platform}-${process.arch}`;
 
 const TOOL_DEFINITIONS = [
 	{
-		name: "ruff",
-		repo: "astral-sh/ruff",
-		version: "0.15.4",
-		tag: "0.15.4",
-		binaryName: "ruff",
-		assets: {
-			"darwin-arm64": ["ruff-aarch64-apple-darwin.tar.gz"],
-			"darwin-x64": ["ruff-x86_64-apple-darwin.tar.gz"],
-			"linux-arm64": ["ruff-aarch64-unknown-linux-gnu.tar.gz"],
-			"linux-x64": ["ruff-x86_64-unknown-linux-gnu.tar.gz"],
-			"win32-arm64": ["ruff-aarch64-pc-windows-msvc.zip"],
-			"win32-x64": ["ruff-x86_64-pc-windows-msvc.zip"],
-		},
-		sha256: {
-			"darwin-arm64": "2d63cc9fd12c9cc3b524563bbeb50470cf3f68f3194002228a417a53a2a56164",
-			"darwin-x64": "f40e16784c867b60850fbe96a2cccd123589c90d6db71ad8ade62efdeabccc84",
-			"linux-arm64": "7e436cedadb1bac0166448b05c0b5d69bb1d7879b0b26696bfc198ebdffb7b2f",
-			"linux-x64": "6e24501f753416bc84456383ccf62239889ab9fec8318549db9bee791612bd85",
-			"win32-arm64": "7de874b0d667fe04c2cd15629c19baff6dfff55e1fd99dfb14cb9850b09e7a20",
-			"win32-x64": "ca4db783ce3a1b942e67aa4002ca9f3c6ff1b150a85cb4ca1345c4299ad12a0f",
-		},
-	},
-	{
 		name: "golangci-lint",
 		repo: "golangci/golangci-lint",
 		version: "2.10.1",
@@ -297,7 +274,7 @@ const installAnalyzers = async () => {
 const main = async () => {
 	const args = process.argv.slice(2);
 	if (args.length === 1 && ["--help", "-h"].includes(args[0])) {
-		console.log("Usage: aislop-tools [--java | --jvm-security]\n  Default: Ruff, golangci-lint, and C# analyzers\n  --java: google-java-format, PMD, and Checkstyle (requires JDK 21+)\n  --jvm-security: SpotBugs, find-sec-bugs, and OWASP Dependency-Check (requires JDK 21+)");
+		console.log("Usage: aislop-tools [--java | --jvm-security]\n  Default: golangci-lint, and C# analyzers\n  --java: google-java-format, PMD, and Checkstyle (requires JDK 21+)\n  --jvm-security: SpotBugs, find-sec-bugs, and OWASP Dependency-Check (requires JDK 21+)");
 		return;
 	}
 	if (args.length === 1 && args[0] === "--java") {
