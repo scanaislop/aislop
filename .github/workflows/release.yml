@@ -150,7 +150,8 @@ jobs:
       - name: Verify packaged Python engines
         run: |
           chmod +x tools/python/{darwin,linux}-{arm64,x64}/aislop-python
-          npm pack --dry-run --json | node packaging/python/verify-package.mjs
+          # npm 11 returns an array and npm 12 keys manifests by package name.
+          npm pack --dry-run --json | jq -e '[.[]]' | node packaging/python/verify-package.mjs
 
       - name: Verify npm trusted publishing
         shell: bash
@@ -225,7 +226,8 @@ jobs:
       - name: Verify packaged Python engines
         run: |
           chmod +x tools/python/{darwin,linux}-{arm64,x64}/aislop-python
-          npm pack --dry-run --json | node packaging/python/verify-package.mjs
+          # npm 11 returns an array and npm 12 keys manifests by package name.
+          npm pack --dry-run --json | jq -e '[.[]]' | node packaging/python/verify-package.mjs
 
       - name: Publish to GitHub Packages
         run: npm publish --access public --registry=https://npm.pkg.github.com
