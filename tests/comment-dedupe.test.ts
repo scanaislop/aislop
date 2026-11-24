@@ -58,6 +58,36 @@ describe("dedupeOverlappingComments", () => {
 });
 
 describe("dedupeUnusedImports", () => {
+	it("preserves a configured import error in either engine order", () => {
+		const native = aiSlop([
+			{
+				...diag("ai-slop/unused-import", 1),
+				severity: "error",
+				message: "Imported symbol 'join' is never used",
+			},
+		]);
+		const lint: EngineResult = {
+			...native,
+			engine: "lint",
+			diagnostics: [
+				{
+					...diag("eslint/no-unused-vars", 1),
+					engine: "lint",
+					severity: "warning",
+					message: "Identifier 'join' is imported but never used.",
+				},
+			],
+		};
+		for (const results of [
+			[native, lint],
+			[lint, native],
+		]) {
+			expect(dedupeUnusedImports(results).flatMap((r) => r.diagnostics)).toEqual(
+				native.diagnostics,
+			);
+		}
+	});
+
 	it("keeps distinct symbols and falls back to the native finding when lint is absent", () => {
 		const native = (name: string) => ({
 			...diag("ai-slop/unused-import", 5),

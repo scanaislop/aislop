@@ -16,19 +16,31 @@ const importKey = (finding: Diagnostic): string | undefined => {
 	return symbol && `${finding.filePath}:${finding.line}:${symbol}`;
 };
 
+const severityRank = { info: 0, warning: 1, error: 2 };
+
 export const dedupeUnusedImports = (results: EngineResult[]): EngineResult[] => {
-	const lintImports = new Set(
-		results.filter((r) => r.engine === "lint").flatMap((r) => r.diagnostics.map(importKey)),
-	);
-	return results.map((result) =>
-		result.engine !== "ai-slop"
-			? result
-			: {
-					...result,
-					diagnostics: result.diagnostics.filter((finding) => {
-						const key = importKey(finding);
-						return !key || !lintImports.has(key);
-					}),
-				},
-	);
+	const preferred = new Map<string, Diagnostic>();
+	for (const { engine, diagnostics } of results) {
+		if (engine !== "lint" && engine !== "ai-slop") continue;
+		for (const finding of diagnostics) {
+			const key = importKey(finding);
+			if (!key) continue;
+			const previous = preferred.get(key);
+			if (
+				!previous ||
+				severityRank[finding.severity] > severityRank[previous.severity] ||
+				(finding.severity === previous.severity && engine === "lint")
+			) {
+				preferred.set(key, finding);
+			}
+		}
+	}
+
+	return results.map((result) => ({
+		...result,
+		diagnostics: result.diagnostics.filter((finding) => {
+			const key = importKey(finding);
+			return !key || !preferred.has(key) || preferred.get(key) === finding;
+		}),
+	}));
 };
