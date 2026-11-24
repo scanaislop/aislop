@@ -1,7 +1,9 @@
-onlyBuiltDependencies:
-  - '@biomejs/biome'
-  - esbuild
-  - oxlint
+# pnpm 11+ replaced onlyBuiltDependencies with allowBuilds; pnpm 12 silently
+# ignores the old key. Keep the same three approved install scripts.
+allowBuilds:
+  '@biomejs/biome': true
+  esbuild: true
+  oxlint: true
 
 overrides:
   '@hono/node-server@<2.0.5': ^2.0.5
