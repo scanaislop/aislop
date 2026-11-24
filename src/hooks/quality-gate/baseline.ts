@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { loadConfig } from "../../config/index.js";
+import { dedupeUnusedImports } from "../../engines/import-dedupe.js";
 import { runEngines } from "../../engines/orchestrator.js";
 import type { Diagnostic, EngineContext, EngineName } from "../../engines/types.js";
 import { calculateScore } from "../../scoring/index.js";
@@ -126,7 +127,7 @@ export const captureBaseline = async (
 		architecture: config.engines.architecture,
 		security: false,
 	};
-	const results = await runEngines(context, enabled);
+	const results = dedupeUnusedImports(await runEngines(context, enabled));
 	const diagnostics = results.flatMap((r) => r.diagnostics);
 	const { score } = calculateScore(
 		diagnostics,

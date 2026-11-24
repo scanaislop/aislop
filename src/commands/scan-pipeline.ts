@@ -4,6 +4,7 @@ import {
 	RULES_FILE,
 	resolveConfigFile,
 } from "../config/index.js";
+import { dedupeUnusedImports } from "../engines/import-dedupe.js";
 import type { EngineConfig, EngineResult } from "../engines/types.js";
 import { applyRuleSeverities } from "../scoring/rule-severity.js";
 import { detectSourceLanguages, discoverProject, type Language } from "../utils/discover.js";
@@ -95,5 +96,6 @@ export const runScanEngines = async (
 			? result.diagnostics
 			: applyRuleSeverities(result.diagnostics, config.rules),
 	}));
-	return applySuppressions(severityAdjusted, resolvedDir);
+	const filtered = applySuppressions(severityAdjusted, resolvedDir);
+	return { ...filtered, results: dedupeUnusedImports(filtered.results) };
 };

@@ -35,6 +35,26 @@ describe("getChangedFiles", () => {
 		fs.rmSync(tmpDir, { recursive: true, force: true });
 	});
 
+	it("includes new staged and untracked sources before the first commit", () => {
+		const fresh = path.join(tmpDir, "new");
+		fs.mkdirSync(fresh);
+		git(fresh, ["init"]);
+		write(fresh, ".gitignore", "ignored.ts\n");
+		for (const name of ["staged.ts", "café.ts", "ignored.ts", "gone.ts"]) write(fresh, name);
+		git(fresh, ["add", "staged.ts", "gone.ts"]);
+		fs.unlinkSync(path.join(fresh, "gone.ts"));
+		const names = [".gitignore", "café.ts", "staged.ts"];
+		expect(
+			getChangedFiles(fresh)
+				.map((file) => path.basename(file))
+				.sort(),
+		).toEqual(names);
+		const changed = getChangedLineMap(fresh);
+		expect([...changed.keys()].sort()).toEqual(names);
+		for (const name of names) expect(changed.get(name)).toEqual({ kind: "all" });
+		expect(getChangedFiles(fresh, "missing-ref")).toEqual([]);
+	});
+
 	it("includes staged new files", () => {
 		write(tmpDir, "added.ts", "export const added = 1;\n");
 		git(tmpDir, ["add", "added.ts"]);

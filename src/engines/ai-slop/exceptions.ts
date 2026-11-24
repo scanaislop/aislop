@@ -38,7 +38,8 @@ const SWALLOWED_EXCEPTION_PATTERNS: Array<{
 	},
 	// Ruby: rescue with no handling
 	{
-		pattern: /rescue(?:\s+\w+)?\s*(?:=>?\s*\w+)?\s*\n\s*(?:nil|#)/,
+		pattern:
+			/rescue(?:\s+\w+)?\s*(?:=>?\s*\w+)?\s*\n(?:[ \t]*#[^\n]*\n)*[ \t]*nil\b[ \t]*(?:#[^\n]*)?\r?\n\s*(?=end\b|rescue\b|ensure\b)/,
 		languages: [".rb"],
 		message: "Rescue block swallows errors silently",
 	},

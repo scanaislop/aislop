@@ -188,6 +188,7 @@ const detectDeadCodePatterns = (
 			/(?:function\s+\w+\s*\([^)]*\)|=>\s*)\s*\{\s*\}\s*;?\s*$/.test(trimmed) &&
 			!trimmed.startsWith("interface") &&
 			!trimmed.startsWith("type ") &&
+			!/^\s*(?:export\s+)?(?:const|let|function)\s+noop\b/.test(trimmed) &&
 			!isPropertyNoopAssignment(trimmed)
 		) {
 			diagnostics.push(

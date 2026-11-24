@@ -215,13 +215,14 @@ The rules that make aislop unique. These catch the patterns AI assistants leave 
 | `ai-slop/unused-css` | warning | Custom CSS/SCSS classes defined in stylesheets but referenced nowhere in the project (className/`cn`/`clsx`/template literals/`data-*`/HTML/JSX). Tailwind/utility-looking classes are skipped, and any class whose name appears as a substring in any source string (e.g. an interpolation prefix like `ui-`) is spared. Project-wide pass; conservative by design. |
 | `ai-slop/console-leftover` | warning | `console.log`/`debug`/`info` left in production code |
 | `ai-slop/todo-stub` | info | Unresolved, untracked TODO/FIXME/HACK comments (a TODO that links a tracking issue is spared) |
-| `ai-slop/unreachable-code` | warning | Code after `return`/`throw` statements |
+| `ai-slop/unreachable-code` | warning | Code after an unconditional exit, including simple Python return, raise, break and continue statements |
 | `ai-slop/constant-condition` | warning | `if (true)`, `if (false)`, `if (0)` |
 | `ai-slop/empty-function` | info | Empty function bodies |
 | `ai-slop/unsafe-type-assertion` | warning | `as any` in TypeScript |
 | `ai-slop/double-type-assertion` | warning | `as unknown as X` pattern |
 | `ai-slop/ts-directive` | info | `@ts-ignore` / `@ts-expect-error` usage |
 | `ai-slop/unknown-directive` | warning | `aislop-ignore-*` comments with an unrecognised scope (for example `aislop-ignore-nextline`), which suppress nothing. Checked in JS/TS, Python, Go, C#, and C/C++ files, where string literals can be told apart from comments. |
+| `ai-slop/duplicate-requirement` | warning | Identical bare package names or exact pins in one Python requirements file |
 | `ai-slop/duplicate-import` | warning | Multiple imports from the same module that should be merged |
 | `ai-slop/hardcoded-url` | warning | Environment-specific URLs hardcoded in production code instead of env/config; Python docstring content is exempt (see notes below the table) |
 | `ai-slop/hardcoded-id` | warning | Provider/project IDs hardcoded in production code instead of env/config |

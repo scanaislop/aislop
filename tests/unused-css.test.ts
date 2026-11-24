@@ -165,3 +165,14 @@ describe("ai-slop/unused-css", () => {
 		expect(diags).toHaveLength(0);
 	});
 });
+
+it("keeps original selector lines and sees classes emitted by Ruby filters", async () => {
+	writeFile(
+		"theme.scss",
+		"/* header\n * details\n */\n.live { color: red; }\n.dead { color: blue; }\n",
+	);
+	writeFile("filter.rb", `node["class"] = "live"\n`);
+	expect(unused(await detectUnusedCss(buildContext()))).toMatchObject([
+		{ line: 5, message: expect.stringContaining(".dead") },
+	]);
+});

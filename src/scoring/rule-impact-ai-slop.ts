@@ -65,6 +65,7 @@ export const AI_SLOP_RULE_SCORE_IMPACTS: Record<string, RuleScoreImpact> = {
 	"ai-slop/narrative-comment": style(
 		"Narrative comments are cleanup/style findings rather than defects.",
 	),
+	"ai-slop/duplicate-requirement": mechanical("Identical dependency entries are redundant."),
 	"ai-slop/duplicate-import": mechanical("Duplicate imports are mechanical cleanup."),
 	"ai-slop/hardcoded-url": advisory(
 		"Hardcoded URLs are medium-confidence config signals and can be intentional canonical URLs.",

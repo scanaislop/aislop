@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import { getSourceFiles } from "../../utils/source-files.js";
 import type { EngineContext } from "../types.js";
 import {
@@ -14,6 +15,7 @@ export const fixUnusedImports = async (context: EngineContext): Promise<void> =>
 	const files = getSourceFiles(context);
 
 	for (const filePath of files) {
+		if (path.basename(filePath) === "__init__.py") continue;
 		const analysis = analyzeFile(filePath);
 		if (!analysis) continue;
 
