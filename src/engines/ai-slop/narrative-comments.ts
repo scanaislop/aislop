@@ -110,6 +110,7 @@ const looksLikeGoDocComment = (block: CommentBlock, ext: string): boolean => {
 	const firstProse = block.prose.find((l) => l.length > 0) ?? "";
 	const firstWord = firstProse.split(/\s+/)[0] ?? "";
 
+	if (/^package\s/.test(trimmedNext) && firstProse.startsWith("Package ")) return true;
 	const declMatch = GO_DECL_NAME_RE.exec(trimmedNext);
 	if (declMatch && firstWord === declMatch[1]) return true;
 
@@ -153,7 +154,8 @@ const detectNarrativeInBlock = (
 ): { matched: boolean; reason: string } => {
 	if (looksLikeLicenseHeader(block)) return { matched: false, reason: "" };
 	if (looksLikeSuppressDirective(block)) return { matched: false, reason: "" };
-	if (block.kind === "jsdoc" && block.hasMeaningfulJsdocTag) return { matched: false, reason: "" };
+	if (block.kind === "jsdoc" && (ext === ".java" || block.hasMeaningfulJsdocTag))
+		return { matched: false, reason: "" };
 	if (block.isRustDoc) return { matched: false, reason: "" };
 	if (looksLikeGoDocComment(block, ext)) return { matched: false, reason: "" };
 	if (looksLikeRubyDocBlock(block, ext)) return { matched: false, reason: "" };
@@ -167,6 +169,14 @@ const detectNarrativeInBlock = (
 
 	if (block.kind === "line" && block.prose.some((l) => SECTION_HEADER.test(l))) {
 		return { matched: true, reason: "phase/section header" };
+	}
+
+	if (
+		ext === ".rb" &&
+		block.kind === "line" &&
+		/^\s*(?:class|module)\s+[A-Z]/.test(block.nextNonBlankLine ?? "")
+	) {
+		return { matched: false, reason: "" };
 	}
 
 	const joined = block.prose.join(" ");

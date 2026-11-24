@@ -11,13 +11,19 @@ describe("createOxlintConfig", () => {
 	it("sets no-unused-vars to 'warn' when mode is 'detect'", () => {
 		const config = createOxlintConfig({ mode: "detect" });
 		const rules = config.rules as Record<string, string>;
-		expect(rules["no-unused-vars"]).toBe("warn");
+		expect(rules["no-unused-vars"]).toEqual([
+			"warn",
+			{ ignoreUsingDeclarations: true, varsIgnorePattern: "^_", argsIgnorePattern: "^_." },
+		]);
 	});
 
 	it("defaults to detect behavior when mode is omitted", () => {
 		const config = createOxlintConfig({});
 		const rules = config.rules as Record<string, string>;
-		expect(rules["no-unused-vars"]).toBe("warn");
+		expect(rules["no-unused-vars"]).toEqual([
+			"warn",
+			{ ignoreUsingDeclarations: true, varsIgnorePattern: "^_", argsIgnorePattern: "^_." },
+		]);
 	});
 
 	it("disables react-hooks/exhaustive-deps autofix in fix mode (oxlint's autofix can produce TDZ errors when the missing dep is a hoisted const)", () => {

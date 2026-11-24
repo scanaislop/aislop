@@ -39,6 +39,7 @@ const RULE_LABELS: Record<string, string> = {
 	"ai-slop/ts-directive": "@ts-ignore / @ts-expect-error",
 	"ai-slop/unknown-directive": "Unrecognised aislop-ignore directive",
 	"ai-slop/narrative-comment": "Narrative comment block",
+	"ai-slop/duplicate-requirement": "Duplicate Python requirement",
 	"ai-slop/duplicate-import": "Duplicate import statement",
 	"ai-slop/hardcoded-url": "Hardcoded URL",
 	"ai-slop/hardcoded-id": "Hardcoded provider ID",
@@ -156,6 +157,7 @@ const RULE_DESCRIPTIONS: Record<string, string> = {
 	"ai-slop/unknown-directive":
 		"An aislop-ignore comment uses a scope aislop does not recognise, so it suppresses nothing.",
 	"ai-slop/narrative-comment": "Comment narrates implementation instead of adding context.",
+	"ai-slop/duplicate-requirement": "Identical dependency entry appears twice in one file.",
 	"ai-slop/duplicate-import": "Same module is imported more than once.",
 	"ai-slop/hardcoded-url": "URL-like value is embedded directly in code.",
 	"ai-slop/hardcoded-id": "Provider/account/test ID is embedded directly in code.",

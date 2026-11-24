@@ -33,6 +33,8 @@ pnpm vitest run   # Run tests without rebuilding
 pnpm scan         # Build + run aislop on itself
 ```
 
+The default test run skips two opt-in JVM integration suites. The [JVM integration workflow](.github/workflows/jvm.yml) runs the real Java and Scala toolchain tests on Linux and Windows with JDK 21 and pinned compiler and formatter fixtures. A separate Linux step populates an NVD advisory database and runs both real-JAR dependency audits. The workflow includes the setup commands and environment variables for reproducing either suite locally.
+
 ### Running aislop locally
 
 After building you can run it directly:

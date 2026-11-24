@@ -3,14 +3,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import { findConfigDir, loadConfig, RULES_FILE, resolveConfigFile } from "../config/index.js";
+import { dedupeUnusedImports } from "../engines/import-dedupe.js";
 import { runEngines } from "../engines/orchestrator.js";
 import type { Diagnostic, EngineContext, EngineName } from "../engines/types.js";
 import { readBaseline } from "../hooks/quality-gate/baseline.js";
 import { assessDiagnostic, summarizeFindingAssessments } from "../output/finding-assessment.js";
 import { calculateScore } from "../scoring/index.js";
+import { siteUrl } from "../ui/site-url.js";
 import { discoverProject } from "../utils/discover.js";
 import { toPosix } from "../utils/paths.js";
-import { siteUrl } from "../ui/site-url.js";
 
 const MAX_FINDINGS = 25;
 
@@ -97,7 +98,7 @@ const runScan = async (cwd: string) => {
 	const config = loadConfig(cwd);
 	const context = buildEngineContext(project.rootDirectory, project, config);
 	const enabled = enabledEnginesFromConfig(config);
-	const results = await runEngines(context, enabled);
+	const results = dedupeUnusedImports(await runEngines(context, enabled));
 	const diagnostics = results.flatMap((r) => r.diagnostics);
 	const { score } = calculateScore(
 		diagnostics,

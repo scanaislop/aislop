@@ -1,4 +1,5 @@
 import { runSubprocess } from "../../utils/subprocess.js";
+import { filterConsumedFacadeImports } from "../python-facade.js";
 import { getPythonTargets, getRuffDiagnosticPath, resolveRuffBinary } from "../python-targets.js";
 import type { Diagnostic, EngineContext } from "../types.js";
 
@@ -65,7 +66,7 @@ export const runRuffLint = async (
 			category: "Python Lint",
 			fixable: d.fix?.applicability === "safe",
 		}));
-		return [...warnings, ...findings];
+		return [...warnings, ...filterConsumedFacadeImports(findings, context)];
 	} catch (error) {
 		return [
 			engineNotice("ruff/engine-error", error instanceof Error ? error.message : String(error)),

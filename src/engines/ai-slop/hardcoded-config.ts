@@ -202,7 +202,7 @@ const shouldFlagUrlLiteral = (line: string, urlText: string): boolean => {
 	if (isEnvBackedLine(line)) return false;
 	if (urlText.includes(TEMPLATE_INTERPOLATION_START) && /\bnew\s+URL\s*\(/.test(line)) return false;
 	const host = safeUrlHost(urlText);
-	if (!host) return false;
+	if (!host || host.includes(TEMPLATE_INTERPOLATION_START)) return false;
 	if (PLACEHOLDER_HOSTS.has(host)) return false;
 	if (LOOPBACK_HOSTS.has(host)) return false;
 	if (isVendorApiHost(host)) return false;
@@ -259,6 +259,8 @@ const scanLineForConfigLiterals = (
 	for (const idMatch of line.matchAll(ID_LITERAL_RE)) {
 		const value = idMatch[2];
 		if (commentStartsBefore(line, idMatch.index, ext)) continue;
+		if (line[idMatch.index - 1] === "[" && line[idMatch.index + idMatch[0].length] === "]")
+			continue;
 		if (!hasUsefulIdShape(value)) continue;
 		diagnostics.push(makeFinding(relativePath, lineNumber, HARDCODED_ID_FINDING));
 	}

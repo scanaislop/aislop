@@ -26,6 +26,7 @@ const REFERENCE_EXTENSIONS = new Set([
 	".htm",
 	".php",
 	".erb",
+	".rb",
 	".md",
 	".mdx",
 	".css",
@@ -42,6 +43,7 @@ const UNUSED_CSS_EXTRA_EXTENSIONS = [
 	".html",
 	".htm",
 	".erb",
+	".rb",
 	".md",
 	".mdx",
 ];
@@ -52,7 +54,8 @@ interface ClassDefinition {
 }
 
 // Strip /* ... */ comments so commented-out rules don't register as definitions.
-const stripCssComments = (content: string): string => content.replace(/\/\*[\s\S]*?\*\//g, "");
+const stripCssComments = (content: string): string =>
+	content.replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, " "));
 
 // A class token in a selector: `.foo`, `.foo-bar`, `.foo__bar--baz`.
 // We deliberately ignore pseudo-classes (`:hover`) and attribute selectors.

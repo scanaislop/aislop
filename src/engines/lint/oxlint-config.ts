@@ -11,9 +11,14 @@ interface OxlintConfigOptions {
 	noUndefSeverity?: "error" | "warn" | "off";
 }
 
-const buildBaseRules = (): Record<string, string> => ({
-	// Core correctness
-	"no-unused-vars": "warn",
+// Oxlint drops its underscore defaults when this rule takes an options object.
+const unusedVariableOptions = {
+	ignoreUsingDeclarations: true,
+	varsIgnorePattern: "^_",
+	argsIgnorePattern: "^_.",
+};
+const buildBaseRules = (): Record<string, string | [string, typeof unusedVariableOptions]> => ({
+	"no-unused-vars": ["warn", unusedVariableOptions],
 	"no-undef": "error",
 	"no-constant-condition": "warn",
 	"no-control-regex": "off", // ANSI-stripping regexes are a legitimate CLI pattern

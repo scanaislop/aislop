@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { detectDuplicateRequirements } from "../src/engines/ai-slop/duplicate-requirements.js";
 import { detectSwallowedExceptions } from "../src/engines/ai-slop/exceptions.js";
 import { detectPythonPatterns } from "../src/engines/ai-slop/python-patterns.js";
 import type { EngineContext } from "../src/engines/types.js";
@@ -704,4 +705,77 @@ describe("Python swallowed exceptions in strings", () => {
 		const diagnostics = await detectSwallowedExceptions(buildContext());
 		expect(diagnostics.map((d) => d.line)).toEqual([17]);
 	});
+});
+
+describe("unreachable Python statements", () => {
+	it("reports the first statement following an exit in the same suite", async () => {
+		writeFile(
+			"sample.py",
+			[
+				"def train(args):",
+				"    if args:",
+				"        return args",
+				"    return",
+				"    # legacy training path",
+				"    import math",
+				"    train(math.pi)",
+				"def other():",
+				"    try:",
+				"        raise ValueError",
+				"    finally:",
+				"        clean()",
+				"    for i in items:",
+				"        continue",
+				"        consume(i)",
+			].join("\n"),
+		);
+		const findings = await detectPythonPatterns(buildContext());
+		expect(
+			findings.filter((d) => d.rule === "ai-slop/unreachable-code").map((d) => d.line),
+		).toEqual([6, 15]);
+	});
+
+	it("ignores text examples and multiline return expressions", async () => {
+		writeFile(
+			"sample.py",
+			[
+				'example = """',
+				"    return",
+				"    unreachable()",
+				'"""',
+				"def fetch():",
+				"    return (",
+				"        do_work()",
+				"    )",
+			].join("\n"),
+		);
+		const findings = await detectPythonPatterns(buildContext());
+		expect(findings.some((d) => d.rule === "ai-slop/unreachable-code")).toBe(false);
+	});
+});
+
+it("compares simple requirements only within the selected file", () => {
+	writeFile(
+		"requirements.txt",
+		[
+			"pkg==1.0",
+			"pkg==1.0",
+			"pkg==1.0; python_version < '3.10'",
+			"pkg==2.0",
+			"pkg[extra]==1.0",
+			"-r base.txt",
+			"pkg==1.0 \\",
+			"    --hash=sha256:123",
+		].join("\n"),
+	);
+	writeFile("requirements-dev.txt", "pkg==1.0\n");
+	const findings = detectDuplicateRequirements(buildContext());
+	expect(findings).toMatchObject([
+		{
+			rule: "ai-slop/duplicate-requirement",
+			line: 2,
+			filePath: "requirements.txt",
+			fixable: false,
+		},
+	]);
 });
