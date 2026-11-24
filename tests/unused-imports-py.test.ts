@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { detectUnusedImports } from "../src/engines/ai-slop/unused-imports.js";
 import { fixUnusedImports } from "../src/engines/ai-slop/unused-imports-fix.js";
 import type { EngineContext } from "../src/engines/types.js";
 
@@ -73,4 +74,24 @@ describe("fixUnusedImports — Python comma imports", () => {
 		await fixUnusedImports(makeContext([file]));
 		expect(fs.readFileSync(file, "utf-8")).toBe("import numpy as np\n\nprint(np.array([1]))\n");
 	});
+});
+
+it("preserves implicit public exports in package initializers during fix", async () => {
+	const source = "from .reader import open_stream\n";
+	const file = write("__init__.py", source);
+	await fixUnusedImports(makeContext([file]));
+	expect(fs.readFileSync(file, "utf8")).toBe(source);
+});
+
+it("checks sibling consumers before calling a package export unused", async () => {
+	fs.mkdirSync(path.join(tmpDir, "pkg"));
+	const entry = write("pkg/__init__.py", "from .reader import open_stream, spare\n");
+	const caller = write("command.py", "from pkg import (\n    open_stream as read,\n)\nread()\n");
+	const findings = await detectUnusedImports({
+		...makeContext([entry]),
+		projectFiles: [entry, caller],
+	});
+	expect(findings).toMatchObject([
+		{ message: "Imported symbol 'spare' is never used", fixable: false },
+	]);
 });

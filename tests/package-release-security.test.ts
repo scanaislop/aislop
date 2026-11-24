@@ -54,6 +54,11 @@ const ReleaseWorkflowSchema = z.object({
 		"move-major-tag": WorkflowJobSchema,
 		"publish-gpr": WorkflowJobSchema,
 		"publish-npm": WorkflowJobSchema,
+		"python-engines": z.object({
+			needs: z.string(),
+			uses: z.string(),
+			with: z.object({ ref: z.string() }),
+		}),
 		"resolve-release": WorkflowJobSchema,
 	}),
 	permissions: z.record(z.string(), z.string()),
@@ -141,7 +146,12 @@ describe("package release security", () => {
 			'if [ "$compare_status" != "ahead" ] && [ "$compare_status" != "identical" ]',
 		);
 		expect(checkoutRefs).toEqual([resolvedSha, resolvedSha]);
-		expect(workflow.jobs["publish-npm"].needs).toBe("resolve-release");
+		expect(workflow.jobs["python-engines"]).toEqual({
+			needs: "resolve-release",
+			uses: "./.github/workflows/python-engine.yml",
+			with: { ref: resolvedSha },
+		});
+		expect(workflow.jobs["publish-npm"].needs).toEqual(["resolve-release", "python-engines"]);
 		expect(workflow.jobs["publish-gpr"].needs).toEqual(["resolve-release", "publish-npm"]);
 		expect(workflow.jobs["move-major-tag"].needs).toEqual(["resolve-release", "publish-npm"]);
 		expect(

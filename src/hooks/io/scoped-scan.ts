@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { findConfigDir, loadConfig, RULES_FILE, resolveConfigFile } from "../../config/index.js";
+import { dedupeUnusedImports } from "../../engines/import-dedupe.js";
 import { runEngines } from "../../engines/orchestrator.js";
 import type { Diagnostic, EngineContext, EngineName } from "../../engines/types.js";
 import { calculateScore } from "../../scoring/index.js";
@@ -146,10 +147,14 @@ export const runScopedScan = async (
 	};
 
 	const results = await runEngines(context, enabled);
-	const diagnostics = applyRuleSeverities(
-		results.flatMap((result) => result.diagnostics),
-		config.overrides.length ? {} : config.rules,
-	);
+	const adjusted = results.map((result) => ({
+		...result,
+		diagnostics: applyRuleSeverities(
+			result.diagnostics,
+			config.overrides.length ? {} : config.rules,
+		),
+	}));
+	const diagnostics = dedupeUnusedImports(adjusted).flatMap((result) => result.diagnostics);
 	const { score } = calculateScore(
 		diagnostics,
 		config.scoring.weights,

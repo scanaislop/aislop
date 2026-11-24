@@ -1,4 +1,5 @@
 import { runSubprocess } from "../../utils/subprocess.js";
+import { filterConsumedFacadeImports } from "../python-facade.js";
 import { getPythonTargets, getRuffDiagnosticPath, resolveRuffBinary } from "../python-targets.js";
 import type { Diagnostic, EngineContext } from "../types.js";
 
@@ -9,6 +10,19 @@ interface RuffDiagnostic {
 	location: { row: number; column: number };
 	fix?: { applicability: string };
 }
+
+const engineNotice = (rule: string, message: string): Diagnostic => ({
+	filePath: ".",
+	engine: "lint",
+	rule,
+	severity: rule === "ruff/engine-error" ? "error" : "warning",
+	message,
+	help: "",
+	line: 0,
+	column: 0,
+	category: "Python Lint",
+	fixable: false,
+});
 
 export const runRuffLint = async (
 	context: EngineContext,
@@ -27,11 +41,17 @@ export const runRuffLint = async (
 			},
 		);
 
-		const output = result.stdout;
-		if (!output) return [];
+		if (result.exitCode !== 0 && result.exitCode !== 1) {
+			return [engineNotice("ruff/engine-error", result.stderr || "Python lint did not complete.")];
+		}
+		const warnings = result.stderr.split(/\r?\n/).flatMap((line) => {
+			const marker = "Unsupported by the aislop Python engine:";
+			const start = line.indexOf(marker);
+			return start < 0 ? [] : [engineNotice("ruff/unsupported-rules", line.slice(start))];
+		});
 
-		const diagnostics: RuffDiagnostic[] = JSON.parse(output);
-		return diagnostics.map((d) => ({
+		const diagnostics: RuffDiagnostic[] = JSON.parse(result.stdout);
+		const findings = diagnostics.map((d) => ({
 			filePath: getRuffDiagnosticPath(context.rootDirectory, d.filename),
 			engine: "lint" as const,
 			rule: `ruff/${d.code}`,
@@ -46,14 +66,17 @@ export const runRuffLint = async (
 			category: "Python Lint",
 			fixable: d.fix?.applicability === "safe",
 		}));
-	} catch {
-		return [];
+		return [...warnings, ...filterConsumedFacadeImports(findings, context)];
+	} catch (error) {
+		return [
+			engineNotice("ruff/engine-error", error instanceof Error ? error.message : String(error)),
+		];
 	}
 };
 
 const ruffLintFixArgs = (context: EngineContext, unsafe: boolean): string[] => {
 	const targets = context.files ? getPythonTargets(context) : [context.rootDirectory];
-	const args = ["check", "--fix", "--force-exclude"];
+	const args = ["check", "--fix", "--exit-zero", "--force-exclude"];
 	if (unsafe) args.push("--unsafe-fixes");
 	args.push(...targets);
 	return args;

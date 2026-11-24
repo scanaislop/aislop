@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dedupeOverlappingComments } from "../src/engines/comment-dedupe.js";
+import { dedupeUnusedImports } from "../src/engines/import-dedupe.js";
 import type { Diagnostic, EngineResult } from "../src/engines/types.js";
 
 const diag = (rule: string, line: number, filePath = "A.cs"): Diagnostic => ({
@@ -53,5 +54,60 @@ describe("dedupeOverlappingComments", () => {
 		};
 		const out = dedupeOverlappingComments([lintResult]);
 		expect(out[0].diagnostics).toHaveLength(2);
+	});
+});
+
+describe("dedupeUnusedImports", () => {
+	it("preserves a configured import error in either engine order", () => {
+		const native = aiSlop([
+			{
+				...diag("ai-slop/unused-import", 1),
+				severity: "error",
+				message: "Imported symbol 'join' is never used",
+			},
+		]);
+		const lint: EngineResult = {
+			...native,
+			engine: "lint",
+			diagnostics: [
+				{
+					...diag("eslint/no-unused-vars", 1),
+					engine: "lint",
+					severity: "warning",
+					message: "Identifier 'join' is imported but never used.",
+				},
+			],
+		};
+		for (const results of [
+			[native, lint],
+			[lint, native],
+		]) {
+			expect(dedupeUnusedImports(results).flatMap((r) => r.diagnostics)).toEqual(
+				native.diagnostics,
+			);
+		}
+	});
+
+	it("keeps distinct symbols and falls back to the native finding when lint is absent", () => {
+		const native = (name: string) => ({
+			...diag("ai-slop/unused-import", 5),
+			message: `Imported symbol '${name}' is never used`,
+		});
+		const rustLint: EngineResult = {
+			...aiSlop([]),
+			engine: "lint",
+			diagnostics: [
+				{
+					...diag("ruff/F401", 5),
+					engine: "lint",
+					message: "`pathlib.Path` imported but unused",
+				},
+			],
+		};
+		const result = aiSlop([native("Path"), native("Other"), { ...native("Path"), line: 9 }]);
+		expect(dedupeUnusedImports([result, rustLint])[0].diagnostics).toEqual(
+			result.diagnostics.slice(1),
+		);
+		expect(dedupeUnusedImports([result])[0].diagnostics).toEqual(result.diagnostics);
 	});
 });

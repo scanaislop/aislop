@@ -43,6 +43,17 @@ const isNilGuardPanic = (lines: string[], panicLineIdx: number, line: string): b
 	return false;
 };
 
+const isRecoveredPanic = (lines: string[], index: number, name: string): boolean => {
+	const guard = new RegExp(
+		`^\\s*if\\s+${name}\\s*:=\\s*recover\\(\\);\\s*${name}\\s*!=\\s*nil\\s*\\{\\s*$`,
+	);
+	for (let i = index - 1; i >= 0; i--) {
+		if (guard.test(lines[i])) return true;
+		if (!/^\s*(?:[\w.]+\([^{}=]*\)|\/\/.*)?\s*$/.test(lines[i])) break;
+	}
+	return false;
+};
+
 const flagLibraryPanic = (
 	lines: string[],
 	relPath: string,
@@ -59,6 +70,8 @@ const flagLibraryPanic = (
 		if (!PANIC_CALL_RE.test(line)) continue;
 		if (hasIntentComment(lines, i)) continue;
 		if (isNilGuardPanic(lines, i, line)) continue;
+		const rethrow = /^\s*panic\((\w+)\)\s*$/.exec(line);
+		if (rethrow && isRecoveredPanic(lines, i, rethrow[1])) continue;
 		out.push({
 			filePath: relPath,
 			engine: "ai-slop",

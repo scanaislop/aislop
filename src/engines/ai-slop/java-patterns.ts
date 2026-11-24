@@ -58,7 +58,9 @@ const closingBrace = (masked: string, openIndex: number): number => {
 };
 
 const isJavadocReference = (raw: string, name: string): boolean =>
-	new RegExp(`@(?:link|linkplain|see|throws|exception|value)\\s+[\\w.#]*\\b${name}\\b`).test(raw);
+	new RegExp(
+		`@(?:link|linkplain|see|throws|exception|value)\\s+[\\w.#]*(?:\\([^)]*?)?\\b${name}\\b`,
+	).test(raw);
 
 const detectImports = (raw: string, masked: string, relPath: string): Diagnostic[] => {
 	const diagnostics: Diagnostic[] = [];

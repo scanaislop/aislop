@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.23.0 (2026-11-24)
+
+- Python scans and fixes use the packaged aislop Python engine on six platforms. Import sorting recognizes Python 3.15 standard-library modules such as `zoneinfo`. Unsupported project lint rules are reported.
+- Python scans now flag unreachable statements after unconditional exits and repeated entries in requirements files.
+- Reduced duplicate unused-import reports and false positives for TypeScript resource bindings, Python package exports, Ruby-generated markup and documented declarations. CSS findings point to the original selector line.
+- Changed-file scans include staged and untracked sources before the first Git commit. The native unused-import detector avoids redundant file reads and repeated line splitting.
+
 ## 0.22.3 (2026-11-22)
 
 - Python traceback checks now recognize logging calls that capture exceptions when a nested helper receives `exc_info=False` or a continued log message mentions that option.

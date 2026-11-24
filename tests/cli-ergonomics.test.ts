@@ -67,7 +67,6 @@ const PUBLIC_HELP_COMMANDS: string[][] = [
 	["version", "--help"],
 	["commands", "--help"],
 ];
-const PUBLIC_HELP_TIMEOUT_MS = process.platform === "win32" ? 120_000 : 60_000;
 
 describe("cli ergonomics", () => {
 	it("uses the installed command in top-level help and keeps npx for one-off latest runs", () => {
@@ -114,9 +113,7 @@ describe("cli ergonomics", () => {
 			writeFileSync(filePath, "");
 			const missing = runCli(["fix", missingPath]);
 			expect(missing.status).toBe(1);
-			expect(`${missing.stdout}${missing.stderr}`).toContain(
-				`Path does not exist: ${missingPath}`,
-			);
+			expect(`${missing.stdout}${missing.stderr}`).toContain(`Path does not exist: ${missingPath}`);
 
 			const file = runCli(["fix", filePath]);
 			expect(file.status).toBe(1);
@@ -195,20 +192,15 @@ describe("cli ergonomics", () => {
 		expect(result.stdout).not.toContain("--all");
 	});
 
-	it("renders help for every public command without argument-routing errors", () => {
-		for (const args of PUBLIC_HELP_COMMANDS) {
+	for (const args of PUBLIC_HELP_COMMANDS) {
+		it(`renders help for aislop ${args.join(" ")}`, () => {
 			const result = runCli(args);
-			const label = `aislop ${args.join(" ")}`;
-			expect(result.status, label).toBe(0);
-			if (args.length === 1 && args[0] === "--help") {
-				expect(result.stdout, label).toContain("Usage");
-			} else {
-				expect(result.stdout, label).toContain("Usage:");
-			}
-			expect(result.stderr, label).not.toContain("too many arguments");
-			expect(result.stderr, label).not.toContain("unknown command");
-		}
-	}, PUBLIC_HELP_TIMEOUT_MS);
+			expect(result.status).toBe(0);
+			expect(result.stdout).toContain(args.length === 1 ? "Usage" : "Usage:");
+			expect(result.stderr).not.toContain("too many arguments");
+			expect(result.stderr).not.toContain("unknown command");
+		});
+	}
 
 	it("keeps existing core command help complete and aligned with registered flags", () => {
 		const scan = runCli(["scan", "--help"]);
@@ -277,11 +269,17 @@ describe("cli ergonomics", () => {
 	}, 30_000);
 
 	it("renders scan scope as an aligned display row", () => {
-		const result = runCli(["scan", "--changes"]);
-
-		expect(result.status).toBe(0);
-		expect(result.stdout).toMatch(/Scope\s+\d+ changed file\(s\)/);
-		expect(result.stdout).not.toContain("Scope:");
+		const project = mkdtempSync(path.join(tmpdir(), "aislop-scope-row-"));
+		try {
+			expect(spawnSync("git", ["init", "-q"], { cwd: project }).status).toBe(0);
+			writeFileSync(path.join(project, "value.ts"), "export const value = 1;\n");
+			const result = runCli(["scan", "--changes"], project);
+			expect(result.status).toBe(0);
+			expect(result.stdout).toMatch(/Scope\s+1 changed file\(s\)/);
+			expect(result.stdout).not.toContain("Scope:");
+		} finally {
+			rmSync(project, { recursive: true, force: true });
+		}
 	});
 
 	it("exposes local agent provider status and repair session help", () => {

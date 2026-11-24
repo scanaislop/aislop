@@ -11,7 +11,7 @@ const REQUIREMENTS_INCLUDE_RE = /^(?:-r|--requirement)(?:\s+|=)(\S+)/;
 const CONSTRAINT_INCLUDE_RE = /^(?:-c|--constraint)(?:\s+|=)(\S+)/;
 const MAX_REQUIREMENTS_FILES = 64;
 
-const isRequirementsFileName = (name: string): boolean => REQUIREMENTS_FILE_RE.test(name);
+export const isRequirementsFileName = (name: string): boolean => REQUIREMENTS_FILE_RE.test(name);
 
 const isPythonManifestFileName = (name: string): boolean =>
 	PYTHON_MANIFEST_FILES.has(name) || isRequirementsFileName(name);
@@ -65,7 +65,7 @@ const isWithinDirectory = (directory: string, filePath: string): boolean => {
 	);
 };
 
-const readPythonManifest = (filePath: string, boundaryDir: string): string | null => {
+export const readPythonManifest = (filePath: string, boundaryDir: string): string | null => {
 	let descriptor: number | null = null;
 	try {
 		const realBoundary = fs.realpathSync(boundaryDir);

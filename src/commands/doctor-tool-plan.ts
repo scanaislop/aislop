@@ -23,7 +23,7 @@ const systemToolDecision = (
 	spec: SystemToolSpec,
 ): ToolDecision =>
 	installed[spec.binary]
-		? { tool: `${spec.toolLabel} (system)`, status: "ok" }
+		? { tool: spec.binary === "ruff" ? spec.toolLabel : `${spec.toolLabel} (system)`, status: "ok" }
 		: {
 				tool: `${spec.toolLabel} not found`,
 				status: "missing",
@@ -75,7 +75,12 @@ const spec = (
 ): LangToolSpec => ({ language, binary, toolLabel, remediation });
 
 const FORMAT_SPECS: LangToolSpec[] = [
-	spec("python", "ruff", "ruff", "Install: pipx install ruff"),
+	spec(
+		"python",
+		"ruff",
+		"Python lint and format engine",
+		"Install the aislop release for your platform.",
+	),
 	spec("go", "gofmt", "gofmt", "Install: via go toolchain: https://go.dev/dl/"),
 	spec("rust", "cargo", "cargo fmt", "Install: rustup component add rustfmt"),
 	spec("ruby", "rubocop", "rubocop", "Install: gem install rubocop"),
@@ -112,7 +117,12 @@ const FORMAT_SPECS: LangToolSpec[] = [
 ];
 
 const LINT_SPECS: LangToolSpec[] = [
-	spec("python", "ruff", "ruff", "Install: pipx install ruff"),
+	spec(
+		"python",
+		"ruff",
+		"Python lint and format engine",
+		"Install the aislop release for your platform.",
+	),
 	spec("go", "golangci-lint", "golangci-lint", "Install: brew install golangci-lint"),
 	spec("rust", "clippy-driver", "clippy", "Install: rustup component add clippy"),
 	spec("ruby", "rubocop", "rubocop", "Install: gem install rubocop"),

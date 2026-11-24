@@ -46,8 +46,17 @@ const BUNDLED_TOOL_NAMES = new Set(["ruff", "golangci-lint"]);
 const withExecutableExtension = (toolName: string): string =>
 	process.platform === "win32" ? `${toolName}.exe` : toolName;
 
+const pythonEnginePath = path.join(
+	PACKAGE_ROOT,
+	"tools",
+	"python",
+	`${process.platform}-${process.arch}`,
+	withExecutableExtension("aislop-python"),
+);
+
 const getBundledToolPath = (toolName: string): string | null => {
 	if (!BUNDLED_TOOL_NAMES.has(toolName)) return null;
+	if (toolName === "ruff" && isExecutableFile(pythonEnginePath)) return pythonEnginePath;
 	const candidate = path.join(TOOLS_BIN_DIR, withExecutableExtension(toolName));
 	return fs.existsSync(candidate) ? candidate : null;
 };
@@ -140,6 +149,7 @@ export const resolveToolBinary = (toolName: string, options: ResolveToolOptions 
 	// copy that drifts across the tool's style/release editions. Fall back to the
 	// bundled binary (then bare name) when the tool is not on PATH, preserving the
 	// zero-dependency guarantee for users who never installed it.
+	if (toolName === "ruff" && isExecutableFile(pythonEnginePath)) return pythonEnginePath;
 	const projectTool = options.projectRoot
 		? findProjectVenvTool(toolName, options.projectRoot)
 		: null;

@@ -94,7 +94,7 @@ npm install -g aislop
 
 Also available as [`@scanaislop/aislop`](docs/installation.md) on GitHub Packages.
 
-Package installation does not run dependency lifecycle scripts. After installing, run `aislop-tools` once if you want bundled Ruff and golangci-lint coverage; the core scanner works without it.
+Package installation does not run dependency lifecycle scripts. The package includes the aislop Python engine for macOS, Windows, and glibc Linux on x64 and ARM64. It formats Python and checks unused or unsorted imports, undefined names, unused variables, redefinitions, and repeated dictionary keys. Run `aislop-tools` if you also want golangci-lint and the C# analyzers.
 
 For Java, run `aislop-tools --java` to download pinned, checksum-verified google-java-format, PMD, and Checkstyle distributions. Keep JDK 21 or newer on PATH. Existing executable system installations take precedence; the bundled tools run directly through Java without shell wrappers. Java formatting still requires a build-file opt-in, and Checkstyle uses your project's configuration.
 
@@ -502,8 +502,8 @@ Six deterministic engines run in parallel:
 
 | Engine | What it checks | How |
 |---|---|---|
-| **Formatting** | Code style consistency | Biome, ruff, gofmt, cargo fmt, rubocop, php-cs-fixer, google-java-format, scalafmt, dotnet format, clang-format |
-| **Linting** | Language-specific issues | oxlint, ruff, golangci-lint, clippy, expo-doctor, PMD, Checkstyle, Roslynator, JetBrains InspectCode, cppcheck, clang-tidy |
+| **Formatting** | Code style consistency | Biome, aislop Python engine, gofmt, cargo fmt, rubocop, php-cs-fixer, google-java-format, scalafmt, dotnet format, clang-format |
+| **Linting** | Language-specific issues | oxlint, aislop Python engine, golangci-lint, clippy, expo-doctor, PMD, Checkstyle, Roslynator, JetBrains InspectCode, cppcheck, clang-tidy |
 | **Code Quality** | Complexity and dead code | Function/file size limits, deep nesting, unused files/deps (knip), AST-based unused-declaration removal |
 | **AI Slop** | AI-authored code patterns | Narrative comments, trivial comments, dead patterns, unused imports, `as any`, `console.log` leftovers, TODO stubs, generic names |
 | **Security** | Vulnerabilities and risky code | eval, innerHTML, SQL/shell injection, unsafe deserialization, dependency audits for JavaScript, Python, Rust, Go, and .NET |

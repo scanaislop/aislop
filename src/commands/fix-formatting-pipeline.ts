@@ -59,7 +59,7 @@ export const runFormattingStep = async (deps: PipelineDeps): Promise<void> => {
 			() => fixRuffFormat(deps.context),
 		);
 	} else if (deps.projectInfo.languages.includes("python")) {
-		log.warn("Python detected but ruff is not installed; skipping Python formatting fixes.");
+		log.warn("Python engine unavailable on this platform; skipping Python formatting fixes.");
 	}
 
 	if (deps.projectInfo.languages.includes("go") && deps.projectInfo.installedTools.gofmt) {

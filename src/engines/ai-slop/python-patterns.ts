@@ -317,6 +317,44 @@ const flagMutableDefaults = (lines: string[], relPath: string, out: Diagnostic[]
 	}
 };
 
+// Only infer an exit for a complete physical statement. The mask keeps delimiters
+// in strings and comments out of the balance check without changing offsets.
+const completedExitIndent = (code: string): string | undefined => {
+	const exit = /^([ \t]+)(?:return|raise|break|continue)\b/.exec(code);
+	if (!exit || code.trimEnd().endsWith("\\")) return;
+	const opens = code.match(/[([{]/g)?.length ?? 0;
+	const closes = code.match(/[)\]}]/g)?.length ?? 0;
+	return opens === closes ? exit[1] : undefined;
+};
+
+const flagUnreachable = (lines: string[], relPath: string, out: Diagnostic[]): void => {
+	const masked = maskStringsAndComments(lines.join("\n"));
+	const strings = scanPythonDocstrings(lines).tripleQuotedStringLines;
+	let offset = 0;
+	let exitIndent: string | undefined;
+	let deadSuite: string | undefined;
+	for (const [index, raw] of lines.entries()) {
+		const code = masked.slice(offset, offset + raw.length);
+		offset += raw.length + 1;
+		if (!code.trim()) continue;
+		if (deadSuite && code.startsWith(deadSuite)) continue;
+		deadSuite = undefined;
+		if (exitIndent && /^[ \t]*/.exec(code)?.[0] === exitIndent) {
+			pushLineFinding(out, relPath, index + 1, {
+				rule: "ai-slop/unreachable-code",
+				severity: "warning",
+				message: "Statement follows an unconditional exit in the same Python suite.",
+				help: "Review the unreachable block and move or remove it if appropriate.",
+			});
+			deadSuite = exitIndent;
+			exitIndent = undefined;
+		} else {
+			exitIndent =
+				strings.has(index) || raw.trimEnd().endsWith("\\") ? undefined : completedExitIndent(code);
+		}
+	}
+};
+
 const flagPrintInProduction = (
 	lines: string[],
 	relPath: string,
@@ -327,14 +365,14 @@ const flagPrintInProduction = (
 	if (isInScriptDir(relPath)) return;
 	if (isTutorialFile(basename)) return;
 	// Files with a main-guard treat their print() calls as CLI output, not debug residue.
-	if (hasMainGuard(lines)) return;
+	if (hasMainGuard(lines) || /^#!.*\bpython[\d.]*\b/.test(lines[0] ?? "")) return;
 	// String content is not executable, so any triple-quoted interior is
 	// excluded here - not just docstring-positioned ones: a print() line inside
 	// an assigned template string is template text, not debug residue.
 	const stringContentLines = scanPythonDocstrings(lines).tripleQuotedStringLines;
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
-		if (!PRINT_RE.test(line)) continue;
+		if (!PRINT_RE.test(line) || /,\s*file\s*=\s*sys\.stderr\s*[,)]/.test(line)) continue;
 		const trimmed = line.trim();
 		if (trimmed.startsWith("#")) continue;
 		if (stringContentLines.has(i)) continue;
@@ -460,6 +498,7 @@ export const detectPythonPatterns = async (context: EngineContext): Promise<Diag
 		const basename = path.basename(filePath);
 		const lines = content.split("\n");
 
+		flagUnreachable(lines, relPath, diagnostics);
 		flagBareExcept(lines, relPath, diagnostics);
 		flagBroadExceptWithSilentBody(lines, relPath, diagnostics);
 		flagMutableDefaults(lines, relPath, diagnostics);
